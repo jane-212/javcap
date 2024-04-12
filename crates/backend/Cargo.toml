@@ -12,3 +12,5 @@ error.workspace = true
 async-trait.workspace = true
 video.workspace = true
 tokio.workspace = true
+tera.workspace = true
+serde.workspace = true

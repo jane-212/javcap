@@ -5,7 +5,7 @@ use std::{
 
 use backend::Backend;
 use config::Config;
-use error::{Result, Error};
+use error::{Error, Result};
 use video::Video;
 use walkdir::WalkDir;
 
@@ -30,7 +30,7 @@ async fn run() -> Result<()> {
     let backend = Backend::new()?;
 
     for path in paths {
-        if let Err(err) = handle(&path, &bar, &backend).await {
+        if let Err(err) = handle(&path, &bar, &backend, &config).await {
             bar.warn(&err.to_string());
         }
     }
@@ -38,12 +38,14 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
-async fn handle(path: &Path, bar: &Bar, backend: &Backend) -> Result<()> {
+async fn handle(path: &Path, bar: &Bar, backend: &Backend, config: &Config) -> Result<()> {
     let video = Video::parse(path)?;
     bar.message(&format!("search {}", video.id()));
     let Some(info) = backend.search(&video).await else {
-        return Err(Error::Info(video.id().to_string()))
+        return Err(Error::Info(video.id().to_string()));
     };
+    bar.message(&format!("write {}", video.id()));
+    info.write_to(&PathBuf::from(&config.file.output)).await?;
     bar.info(&format!("{}({})", video.id(), video.path().display()));
 
     Ok(())

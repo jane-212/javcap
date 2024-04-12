@@ -1,8 +1,13 @@
 use error::{Error, Result};
-use std::path::Path;
-use tokio::{fs::OpenOptions, io::AsyncWriteExt};
+use serde::Serialize;
+use std::{path::Path, sync::OnceLock};
+use tera::{Context, Tera};
+use tokio::{
+    fs::{self, OpenOptions},
+    io::AsyncWriteExt,
+};
 
-#[derive(Default)]
+#[derive(Default, Serialize)]
 pub struct Info {
     title: String,
     rating: f64,
@@ -18,9 +23,29 @@ pub struct Info {
     actors: Vec<String>,
 }
 
+const MOVIE_NFO: &str = "movie.nfo";
+
+fn movie() -> &'static Tera {
+    static TERA: OnceLock<Tera> = OnceLock::new();
+    TERA.get_or_init(|| {
+        let mut tera = Tera::default();
+        tera.add_raw_template(
+            MOVIE_NFO,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/movie.nfo")),
+        )
+        .expect("add template error");
+        tera
+    })
+}
+
 impl ToString for Info {
     fn to_string(&self) -> String {
-        todo!()
+        movie()
+            .render(
+                MOVIE_NFO,
+                &Context::from_serialize(self).expect("parse context error"),
+            )
+            .expect("render template error")
     }
 }
 
@@ -36,13 +61,14 @@ impl Info {
     pub async fn write_to(self, path: &Path) -> Result<()> {
         let path = path.join(&self.studio).join(&self.id);
         if path.exists() {
-            return Err(Error::AlreadyExists(self.id));
+            return Err(Error::AlreadyExists(path.display().to_string()));
         }
+        fs::create_dir_all(&path).await?;
         OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
-            .open(path)
+            .open(path.join("movie.nfo"))
             .await?
             .write_all(self.to_string().as_bytes())
             .await?;
