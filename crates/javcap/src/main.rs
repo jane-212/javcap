@@ -45,7 +45,8 @@ async fn handle(path: &Path, bar: &Bar, backend: &Backend, config: &Config) -> R
         return Err(Error::Info(video.id().to_string()));
     };
     bar.message(&format!("write {}", video.id()));
-    info.write_to(&PathBuf::from(&config.file.output)).await?;
+    info.write_to(&PathBuf::from(&config.file.output), path)
+        .await?;
     bar.info(&format!("{}({})", video.id(), video.path().display()));
 
     Ok(())

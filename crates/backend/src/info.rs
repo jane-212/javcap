@@ -58,7 +58,7 @@ impl Info {
         }
     }
 
-    pub async fn write_to(self, path: &Path) -> Result<()> {
+    pub async fn write_to(self, path: &Path, file: &Path) -> Result<()> {
         let path = path.join(&self.studio).join(&self.id);
         if path.exists() {
             return Err(Error::AlreadyExists(path.display().to_string()));
@@ -72,6 +72,12 @@ impl Info {
             .await?
             .write_all(self.to_string().as_bytes())
             .await?;
+        let ext = file.extension().and_then(|ext| ext.to_str());
+        let to_file = match ext {
+            Some(ext) => format!("{}.{}", self.id, ext),
+            None => self.id.to_string(),
+        };
+        fs::rename(file, path.join(to_file)).await?;
 
         Ok(())
     }

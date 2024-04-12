@@ -35,8 +35,10 @@ impl Config {
             .await?
             .read_to_string(&mut config)
             .await?;
+        let mut config: Config = toml::from_str(&config)?;
+        config.file.exclude.push(config.file.output.clone());
 
-        Ok(toml::from_str(&config)?)
+        Ok(config)
     }
 
     async fn generate_default_config(path: &Path) -> Result<()> {
