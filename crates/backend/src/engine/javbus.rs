@@ -65,7 +65,7 @@ impl Javbus {
         Ok(Some((href.to_string(), poster)))
     }
 
-    async fn load_info(&self, href: &str, info: Info) -> Result<Info> {
+    async fn load_info(&self, href: &str, info: Info) -> Result<(String, Info)> {
         select!(
             (title: "body > div.container > h3"),
             (fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img"),
@@ -85,26 +85,31 @@ impl Javbus {
             .next()
             .map(|title| title.inner_html())
         else {
-            return Ok(info);
+            return Ok(("".to_string(), info));
         };
         let Some(fanart) = doc.select(&selectors().fanart).next().and_then(|fanart| {
             fanart
                 .attr("src")
                 .map(|src| format!("{}{}", Javbus::HOST, src))
         }) else {
-            return Ok(info);
+            return Ok(("".to_string(), info));
         };
-        for tag in doc.select(&selectors().tag) {
-            let tag = tag.text().flat_map(|tag| tag.chars()).collect::<String>();
-            info!("tag: {}", tag); // TODO: remove it
+        let tags = doc
+            .select(&selectors().tag)
+            .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>());
+        for tag in tags {
+            info!("tag: {}", tag);
         }
 
-        Ok(info.title(title).fanart(fanart))
+        Ok((fanart, info.title(title)))
+    }
+
+    async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
+        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
     }
 }
 
 // Ok(Info::default()
-//     .id(key.to_string())
 //     .actors(vec!["he".to_string(), "she".to_string()])
 //     .director("dir".to_string())
 //     .genres(vec!["gen".to_string(), "res".to_string()])
@@ -113,18 +118,22 @@ impl Javbus {
 //     .rating(8.8)
 //     .runtime(160)
 //     .studio("studio".to_string())
-//     .title("title".to_string()))
 
 #[async_trait]
 impl Engine for Javbus {
     async fn search(&self, key: &str) -> Result<Info> {
         info!("search {key} in Javbus");
-        let info = Info::default();
+        let info = Info::default().id(key.to_string());
         let Some((href, poster)) = self.find_item(key).await? else {
             info!("{key} not found in Javbus");
             return Ok(info);
         };
-        let info = self.load_info(&href, info).await?;
+        let (fanart, mut info) = self.load_info(&href, info).await?;
+        let poster = self.load_img(&poster).await?;
+        if !fanart.is_empty() {
+            let fanart = self.load_img(&fanart).await?;
+            info = info.fanart(fanart);
+        }
 
         Ok(info.poster(poster))
     }

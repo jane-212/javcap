@@ -16,3 +16,4 @@ Cargo.lock
 config.toml
 videos/
 output/
+logs/

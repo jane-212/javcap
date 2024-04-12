@@ -21,8 +21,8 @@ pub struct Info {
     premiered: String,
     studio: String,
     actors: Vec<String>,
-    poster: String,
-    fanart: String,
+    poster: Vec<u8>,
+    fanart: Vec<u8>,
 }
 
 const MOVIE_NFO: &str = "movie.nfo";
@@ -74,6 +74,22 @@ impl Info {
             .await?
             .write_all(self.to_string().as_bytes())
             .await?;
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path.join("poster.jpg"))
+            .await?
+            .write_all(&self.poster)
+            .await?;
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path.join("fanart.jpg"))
+            .await?
+            .write_all(&self.fanart)
+            .await?;
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
             Some(ext) => format!("{}.{}", self.id, ext),
@@ -86,9 +102,6 @@ impl Info {
 
     pub fn check(self) -> Option<Info> {
         if self.title.is_empty() {
-            return None;
-        }
-        if self.rating == 0.0 {
             return None;
         }
         if self.plot.is_empty() {
@@ -169,12 +182,12 @@ impl Info {
         self
     }
 
-    pub fn poster(mut self, poster: String) -> Info {
+    pub fn poster(mut self, poster: Vec<u8>) -> Info {
         self.poster = poster;
         self
     }
 
-    pub fn fanart(mut self, fanart: String) -> Info {
+    pub fn fanart(mut self, fanart: Vec<u8>) -> Info {
         self.fanart = fanart;
         self
     }
