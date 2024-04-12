@@ -1,6 +1,6 @@
 use error::{Error, Result};
 use serde::Serialize;
-use std::{path::Path, sync::OnceLock};
+use std::{collections::HashSet, hash::Hash, path::Path, sync::OnceLock};
 use tera::{Context, Tera};
 use tokio::{
     fs::{self, OpenOptions},
@@ -138,36 +138,53 @@ impl Info {
         Some(self)
     }
 
-    pub fn merge(&mut self, other: Info) {
+    fn combine_vec<T: Eq + Hash>(left: Vec<T>, right: Vec<T>) -> Vec<T> {
+        let mut hset = HashSet::new();
+        for item in left {
+            hset.insert(item);
+        }
+        for item in right {
+            hset.insert(item);
+        }
+
+        hset.into_iter().collect()
+    }
+
+    fn select_long(left: String, right: String) -> String {
+        if left.len() > right.len() {
+            left
+        } else {
+            right
+        }
+    }
+
+    pub fn merge(mut self, other: Info) -> Info {
         if self.title.is_empty() {
-            self.title = other.title;
+            self.title = Info::select_long(self.title, other.title);
         }
         if self.rating == 0.0 {
             self.rating = other.rating;
         }
         if self.plot.is_empty() {
-            self.plot = other.plot;
+            self.plot = Info::select_long(self.plot, other.plot);
         }
         if self.runtime == 0 {
             self.runtime = other.runtime;
         }
-        if self.id.is_empty() {
-            self.id = other.id;
-        }
         if self.genres.is_empty() {
-            self.genres = other.genres;
+            self.genres = Info::combine_vec(self.genres, other.genres);
         }
         if self.director.is_empty() {
-            self.director = other.director;
+            self.director = Info::select_long(self.director, other.director);
         }
         if self.premiered.is_empty() {
-            self.premiered = other.premiered;
+            self.premiered = Info::select_long(self.premiered, other.premiered);
         }
         if self.studio.is_empty() {
-            self.studio = other.studio;
+            self.studio = Info::select_long(self.studio, other.studio);
         }
         if self.actors.is_empty() {
-            self.actors = other.actors;
+            self.actors = Info::combine_vec(self.actors, other.actors);
         }
         if self.poster.is_empty() {
             self.poster = other.poster;
@@ -175,6 +192,8 @@ impl Info {
         if self.fanart.is_empty() {
             self.fanart = other.fanart;
         }
+
+        self
     }
 
     pub fn title(mut self, title: String) -> Info {

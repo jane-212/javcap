@@ -54,7 +54,7 @@ impl Backend {
         for engine in self.engines.iter() {
             if engine.could_solve(video) {
                 if let Ok(new_info) = engine.search(video.id()).await {
-                    info.merge(new_info);
+                    info = info.merge(new_info);
                 }
             }
         }
