@@ -1,0 +1,4 @@
+[file]
+output = "output"
+exclude = []
+ext = ["mp4", "mkv", "avi", "ts"]
