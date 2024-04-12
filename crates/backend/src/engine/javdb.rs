@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use error::Result;
 use reqwest::Client;
+use tracing::info;
 use video::Video;
 
 use crate::{Engine, Info};
@@ -20,6 +21,8 @@ impl Javdb {
 #[async_trait]
 impl Engine for Javdb {
     async fn search(&self, key: &str) -> Result<Info> {
+        info!("search {key} in Javdb");
+
         Ok(Info::default()
             .id(key.to_string())
             .actors(vec!["he".to_string(), "she".to_string()])

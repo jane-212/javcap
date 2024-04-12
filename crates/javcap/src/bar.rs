@@ -4,6 +4,7 @@ use console::style;
 use error::Result;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use tokio::time::Instant;
+use tracing::{info, warn};
 
 pub struct Bar {
     timer: Instant,
@@ -38,16 +39,19 @@ impl Bar {
     }
 
     pub fn message(&self, msg: &str) {
+        info!("{msg}");
         self.info.set_message(msg.to_string());
     }
 
     pub fn info(&self, msg: &str) {
+        info!("{msg}");
         self.process.inc(1);
         self.process
             .println(format!("{:>10} {}", style("Handle").green().bold(), msg));
     }
 
     pub fn warn(&self, msg: &str) {
+        warn!("{msg}");
         self.process.inc(1);
         self.process
             .println(format!("{:>10} {}", style("Handle").red().bold(), msg));

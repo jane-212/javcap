@@ -7,16 +7,22 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct Config {
     pub file: File,
+    pub network: Network,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct File {
     pub output: String,
     pub exclude: Vec<String>,
     pub ext: Vec<String>,
+}
+
+#[derive(Deserialize)]
+pub struct Network {
+    pub proxy: String,
 }
 
 impl Config {

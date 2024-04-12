@@ -21,6 +21,8 @@ pub struct Info {
     premiered: String,
     studio: String,
     actors: Vec<String>,
+    poster: String,
+    fanart: String,
 }
 
 const MOVIE_NFO: &str = "movie.nfo";
@@ -113,6 +115,12 @@ impl Info {
         if self.actors.is_empty() {
             return None;
         }
+        if self.poster.is_empty() {
+            return None;
+        }
+        if self.fanart.is_empty() {
+            return None;
+        }
 
         Some(self)
     }
@@ -148,10 +156,26 @@ impl Info {
         if self.actors.is_empty() {
             self.actors = other.actors;
         }
+        if self.poster.is_empty() {
+            self.poster = other.poster;
+        }
+        if self.fanart.is_empty() {
+            self.fanart = other.fanart;
+        }
     }
 
     pub fn title(mut self, title: String) -> Info {
         self.title = title;
+        self
+    }
+
+    pub fn poster(mut self, poster: String) -> Info {
+        self.poster = poster;
+        self
+    }
+
+    pub fn fanart(mut self, fanart: String) -> Info {
+        self.fanart = fanart;
         self
     }
 

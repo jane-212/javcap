@@ -6,6 +6,9 @@ use std::{
 use backend::Backend;
 use config::Config;
 use error::{Error, Result};
+use tracing::error;
+use tracing_appender::rolling;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 use video::Video;
 use walkdir::WalkDir;
 
@@ -14,20 +17,28 @@ mod bar;
 use bar::Bar;
 
 const CONFIG_NAME: &str = "config.toml";
+const LOG_NAME: &str = "logs";
 
 #[tokio::main]
 async fn main() {
     if let Err(err) = run().await {
+        error!("{err}");
         println!("{err}");
     }
 }
 
 async fn run() -> Result<()> {
     let pwd = env::current_dir()?;
+    let file = rolling::daily(pwd.join(LOG_NAME), "info").with_max_level(tracing::Level::INFO);
+    tracing_subscriber::fmt()
+        .with_writer(file)
+        .with_ansi(false)
+        .with_max_level(tracing::Level::INFO)
+        .init();
     let config = Config::load(&pwd.join(CONFIG_NAME)).await?;
     let paths = walk(&pwd, &config);
     let bar = Bar::new(paths.len() as u64)?;
-    let backend = Backend::new()?;
+    let backend = Backend::new(&config.network.proxy)?;
 
     for path in paths {
         if let Err(err) = handle(&path, &bar, &backend, &config).await {

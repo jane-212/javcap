@@ -1,0 +1,35 @@
+2024-04-12T13:15:26.411457Z  INFO javcap::bar: search FC2-PPV-100
+2024-04-12T13:15:26.411789Z  INFO backend::engine::javbus: search FC2-PPV-100 in Javbus
+2024-04-12T13:15:27.058072Z  INFO backend::engine::javbus: FC2-PPV-100 not found in Javbus
+2024-04-12T13:15:27.058231Z  INFO backend::engine::javdb: search FC2-PPV-100 in Javdb
+2024-04-12T13:15:27.058289Z  WARN javcap::bar: info of `FC2-PPV-100` not complete
+2024-04-12T13:15:27.058677Z  WARN javcap::bar: id not found: `/Users/jane/space/rust/javcap/videos/ok/ok.mkv`
+2024-04-12T13:16:04.398423Z  INFO javcap::bar: search STARS-804
+2024-04-12T13:16:04.398854Z  INFO backend::engine::javbus: search STARS-804 in Javbus
+2024-04-12T13:16:05.275432Z  INFO backend::engine::javbus: tag: 識別碼: STARS-804
+            
+2024-04-12T13:16:05.275501Z  INFO backend::engine::javbus: tag: 發行日期: 2023-03-14
+2024-04-12T13:16:05.275522Z  INFO backend::engine::javbus: tag: 長度: 160分鐘
+2024-04-12T13:16:05.275541Z  INFO backend::engine::javbus: tag: 導演: チク兄
+2024-04-12T13:16:05.275558Z  INFO backend::engine::javbus: tag: 製作商: SODクリエイト
+            
+2024-04-12T13:16:05.275576Z  INFO backend::engine::javbus: tag: 發行商: SOD star
+            
+2024-04-12T13:16:05.275588Z  INFO backend::engine::javbus: tag: 類別:
+2024-04-12T13:16:05.275614Z  INFO backend::engine::javbus: tag:             高畫質
+                        單體作品
+                        乳交
+                        巨乳
+                        內衣
+                        乳液
+            多選提交
+            
+2024-04-12T13:16:05.275639Z  INFO backend::engine::javbus: tag: 演員:
+2024-04-12T13:16:05.275658Z  INFO backend::engine::javbus: tag: 
+						
+					神木麗
+				
+                					
+2024-04-12T13:16:05.276047Z  INFO backend::engine::javdb: search STARS-804 in Javdb
+2024-04-12T13:16:05.276063Z  INFO javcap::bar: write STARS-804
+2024-04-12T13:16:05.282763Z  INFO javcap::bar: STARS-804(/Users/jane/space/rust/javcap/videos/STARS-804.mp4)
