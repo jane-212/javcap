@@ -65,7 +65,7 @@ impl Javbus {
         Ok(Some((href.to_string(), poster)))
     }
 
-    async fn load_info(&self, href: &str, info: Info) -> Result<(String, Info)> {
+    async fn load_info(&self, href: &str, mut info: Info) -> Result<(String, Info)> {
         select!(
             (title: "body > div.container > h3"),
             (fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img"),
@@ -96,28 +96,71 @@ impl Javbus {
         };
         let tags = doc
             .select(&selectors().tag)
-            .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>());
-        for tag in tags {
-            info!("tag: {}", tag);
+            .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
+            .collect::<Vec<String>>();
+        let pairs = Javbus::parse_tags(tags);
+        for (k, v) in pairs {
+            match k.as_str() {
+                "發行日期" => info = info.premiered(v),
+                "長度" => {
+                    info = info.runtime(
+                        v.chars()
+                            .filter(|c| c.is_ascii_digit())
+                            .collect::<String>()
+                            .parse::<u32>()
+                            .unwrap_or(0),
+                    )
+                }
+                "導演" => info = info.director(v),
+                "製作商" => info = info.studio(v),
+                "類別" => {
+                    info = info.genres(
+                        v.lines()
+                            .map(|line| line.trim())
+                            .filter(|line| !line.contains("多選提交"))
+                            .map(|line| line.to_string())
+                            .collect(),
+                    )
+                }
+                "演員" => {
+                    info = info.actors(v.lines().map(|line| line.trim().to_string()).collect())
+                }
+                _ => {}
+            }
         }
 
         Ok((fanart, info.title(title)))
+    }
+
+    fn parse_tags(tags: Vec<String>) -> Vec<(String, String)> {
+        let len = tags.len();
+        let mut i = 0;
+        let mut pairs = Vec::new();
+        let mut key = String::new();
+        while i < len {
+            let tag = &tags[i].trim();
+            if tag.ends_with(':') {
+                key = tag.to_string();
+            } else {
+                match tag.split_once(':') {
+                    Some((k, v)) => pairs.push((k.trim().to_string(), v.trim().to_string())),
+                    None => {
+                        pairs.push((key.trim_end_matches(':').to_string(), tag.to_string()));
+                        key = String::new();
+                    }
+                }
+            }
+
+            i += 1;
+        }
+
+        pairs
     }
 
     async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
         Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
     }
 }
-
-// Ok(Info::default()
-//     .actors(vec!["he".to_string(), "she".to_string()])
-//     .director("dir".to_string())
-//     .genres(vec!["gen".to_string(), "res".to_string()])
-//     .plot("plot".to_string())
-//     .premiered("date".to_string())
-//     .rating(8.8)
-//     .runtime(160)
-//     .studio("studio".to_string())
 
 #[async_trait]
 impl Engine for Javbus {

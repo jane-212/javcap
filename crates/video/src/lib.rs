@@ -78,7 +78,7 @@ impl Video {
                 Video::split,
                 opt(tag("PPV")),
                 Video::split,
-                take_while(|c: char| c.is_numeric()),
+                take_while(|c: char| c.is_ascii_digit()),
             )),
             |(_, _, _, _, num)| ("FC2-PPV", num),
         )(input)
@@ -89,7 +89,7 @@ impl Video {
             tuple((
                 take_while1(|c: char| c.is_ascii_alphabetic()),
                 Video::split,
-                take_while(|c: char| c.is_numeric()),
+                take_while(|c: char| c.is_ascii_digit()),
             )),
             |(id, _, num)| (id, num),
         )(input)
