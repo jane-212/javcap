@@ -23,8 +23,6 @@ pub enum Error {
     Info(String),
     #[error("movie {0} already exists")]
     AlreadyExists(String),
-    #[error("nfo error")]
-    Nfo(#[from] tera::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

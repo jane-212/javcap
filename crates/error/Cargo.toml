@@ -12,4 +12,3 @@ toml.workspace = true
 indicatif.workspace = true
 nom.workspace = true
 reqwest.workspace = true
-tera.workspace = true

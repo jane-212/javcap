@@ -64,7 +64,7 @@ async fn run() -> Result<bool> {
     let paths = walk(&pwd, &config);
     info!("total {} videos found", paths.len());
     let bar = Bar::new(paths.len() as u64)?;
-    let backend = Backend::new(&config.network.proxy)?;
+    let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
 
     for path in paths {
         if let Err(err) = handle(&path, &bar, &backend, &config).await {

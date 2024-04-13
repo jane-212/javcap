@@ -8,9 +8,8 @@ use scraper::selectable::Selectable;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::select;
 use crate::video::Video;
-use crate::{Engine, Info};
+use crate::{select, Engine, Info};
 
 pub struct Javbus {
     client: Arc<Client>,
@@ -64,7 +63,7 @@ impl Javbus {
         Ok(Some((href.to_string(), poster)))
     }
 
-    async fn load_info(&self, href: &str, mut info: Info) -> Result<(String, Info)> {
+    async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
         select!(
             (title: "body > div.container > h3"),
             (fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img"),
@@ -79,29 +78,26 @@ impl Javbus {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
-        let Some(fanart) = doc.select(&selectors().fanart).next().and_then(|fanart| {
+        let fanart = doc.select(&selectors().fanart).next().and_then(|fanart| {
             fanart
                 .attr("src")
                 .map(|src| format!("{}{}", Javbus::HOST, src))
-        }) else {
-            return Ok(("".to_string(), info));
-        };
-        let Some(title) = doc
+        });
+        if let Some(title) = doc
             .select(&selectors().title)
             .next()
             .map(|title| title.inner_html())
-        else {
-            return Ok((fanart, info));
-        };
-        info = info.title(title);
+        {
+            info = info.title(title);
+        }
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
             .collect::<Vec<String>>();
-        let pairs = Javbus::parse_tags(tags);
+        let pairs = Javbus::parse_tags(&tags);
         for (k, v) in pairs {
-            match k.as_str() {
-                "發行日期" => info = info.premiered(v),
+            match k {
+                "發行日期" => info = info.premiered(v.to_string()),
                 "長度" => {
                     info = info.runtime(
                         v.chars()
@@ -111,8 +107,8 @@ impl Javbus {
                             .unwrap_or(0),
                     )
                 }
-                "導演" => info = info.director(v),
-                "製作商" => info = info.studio(v),
+                "導演" => info = info.director(v.to_string()),
+                "製作商" => info = info.studio(v.to_string()),
                 "類別" => {
                     info = info.genres(
                         v.lines()
@@ -132,21 +128,20 @@ impl Javbus {
         Ok((fanart, info))
     }
 
-    fn parse_tags(tags: Vec<String>) -> Vec<(String, String)> {
+    fn parse_tags(tags: &[String]) -> Vec<(&str, &str)> {
         let len = tags.len();
         let mut i = 0;
         let mut pairs = Vec::new();
-        let mut key = String::new();
+        let mut key = "";
         while i < len {
-            let tag = &tags[i].trim();
+            let tag = tags[i].trim();
             if tag.ends_with(':') {
-                key = tag.to_string();
+                key = tag;
             } else {
                 match tag.split_once(':') {
-                    Some((k, v)) => pairs.push((k.trim().to_string(), v.trim().to_string())),
+                    Some((k, v)) => pairs.push((k.trim(), v.trim())),
                     None => {
-                        pairs.push((key.trim_end_matches(':').to_string(), tag.to_string()));
-                        key = String::new();
+                        pairs.push((key.trim_end_matches(':'), tag));
                     }
                 }
             }
@@ -173,12 +168,14 @@ impl Engine for Javbus {
         };
         let (fanart, mut info) = self.load_info(&href, info).await?;
         let poster = self.load_img(&poster).await?;
-        if !fanart.is_empty() {
+        info = info.poster(poster);
+        if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
             info = info.fanart(fanart);
         }
 
-        Ok(info.poster(poster))
+        info!("{} found in Javbus", video.id());
+        Ok(info)
     }
 
     fn could_solve(&self, video: &Video) -> bool {

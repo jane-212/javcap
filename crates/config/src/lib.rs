@@ -29,6 +29,7 @@ pub struct File {
 #[derive(Deserialize)]
 pub struct Network {
     pub proxy: String,
+    pub timeout: u64,
 }
 
 impl Config {

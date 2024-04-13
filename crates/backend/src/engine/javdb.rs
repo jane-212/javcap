@@ -6,9 +6,8 @@ use reqwest::Client;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::select;
 use crate::video::Video;
-use crate::{Engine, Info};
+use crate::{select, Engine, Info};
 
 pub struct Javdb {
     client: Arc<Client>,
@@ -47,7 +46,7 @@ impl Javdb {
         Ok(Some(href))
     }
 
-    async fn load_info(&self, href: &str, mut info: Info) -> Result<(String, Info)> {
+    async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
         select!(
             (title: "body > section > div > div.video-detail > h2"),
             (fanart: "body > section > div > div.video-detail > div.video-meta-panel > div > div.column.column-video-cover > a > img"),
@@ -55,33 +54,29 @@ impl Javdb {
         );
         let res = self.client.get(href).send().await?.text().await?;
         let doc = Html::parse_document(&res);
-        let Some(fanart) = doc
+        let fanart = doc
             .select(&selectors().fanart)
             .next()
-            .and_then(|img| img.attr("src").map(|src| src.to_string()))
-        else {
-            return Ok(("".to_string(), info));
-        };
-        let Some(title) = doc.select(&selectors().title).next().map(|title| {
+            .and_then(|img| img.attr("src").map(|src| src.to_string()));
+        if let Some(title) = doc.select(&selectors().title).next().map(|title| {
             title
                 .text()
                 .flat_map(|text| text.trim().chars())
                 .collect::<String>()
-        }) else {
-            return Ok((fanart, info));
-        };
-        info = info.title(title);
+        }) {
+            info = info.title(title);
+        }
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
-            .flat_map(|tag| {
-                tag.split_once(':')
-                    .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
-            })
-            .collect::<Vec<(String, String)>>();
+            .collect::<Vec<String>>();
+        let tags = tags
+            .iter()
+            .flat_map(|tag| tag.split_once(':').map(|(k, v)| (k.trim(), v.trim())))
+            .collect::<Vec<(&str, &str)>>();
         for (k, v) in tags {
-            match k.as_str() {
-                "日期" => info = info.premiered(v),
+            match k {
+                "日期" => info = info.premiered(v.to_string()),
                 "時長" => {
                     let runtime = v
                         .chars()
@@ -91,8 +86,8 @@ impl Javdb {
                         .unwrap_or(0);
                     info = info.runtime(runtime)
                 }
-                "導演" => info = info.director(v),
-                "片商" => info = info.studio(v),
+                "導演" => info = info.director(v.to_string()),
+                "片商" => info = info.studio(v.to_string()),
                 "評分" => {
                     let rating = v
                         .chars()
@@ -100,7 +95,7 @@ impl Javdb {
                         .collect::<String>()
                         .parse::<f64>()
                         .unwrap_or(0.0);
-                    info = info.rating(rating);
+                    info = info.rating(rating * 2.0);
                 }
                 "類別" => {
                     let genres = v
@@ -143,11 +138,12 @@ impl Engine for Javdb {
             return Ok(info);
         };
         let (fanart, mut info) = self.load_info(&href, info).await?;
-        if !fanart.is_empty() {
+        if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
             info = info.fanart(fanart);
         }
 
+        info!("{} found in Javdb", video.id());
         Ok(info)
     }
 

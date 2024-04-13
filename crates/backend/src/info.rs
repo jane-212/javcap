@@ -1,7 +1,7 @@
 use error::{Error, Result};
+use indoc::formatdoc;
 use serde::Serialize;
-use std::{collections::HashSet, hash::Hash, path::Path, sync::OnceLock};
-use tera::{Context, Tera};
+use std::{collections::HashSet, hash::Hash, path::Path};
 use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
@@ -28,30 +28,66 @@ pub struct Info {
 
 const MOVIE_NFO: &str = "movie.nfo";
 
-fn movie() -> &'static Tera {
-    static TERA: OnceLock<Tera> = OnceLock::new();
-    TERA.get_or_init(|| {
-        let mut tera = Tera::default();
-        tera.add_raw_template(
-            MOVIE_NFO,
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/movie.nfo")),
-        )
-        .expect("add template error");
-        tera
-    })
-}
-
 impl Info {
-    pub fn new() -> Info {
+    pub fn new(id: String) -> Info {
         Info {
             mpaa: "NC-17".to_string(),
             country: "日本".to_string(),
+            id,
             ..Default::default()
         }
     }
 
-    fn to_nfo(&self) -> Result<String> {
-        Ok(movie().render(MOVIE_NFO, &Context::from_serialize(self)?)?)
+    fn to_nfo(&self) -> String {
+        formatdoc!(
+            "
+            <?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>
+            <movie>
+                <title>{title}</title>
+                <originaltitle>{title}</originaltitle>
+                <rating>{rating}</rating>
+                <plot>{plot}</plot>
+                <runtime>{runtime}</runtime>
+                <mpaa>{mpaa}</mpaa>
+                <uniqueid type=\"num\" defult=\"true\">{id}</uniqueid>
+            {genres}
+            {tags}
+                <country>{country}</country>
+                <director>{director}</director>
+                <premiered>{premiered}</premiered>
+                <studio>{studio}</studio>
+            {actors}
+            </movie>
+            ",
+            title = self.title,
+            rating = self.rating,
+            plot = self.plot,
+            runtime = self.runtime,
+            mpaa = self.mpaa,
+            id = self.id,
+            genres = self
+                .genres
+                .iter()
+                .map(|genre| format!("    <genre>{genre}</genre>"))
+                .collect::<Vec<String>>()
+                .join("\n"),
+            tags = self
+                .genres
+                .iter()
+                .map(|genre| format!("    <tag>{genre}</tag>"))
+                .collect::<Vec<String>>()
+                .join("\n"),
+            country = self.country,
+            director = self.director,
+            premiered = self.premiered,
+            studio = self.studio,
+            actors = self
+                .actors
+                .iter()
+                .map(|actor| format!("    <actor>\n        <name>{actor}</name>\n    </actor>"))
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
     }
 
     pub async fn write_to(self, path: &Path, file: &Path) -> Result<()> {
@@ -84,14 +120,13 @@ impl Info {
             .write_all(&self.fanart)
             .await?;
         info!("write fanart.jpg to {}", path.join("fanart.jpg").display());
-        let nfo = self.to_nfo()?;
         OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
             .open(path.join(MOVIE_NFO))
             .await?
-            .write_all(nfo.as_bytes())
+            .write_all(self.to_nfo().as_bytes())
             .await?;
         info!("write {} to {}", MOVIE_NFO, path.join(MOVIE_NFO).display());
         fs::rename(file, path.join(&to_file)).await?;
@@ -112,9 +147,6 @@ impl Info {
             return None;
         }
         if self.runtime == 0 {
-            return None;
-        }
-        if self.id.is_empty() {
             return None;
         }
         if self.genres.is_empty() {
@@ -163,16 +195,26 @@ impl Info {
     }
 
     #[cfg(debug_assertions)]
-    fn show_info(&self) {
-        info!("title: {}", self.title);
+    fn empty_print(s: &str) -> &str {
+        if s.is_empty() {
+            "<empty>"
+        } else {
+            s
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn show_info(&self, id: &str) {
+        let empty_print = Info::empty_print;
+        info!("{:-^25}", format!(" {} BEGIN ", id));
+        info!("title: {}", empty_print(&self.title));
         info!("rating: {}", self.rating);
-        info!("plot: {}", self.plot);
+        info!("plot: {}", empty_print(&self.plot));
         info!("runtime: {}", self.runtime);
-        info!("id: {}", self.id);
         info!("genres: {:#?}", self.genres);
-        info!("director: {}", self.director);
-        info!("premiered: {}", self.premiered);
-        info!("studio: {}", self.studio);
+        info!("director: {}", empty_print(&self.director));
+        info!("premiered: {}", empty_print(&self.premiered));
+        info!("studio: {}", empty_print(&self.studio));
         info!("actors: {:#?}", self.actors);
         info!(
             "poster: {}",
@@ -182,18 +224,10 @@ impl Info {
             "fanart: {}",
             if self.fanart.is_empty() { "no" } else { "yes" }
         );
+        info!("{:-^25}", format!(" {} END ", id));
     }
 
     pub fn merge(mut self, other: Info) -> Info {
-        #[cfg(debug_assertions)]
-        {
-            info!("{:-^25}", " DEBUG INFO BEGIN ");
-            self.show_info();
-            info!("{:-^20}", " AFTER ");
-            other.show_info();
-            info!("{:-^25}", " DEBUG INFO END ");
-        }
-
         if self.title.is_empty() {
             self.title = Info::select_long(self.title, other.title);
         }
@@ -254,11 +288,6 @@ impl Info {
 
     pub fn runtime(mut self, runtime: u32) -> Info {
         self.runtime = runtime;
-        self
-    }
-
-    pub fn id(mut self, id: String) -> Info {
-        self.id = id;
         self
     }
 

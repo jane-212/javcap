@@ -8,3 +8,4 @@ ext = ["mp4", "mkv", "avi", "ts"]
 
 [network]
 proxy = "http://127.0.0.1:8888"
+timeout = 10
