@@ -66,5 +66,6 @@ impl Drop for Bar {
             style("Finish").green().bold(),
             HumanDuration(self.timer.elapsed())
         );
+        info!("took {}", HumanDuration(self.timer.elapsed()));
     }
 }

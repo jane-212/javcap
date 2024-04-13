@@ -6,16 +6,18 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Proxy,
 };
-use video::Video;
+use tracing::warn;
 
 mod engine;
 mod info;
+mod video;
 
 use engine::{Javbus, Javdb};
 use info::Info;
+pub use video::Video;
 
 pub struct Backend {
-    engines: Vec<Box<dyn Engine>>,
+    engines: Vec<Arc<Box<dyn Engine>>>,
 }
 
 impl Backend {
@@ -41,20 +43,32 @@ impl Backend {
             .proxy(Proxy::https(proxy)?)
             .build()?;
         let client = Arc::new(client);
-        let engines: Vec<Box<dyn Engine>> = vec![
-            Box::new(Javbus::new(client.clone())),
-            Box::new(Javdb::new(client)),
+        let engines: Vec<Arc<Box<dyn Engine>>> = vec![
+            Arc::new(Box::new(Javbus::new(client.clone()))),
+            Arc::new(Box::new(Javdb::new(client))),
         ];
 
         Ok(Backend { engines })
     }
 
     pub async fn search(&self, video: &Video) -> Option<Info> {
-        let mut info = Info::new();
-        for engine in self.engines.iter() {
+        let mut info = Info::new().id(video.id().to_string());
+        let mut handles = Vec::with_capacity(self.engines.len());
+        for engine in self.engines.clone() {
             if engine.could_solve(video) {
-                if let Ok(new_info) = engine.search(video.id()).await {
-                    info = info.merge(new_info);
+                let video = video.clone();
+                let handle = tokio::spawn(async move { engine.search(&video).await });
+                handles.push(handle);
+            }
+        }
+
+        for handle in handles {
+            if let Ok(new_info) = handle.await {
+                match new_info {
+                    Ok(new_info) => {
+                        info = info.merge(new_info);
+                    }
+                    Err(err) => warn!("{err}"),
                 }
             }
         }
@@ -64,8 +78,8 @@ impl Backend {
 }
 
 #[async_trait]
-pub trait Engine {
-    async fn search(&self, key: &str) -> Result<Info>;
+pub trait Engine: Send + Sync {
+    async fn search(&self, video: &Video) -> Result<Info>;
     fn could_solve(&self, video: &Video) -> bool;
 }
 

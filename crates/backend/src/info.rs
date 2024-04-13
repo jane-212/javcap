@@ -6,6 +6,7 @@ use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
 };
+use tracing::info;
 
 #[derive(Default, Serialize)]
 pub struct Info {
@@ -40,17 +41,6 @@ fn movie() -> &'static Tera {
     })
 }
 
-impl ToString for Info {
-    fn to_string(&self) -> String {
-        movie()
-            .render(
-                MOVIE_NFO,
-                &Context::from_serialize(self).expect("parse context error"),
-            )
-            .expect("render template error")
-    }
-}
-
 impl Info {
     pub fn new() -> Info {
         Info {
@@ -60,20 +50,22 @@ impl Info {
         }
     }
 
+    fn to_nfo(&self) -> Result<String> {
+        Ok(movie().render(MOVIE_NFO, &Context::from_serialize(self)?)?)
+    }
+
     pub async fn write_to(self, path: &Path, file: &Path) -> Result<()> {
         let path = path.join(&self.studio).join(&self.id);
-        if path.exists() {
+        let ext = file.extension().and_then(|ext| ext.to_str());
+        let to_file = match ext {
+            Some(ext) => format!("{}.{}", self.id, ext),
+            None => self.id.to_string(),
+        };
+        if path.join(&to_file).exists() {
             return Err(Error::AlreadyExists(path.display().to_string()));
         }
         fs::create_dir_all(&path).await?;
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(path.join("movie.nfo"))
-            .await?
-            .write_all(self.to_string().as_bytes())
-            .await?;
+        info!("create {}", path.display());
         OpenOptions::new()
             .create(true)
             .write(true)
@@ -82,6 +74,7 @@ impl Info {
             .await?
             .write_all(&self.poster)
             .await?;
+        info!("write poster.jpg to {}", path.join("poster.jpg").display());
         OpenOptions::new()
             .create(true)
             .write(true)
@@ -90,12 +83,23 @@ impl Info {
             .await?
             .write_all(&self.fanart)
             .await?;
-        let ext = file.extension().and_then(|ext| ext.to_str());
-        let to_file = match ext {
-            Some(ext) => format!("{}.{}", self.id, ext),
-            None => self.id.to_string(),
-        };
-        fs::rename(file, path.join(to_file)).await?;
+        info!("write fanart.jpg to {}", path.join("fanart.jpg").display());
+        let nfo = self.to_nfo()?;
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path.join(MOVIE_NFO))
+            .await?
+            .write_all(nfo.as_bytes())
+            .await?;
+        info!("write {} to {}", MOVIE_NFO, path.join(MOVIE_NFO).display());
+        fs::rename(file, path.join(&to_file)).await?;
+        info!(
+            "move {} to {}",
+            file.display(),
+            path.join(&to_file).display()
+        );
 
         Ok(())
     }
@@ -158,7 +162,38 @@ impl Info {
         }
     }
 
+    #[cfg(debug_assertions)]
+    fn show_info(&self) {
+        info!("title: {}", self.title);
+        info!("rating: {}", self.rating);
+        info!("plot: {}", self.plot);
+        info!("runtime: {}", self.runtime);
+        info!("id: {}", self.id);
+        info!("genres: {:#?}", self.genres);
+        info!("director: {}", self.director);
+        info!("premiered: {}", self.premiered);
+        info!("studio: {}", self.studio);
+        info!("actors: {:#?}", self.actors);
+        info!(
+            "poster: {}",
+            if self.poster.is_empty() { "no" } else { "yes" }
+        );
+        info!(
+            "fanart: {}",
+            if self.fanart.is_empty() { "no" } else { "yes" }
+        );
+    }
+
     pub fn merge(mut self, other: Info) -> Info {
+        #[cfg(debug_assertions)]
+        {
+            info!("{:-^25}", " DEBUG INFO BEGIN ");
+            self.show_info();
+            info!("{:-^20}", " AFTER ");
+            other.show_info();
+            info!("{:-^25}", " DEBUG INFO END ");
+        }
+
         if self.title.is_empty() {
             self.title = Info::select_long(self.title, other.title);
         }
@@ -171,9 +206,7 @@ impl Info {
         if self.runtime == 0 {
             self.runtime = other.runtime;
         }
-        if self.genres.is_empty() {
-            self.genres = Info::combine_vec(self.genres, other.genres);
-        }
+        self.genres = Info::combine_vec(self.genres, other.genres);
         if self.director.is_empty() {
             self.director = Info::select_long(self.director, other.director);
         }
@@ -183,9 +216,7 @@ impl Info {
         if self.studio.is_empty() {
             self.studio = Info::select_long(self.studio, other.studio);
         }
-        if self.actors.is_empty() {
-            self.actors = Info::combine_vec(self.actors, other.actors);
-        }
+        self.actors = Info::combine_vec(self.actors, other.actors);
         if self.poster.is_empty() {
             self.poster = other.poster;
         }

@@ -1,15 +1,17 @@
 use std::{
     env,
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
-use backend::Backend;
+use backend::{Backend, Video};
 use config::Config;
+use console::style;
 use error::{Error, Result};
-use tracing::error;
+use time::{macros::format_description, UtcOffset};
+use tracing::{error, info, Level};
 use tracing_appender::rolling;
-use tracing_subscriber::fmt::writer::MakeWriterExt;
-use video::Video;
+use tracing_subscriber::fmt::time::OffsetTime;
 use walkdir::WalkDir;
 
 mod bar;
@@ -21,30 +23,71 @@ const LOG_NAME: &str = "logs";
 
 #[tokio::main]
 async fn main() {
-    if let Err(err) = run().await {
-        error!("{err}");
-        println!("{err}");
+    match run().await {
+        Ok(should_quit) => {
+            info!("{:-^30}", " Finish ");
+            if !should_quit {
+                wait_for_quit();
+            }
+        }
+        Err(err) => {
+            error!("{err}");
+            info!("{:-^30}", " Finish ");
+            println!("{:>10} {}", style("Error").red().bold(), err);
+            wait_for_quit();
+        }
     }
 }
 
-async fn run() -> Result<()> {
+fn wait_for_quit() {
+    print!(
+        "{:>10} Press enter to continue...",
+        style("Pause").green().bold()
+    );
+    io::stdout().flush().ok();
+    io::stdin().read_exact(&mut [0u8]).ok();
+}
+
+async fn run() -> Result<bool> {
     let pwd = env::current_dir()?;
-    let file = rolling::daily(pwd.join(LOG_NAME), "info").with_max_level(tracing::Level::INFO);
-    tracing_subscriber::fmt()
-        .with_writer(file)
-        .with_ansi(false)
-        .with_max_level(tracing::Level::INFO)
-        .init();
+    init_tracing(&pwd)?;
+    info!(
+        "{:-^30}",
+        format!(
+            " {} - {} ",
+            env!("CARGO_PKG_NAME").to_uppercase(),
+            env!("CARGO_PKG_VERSION")
+        )
+    );
     let config = Config::load(&pwd.join(CONFIG_NAME)).await?;
+    info!("config loaded");
     let paths = walk(&pwd, &config);
+    info!("total {} videos found", paths.len());
     let bar = Bar::new(paths.len() as u64)?;
     let backend = Backend::new(&config.network.proxy)?;
 
     for path in paths {
         if let Err(err) = handle(&path, &bar, &backend, &config).await {
-            bar.warn(&err.to_string());
+            bar.warn(&format!("{}({})", err, path.display()));
         }
     }
+
+    Ok(config.app.quit_on_finish)
+}
+
+fn init_tracing(path: &Path) -> Result<()> {
+    let daily = rolling::daily(path.join(LOG_NAME), "log");
+    let timer = OffsetTime::new(
+        UtcOffset::from_hms(8, 0, 0).expect("set timezone error"),
+        format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),
+    );
+    tracing_subscriber::fmt()
+        .with_writer(daily)
+        .with_max_level(Level::INFO)
+        .with_ansi(false)
+        .with_target(false)
+        .with_timer(timer)
+        .init();
 
     Ok(())
 }
@@ -58,7 +101,7 @@ async fn handle(path: &Path, bar: &Bar, backend: &Backend, config: &Config) -> R
     bar.message(&format!("write {}", video.id()));
     info.write_to(&PathBuf::from(&config.file.output), path)
         .await?;
-    bar.info(&format!("{}({})", video.id(), video.path().display()));
+    bar.info(&format!("{}({})", video.id(), path.display()));
 
     Ok(())
 }

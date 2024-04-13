@@ -6,11 +6,10 @@ use reqwest::header::{self, HeaderMap, HeaderValue};
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
-use tracing::info;
-use video::Video;
+use tracing::{info, warn};
 
 use crate::select;
-
+use crate::video::Video;
 use crate::{Engine, Info};
 
 pub struct Javbus {
@@ -28,13 +27,13 @@ impl Javbus {
         Javbus { client, headers }
     }
 
-    async fn find_item(&self, key: &str) -> Result<Option<(String, String)>> {
+    async fn find_item(&self, video: &Video) -> Result<Option<(String, String)>> {
         select!(
             (items: "#waterfall > div.item > a.movie-box"),
             (poster: "div.photo-frame > img"),
             (id: "div.photo-info > span > date:nth-child(3)")
         );
-        let url = format!("{}/search/{}&type=&parent=ce", Javbus::HOST, key);
+        let url = format!("{}/search/{}&type=&parent=ce", Javbus::HOST, video.id());
         let res = self
             .client
             .get(url)
@@ -47,7 +46,7 @@ impl Javbus {
         let Some(item) = doc.select(&selectors().items).find(|item| {
             item.select(&selectors().id)
                 .next()
-                .map(|item| item.inner_html() == key)
+                .map(|item| video.matches(&item.inner_html()))
                 .unwrap_or(false)
         }) else {
             return Ok(None);
@@ -80,13 +79,6 @@ impl Javbus {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
-        let Some(title) = doc
-            .select(&selectors().title)
-            .next()
-            .map(|title| title.inner_html())
-        else {
-            return Ok(("".to_string(), info));
-        };
         let Some(fanart) = doc.select(&selectors().fanart).next().and_then(|fanart| {
             fanart
                 .attr("src")
@@ -94,6 +86,14 @@ impl Javbus {
         }) else {
             return Ok(("".to_string(), info));
         };
+        let Some(title) = doc
+            .select(&selectors().title)
+            .next()
+            .map(|title| title.inner_html())
+        else {
+            return Ok((fanart, info));
+        };
+        info = info.title(title);
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
@@ -129,7 +129,7 @@ impl Javbus {
             }
         }
 
-        Ok((fanart, info.title(title)))
+        Ok((fanart, info))
     }
 
     fn parse_tags(tags: Vec<String>) -> Vec<(String, String)> {
@@ -164,11 +164,11 @@ impl Javbus {
 
 #[async_trait]
 impl Engine for Javbus {
-    async fn search(&self, key: &str) -> Result<Info> {
-        info!("search {key} in Javbus");
-        let info = Info::default().id(key.to_string());
-        let Some((href, poster)) = self.find_item(key).await? else {
-            info!("{key} not found in Javbus");
+    async fn search(&self, video: &Video) -> Result<Info> {
+        info!("search {} in Javbus", video.id());
+        let info = Info::default();
+        let Some((href, poster)) = self.find_item(video).await? else {
+            warn!("{} not found in Javbus", video.id());
             return Ok(info);
         };
         let (fanart, mut info) = self.load_info(&href, info).await?;
@@ -183,7 +183,7 @@ impl Engine for Javbus {
 
     fn could_solve(&self, video: &Video) -> bool {
         match video {
-            Video::FC2(_, _) => true,
+            Video::FC2(_, _) => false,
             Video::Normal(_, _) => true,
         }
     }

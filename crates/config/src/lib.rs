@@ -9,8 +9,14 @@ use tokio::{
 
 #[derive(Deserialize)]
 pub struct Config {
+    pub app: App,
     pub file: File,
     pub network: Network,
+}
+
+#[derive(Deserialize)]
+pub struct App {
+    pub quit_on_finish: bool,
 }
 
 #[derive(Deserialize)]

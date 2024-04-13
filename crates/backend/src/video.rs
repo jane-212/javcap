@@ -13,6 +13,7 @@ use nom::{
     IResult,
 };
 
+#[derive(Clone)]
 pub enum Video {
     FC2(String, PathBuf),
     Normal(String, PathBuf),
@@ -31,6 +32,12 @@ impl Video {
             Video::FC2(_, path) => path,
             Video::Normal(_, path) => path,
         }
+    }
+
+    pub fn matches(&self, id: &str) -> bool {
+        let (id, num) = Video::parse_name(id).map(|(_, id)| id).unwrap_or(("", ""));
+
+        self.id() == format!("{}-{}", id, num)
     }
 
     pub fn parse(path: &Path) -> Result<Video> {
