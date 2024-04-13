@@ -26,11 +26,11 @@ impl Javbus {
         Javbus { client, headers }
     }
 
-    async fn find_item(&self, video: &Video) -> Result<Option<(String, String)>> {
+    async fn find_item(&self, video: &Video) -> Result<Option<(String, Option<String>)>> {
         select!(
-            (items: "#waterfall > div.item > a.movie-box"),
-            (poster: "div.photo-frame > img"),
-            (id: "div.photo-info > span > date:nth-child(3)")
+            items: "#waterfall > div.item > a.movie-box",
+            poster: "div.photo-frame > img",
+            id: "div.photo-info > span > date:nth-child(3)"
         );
         let url = format!("{}/search/{}&type=&parent=ce", Javbus::HOST, video.id());
         let res = self
@@ -57,17 +57,17 @@ impl Javbus {
             img.attr("src")
                 .map(|src| format!("{}{}", Javbus::HOST, src))
         }) else {
-            return Ok(None);
+            return Ok(Some((href.to_string(), None)));
         };
 
-        Ok(Some((href.to_string(), poster)))
+        Ok(Some((href.to_string(), Some(poster))))
     }
 
     async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
         select!(
-            (title: "body > div.container > h3"),
-            (fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img"),
-            (tag: "body > div.container > div.row.movie > div.col-md-3.info > p")
+            title: "body > div.container > h3",
+            fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
+            tag: "body > div.container > div.row.movie > div.col-md-3.info > p"
         );
         let res = self
             .client
@@ -167,8 +167,10 @@ impl Engine for Javbus {
             return Ok(info);
         };
         let (fanart, mut info) = self.load_info(&href, info).await?;
-        let poster = self.load_img(&poster).await?;
-        info = info.poster(poster);
+        if let Some(poster) = poster {
+            let poster = self.load_img(&poster).await?;
+            info = info.poster(poster);
+        }
         if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
             info = info.fanart(fanart);

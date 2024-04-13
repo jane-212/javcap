@@ -12,7 +12,7 @@ mod engine;
 mod info;
 mod video;
 
-use engine::{Javbus, Javdb, Javlib};
+use engine::{Jav321, Javbus, Javdb, Javlib};
 use info::Info;
 pub use video::Video;
 
@@ -47,7 +47,8 @@ impl Backend {
         let engines: Vec<Arc<Box<dyn Engine>>> = vec![
             Arc::new(Box::new(Javbus::new(client.clone()))),
             Arc::new(Box::new(Javdb::new(client.clone()))),
-            Arc::new(Box::new(Javlib::new(client))),
+            Arc::new(Box::new(Javlib::new(client.clone()))),
+            Arc::new(Box::new(Jav321::new(client))),
         ];
 
         Ok(Backend { engines })
@@ -87,7 +88,7 @@ pub trait Engine: Send + Sync {
 
 #[macro_export]
 macro_rules! select {
-    ($(($k:ident: $v: expr)),*) => {
+    ($($k:ident: $v: expr),*) => {
         struct Selectors {
             $(pub $k: scraper::Selector),*
         }

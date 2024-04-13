@@ -22,8 +22,8 @@ impl Javdb {
 
     async fn find_item(&self, video: &Video) -> Result<Option<String>> {
         select!(
-            (items: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div.item > a"),
-            (id: "div.video-title > strong")
+            items: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div.item > a",
+            id: "div.video-title > strong"
         );
         let url = format!("https://javdb.com/search?q={}&f=all", video.id());
         let res = self.client.get(url).send().await?.text().await?;
@@ -48,9 +48,9 @@ impl Javdb {
 
     async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
         select!(
-            (title: "body > section > div > div.video-detail > h2"),
-            (fanart: "body > section > div > div.video-detail > div.video-meta-panel > div > div.column.column-video-cover > a > img"),
-            (tag: "body > section > div > div.video-detail > div.video-meta-panel > div > div:nth-child(2) > nav > div.panel-block")
+            title: "body > section > div > div.video-detail > h2",
+            fanart: "body > section > div > div.video-detail > div.video-meta-panel > div > div.column.column-video-cover > a > img",
+            tag: "body > section > div > div.video-detail > div.video-meta-panel > div > div:nth-child(2) > nav > div.panel-block"
         );
         let res = self.client.get(href).send().await?.text().await?;
         let doc = Html::parse_document(&res);

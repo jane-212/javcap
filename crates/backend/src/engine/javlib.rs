@@ -20,7 +20,7 @@ impl Javlib {
 
     async fn find_item(&self, video: &Video) -> Result<Option<String>> {
         select!(
-            (info: "#rightcolumn > p > em")
+            info: "#rightcolumn > p > em"
         );
         let url = format!(
             "https://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}",
@@ -37,10 +37,10 @@ impl Javlib {
 
     fn load_info(res: String, mut info: Info) -> Result<(Option<String>, Info)> {
         select!(
-            (title: "#video_title > h3 > a"),
-            (fanart: "#video_jacket_img"),
-            (tag: "#video_info > div.item"),
-            (genre: "#video_genres > table > tbody > tr > td.text > span.genre > a")
+            title: "#video_title > h3 > a",
+            fanart: "#video_jacket_img",
+            tag: "#video_info > div.item",
+            genre: "#video_genres > table > tbody > tr > td.text > span.genre > a"
         );
         let doc = Html::parse_document(&res);
         if let Some(title) = doc
