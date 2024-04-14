@@ -42,10 +42,6 @@ jobs:
       CARGO: cargo
       # When CARGO is set to CROSS, TARGET_DIR includes matrix.target.
       TARGET_DIR: ./target
-      # Bump this as appropriate. We pin to a version to make sure CI
-      # continues to work as cross releases in the past have broken things
-      # in subtle ways.
-      CROSS_VERSION: v0.2.5
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
     strategy:
@@ -97,32 +93,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install packages (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          ci/ubuntu-install-packages
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
-
-      - name: Use Cross
-        if: matrix.os == 'ubuntu-latest' && matrix.target != ''
-        shell: bash
-        run: |
-          # In the past, new releases of 'cross' have broken CI. So for now, we
-          # pin it. We also use their pre-compiled binary releases because cross
-          # has over 100 dependencies and takes a bit to compile.
-          dir="$RUNNER_TEMP/cross-download"
-          mkdir "$dir"
-          echo "$dir" >> $GITHUB_PATH
-          cd "$dir"
-          curl -LO "https://github.com/cross-rs/cross/releases/download/$CROSS_VERSION/cross-x86_64-unknown-linux-musl.tar.gz"
-          tar xf cross-x86_64-unknown-linux-musl.tar.gz
-          echo "CARGO=cross" >> $GITHUB_ENV
 
       - name: Set target variables
         shell: bash
@@ -148,21 +123,6 @@ jobs:
           fi
           echo "BIN=$bin" >> $GITHUB_ENV
 
-      - name: Strip release binary (macos)
-        if: matrix.os == 'macos-latest'
-        shell: bash
-        run: strip "$BIN"
-
-      - name: Strip release binary (cross)
-        if: env.CARGO == 'cross'
-        shell: bash
-        run: |
-          docker run --rm -v \
-            "$PWD/target:/target:Z" \
-            "ghcr.io/cross-rs/${{ matrix.target }}:main" \
-            "${{ matrix.strip }}" \
-            "/$BIN"
-
       - name: Determine archive name
         shell: bash
         run: |
@@ -181,18 +141,14 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           7z a "$ARCHIVE.zip" "$ARCHIVE"
-          certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
           echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
-          echo "ASSET_SUM=$ARCHIVE.zip.sha256" >> $GITHUB_ENV
 
       - name: Build archive (Unix)
         shell: bash
         if: matrix.os != 'windows-latest'
         run: |
           tar czf "$ARCHIVE.tar.gz" "$ARCHIVE"
-          shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
           echo "ASSET=$ARCHIVE.tar.gz" >> $GITHUB_ENV
-          echo "ASSET_SUM=$ARCHIVE.tar.gz.sha256" >> $GITHUB_ENV
 
       - name: Upload release archive
         env:
