@@ -100,7 +100,11 @@ impl Info {
             None => self.id.to_string(),
         };
         if path.join(&to_file).exists() {
-            return Err(Error::AlreadyExists(path.display().to_string()));
+            return Err(Error::AlreadyExists(
+                path.canonicalize()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or("-".to_string()),
+            ));
         }
         fs::create_dir_all(&path).await?;
         info!("create {}", path.display());
@@ -223,7 +227,7 @@ impl Info {
         if self.fanart.is_empty() {
             return None;
         }
-        
+
         Some(self)
     }
 
