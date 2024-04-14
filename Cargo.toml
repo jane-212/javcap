@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["crates/backend", "crates/config", "crates/error", "crates/javcap"]
+default-members = ["crates/javcap"]
 
 [workspace.dependencies]
 error = { path = "crates/error" }
