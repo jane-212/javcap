@@ -62,12 +62,21 @@ async fn run() -> Result<bool> {
     );
     let config = Config::load(&pwd.join(CONFIG_NAME)).await?;
     info!("config loaded");
-    let paths = walk(&pwd.join(&config.file.root), &config);
+    let root = pwd.join(&config.file.root);
+    let paths = walk(&root, &config);
     info!("total {} videos found", paths.len());
     let mut bar = Bar::new(paths.len() as u64)?;
     let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
     for path in paths {
-        if let Err(err) = handle(&path, &mut bar, &backend, &config).await {
+        if let Err(err) = handle(
+            &path,
+            &mut bar,
+            &backend,
+            &root.join(&config.file.output),
+            &root.join(&config.file.other),
+        )
+        .await
+        {
             bar.warn(&format!("{}", err));
         }
     }
@@ -75,14 +84,14 @@ async fn run() -> Result<bool> {
     Ok(config.app.quit_on_finish)
 }
 
-async fn move_to_other(path: &Path, config: &Config) -> Result<()> {
+async fn move_to_other(path: &Path, to: &Path) -> Result<()> {
     if let Some(name) = path.file_stem().and_then(|name| name.to_str()) {
         let ext = path.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
             Some(ext) => format!("{}.{}", name, ext),
             None => name.to_string(),
         };
-        let out = PathBuf::from(&config.file.other).join(name);
+        let out = to.join(name);
         let out_file = out.join(&to_file);
         if out_file.exists() {
             return Err(Error::AlreadyExists(out_file.display().to_string()));
@@ -113,21 +122,26 @@ fn init_tracing(path: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn handle(path: &Path, bar: &mut Bar, backend: &Backend, config: &Config) -> Result<()> {
+async fn handle(
+    path: &Path,
+    bar: &mut Bar,
+    backend: &Backend,
+    output: &Path,
+    other: &Path,
+) -> Result<()> {
     match Video::parse(path) {
         Ok(video) => {
             bar.message(&format!("search {}", video.id()));
             let Some(info) = backend.search(&video).await else {
-                move_to_other(path, config).await?;
+                move_to_other(path, other).await?;
                 return Err(Error::Info(video.id().to_string()));
             };
             bar.message(&format!("write {}", video.id()));
-            info.write_to(&PathBuf::from(&config.file.output), path)
-                .await?;
+            info.write_to(output, path).await?;
             bar.info(video.id());
         }
         Err(err) => {
-            move_to_other(path, config).await?;
+            move_to_other(path, other).await?;
             return Err(err);
         }
     }
