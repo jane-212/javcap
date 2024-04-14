@@ -51,19 +51,11 @@ jobs:
           - build: stable-x86
             os: ubuntu-latest
             rust: stable
-            target: i686-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
           - build: stable-aarch64
             os: ubuntu-latest
             rust: stable
-            target: aarch64-unknown-linux-gnu
-          - build: stable-powerpc64
-            os: ubuntu-latest
-            rust: stable
-            target: powerpc64-unknown-linux-gnu
-          - build: stable-s390x
-            os: ubuntu-latest
-            rust: stable
-            target: s390x-unknown-linux-gnu
+            target: aarch64-unknown-linux-musl
           - build: macos
             os: macos-latest
             rust: stable
@@ -76,10 +68,6 @@ jobs:
             os: windows-latest
             rust: stable-x86_64-gnu
             target: x86_64-pc-windows-gnu
-          - build: win32-msvc
-            os: windows-latest
-            rust: stable
-            target: i686-pc-windows-msvc
 
     steps:
       - name: Checkout repository
@@ -103,9 +91,6 @@ jobs:
           echo "cargo command is: ${{ env.CARGO }}"
           echo "target flag is: ${{ env.TARGET_FLAGS }}"
           echo "target dir is: ${{ env.TARGET_DIR }}"
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            sudo apt-get update && sudo apt-get install -y musl-tools
-          fi
 
       - name: Build release binary
         shell: bash
