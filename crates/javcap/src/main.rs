@@ -9,6 +9,7 @@ use config::Config;
 use console::style;
 use error::{Error, Result};
 use time::{macros::format_description, UtcOffset};
+use tokio::fs;
 use tracing::{error, info, Level};
 use tracing_appender::rolling;
 use tracing_subscriber::fmt::time::OffsetTime;
@@ -74,6 +75,27 @@ async fn run() -> Result<bool> {
     Ok(config.app.quit_on_finish)
 }
 
+async fn move_to_other(path: &Path, config: &Config) -> Result<()> {
+    if let Some(name) = path.file_stem().and_then(|name| name.to_str()) {
+        let ext = path.extension().and_then(|ext| ext.to_str());
+        let to_file = match ext {
+            Some(ext) => format!("{}.{}", name, ext),
+            None => name.to_string(),
+        };
+        let out = PathBuf::from(&config.file.other).join(name);
+        let out_file = out.join(&to_file);
+        if out_file.exists() {
+            return Err(Error::AlreadyExists(out_file.display().to_string()));
+        }
+        fs::create_dir_all(&out).await?;
+        info!("create {}", out.display());
+        fs::rename(path, &out_file).await?;
+        info!("move {} to {}", path.display(), out_file.display());
+    }
+
+    Ok(())
+}
+
 fn init_tracing(path: &Path) -> Result<()> {
     let daily = rolling::daily(path.join(LOG_NAME), "log");
     let timer = OffsetTime::new(
@@ -92,15 +114,22 @@ fn init_tracing(path: &Path) -> Result<()> {
 }
 
 async fn handle(path: &Path, bar: &mut Bar, backend: &Backend, config: &Config) -> Result<()> {
-    let video = Video::parse(path)?;
-    bar.message(&format!("search {}", video.id()));
-    let Some(info) = backend.search(&video).await else {
-        return Err(Error::Info(video.id().to_string()));
-    };
-    bar.message(&format!("write {}", video.id()));
-    info.write_to(&PathBuf::from(&config.file.output), path)
-        .await?;
-    bar.info(video.id());
+    match Video::parse(path) {
+        Ok(video) => {
+            bar.message(&format!("search {}", video.id()));
+            let Some(info) = backend.search(&video).await else {
+                return Err(Error::Info(video.id().to_string()));
+            };
+            bar.message(&format!("write {}", video.id()));
+            info.write_to(&PathBuf::from(&config.file.output), path)
+                .await?;
+            bar.info(video.id());
+        }
+        Err(err) => {
+            move_to_other(path, config).await?;
+            return Err(err);
+        }
+    }
 
     Ok(())
 }

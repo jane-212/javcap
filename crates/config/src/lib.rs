@@ -22,6 +22,7 @@ pub struct App {
 #[derive(Deserialize)]
 pub struct File {
     pub output: String,
+    pub other: String,
     pub exclude: Vec<String>,
     pub ext: Vec<String>,
 }

@@ -17,4 +17,5 @@ config.toml
 videos/
 output/
 logs/
+other/
 run.sh

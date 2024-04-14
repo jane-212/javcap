@@ -3,6 +3,7 @@ quit_on_finish = false
 
 [file]
 output = "output"
+other = "other"
 exclude = []
 ext = ["mp4", "mkv", "avi", "ts"]
 
