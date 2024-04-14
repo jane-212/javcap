@@ -77,7 +77,18 @@ impl Jav321 {
             let tags = Jav321::parse_tags(&lines);
             for (k, v) in tags {
                 match k {
-                    "女優" => info = info.actors(vec![v.to_string()]),
+                    "女優" => {
+                        let mut actors = Vec::new();
+                        for actor in v.split(' ') {
+                            if actor.is_empty() {
+                                continue;
+                            }
+
+                            actors.push(actor.to_string());
+                        }
+
+                        info = info.actors(actors);
+                    }
                     "發行商" => info = info.studio(v.to_string()),
                     "發行日期" => info = info.premiered(v.to_string()),
                     "播放時長" => {

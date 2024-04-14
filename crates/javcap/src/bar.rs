@@ -20,7 +20,7 @@ impl Bar {
         info.enable_steady_tick(Duration::from_millis(100));
         info.set_style(
             ProgressStyle::with_template("{prefix:>10.cyan.bold} {spinner} {msg}")?
-                .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ "),
+                .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         info.set_prefix("Handle");
         let process = multi.add(ProgressBar::new(len));
