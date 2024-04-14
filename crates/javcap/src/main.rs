@@ -64,8 +64,9 @@ async fn run() -> Result<bool> {
     info!("config loaded");
     let mut root = PathBuf::from(&config.file.root);
     if root.is_relative() {
-        root = pwd.join(root);
+        root = pwd.join(&root).canonicalize().unwrap_or(root);
     }
+    info!("root {}", root.display());
     let paths = walk(&root, &config);
     info!("total {} videos found", paths.len());
     let mut bar = Bar::new(paths.len() as u64)?;
@@ -97,12 +98,7 @@ async fn move_to_other(path: &Path, to: &Path) -> Result<()> {
         let out = to.join(name);
         let out_file = out.join(&to_file);
         if out_file.exists() {
-            return Err(Error::AlreadyExists(
-                out_file
-                    .canonicalize()
-                    .map(|path| path.display().to_string())
-                    .unwrap_or("-".to_string()),
-            ));
+            return Err(Error::AlreadyExists(out_file.display().to_string()));
         }
         fs::create_dir_all(&out).await?;
         info!("create {}", out.display());
