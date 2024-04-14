@@ -28,3 +28,9 @@ tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["time", "local-time"] }
 time = { version = "0.3.36", features = ["macros"] }
 indoc = "2.0.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
