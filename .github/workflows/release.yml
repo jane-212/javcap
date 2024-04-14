@@ -120,7 +120,6 @@ jobs:
       - name: Creating directory for archive
         shell: bash
         run: |
-          mkdir -p "$ARCHIVE"/{complete,doc}
           cp "$BIN" "$ARCHIVE"/
           cp {README.md,LICENSE} "$ARCHIVE"/
 
