@@ -2,6 +2,7 @@
 quit_on_finish = false
 
 [file]
+root = "."
 output = "output"
 other = "other"
 exclude = []

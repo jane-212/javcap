@@ -62,7 +62,7 @@ async fn run() -> Result<bool> {
     );
     let config = Config::load(&pwd.join(CONFIG_NAME)).await?;
     info!("config loaded");
-    let paths = walk(&pwd, &config);
+    let paths = walk(&pwd.join(&config.file.root), &config);
     info!("total {} videos found", paths.len());
     let mut bar = Bar::new(paths.len() as u64)?;
     let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
