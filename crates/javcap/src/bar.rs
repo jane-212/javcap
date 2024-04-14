@@ -13,6 +13,7 @@ pub struct Bar {
     process: ProgressBar,
     success: u32,
     failed: u32,
+    total: u32,
 }
 
 impl Bar {
@@ -39,6 +40,7 @@ impl Bar {
             process,
             success: 0,
             failed: 0,
+            total: len as u32,
         })
     }
 
@@ -68,8 +70,9 @@ impl Drop for Bar {
     fn drop(&mut self) {
         self.multi.clear().ok();
         println!(
-            "{:>10} {}({}) {}({}) took {}",
+            "{:>10} {}{}({}) {}({}) took {}",
             style("Finish").blue().bold(),
+            if self.total == self.success { "🎉 " } else { "" },
             style("Success").green().bold(),
             self.success,
             style("Failed").yellow().bold(),

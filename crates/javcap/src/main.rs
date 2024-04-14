@@ -67,7 +67,7 @@ async fn run() -> Result<bool> {
     let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
     for path in paths {
         if let Err(err) = handle(&path, &mut bar, &backend, &config).await {
-            bar.warn(&format!("{}({})", err, path.display()));
+            bar.warn(&format!("{}", err));
         }
     }
 
@@ -100,7 +100,7 @@ async fn handle(path: &Path, bar: &mut Bar, backend: &Backend, config: &Config) 
     bar.message(&format!("write {}", video.id()));
     info.write_to(&PathBuf::from(&config.file.output), path)
         .await?;
-    bar.info(&format!("{}({})", video.id(), path.display()));
+    bar.info(video.id());
 
     Ok(())
 }

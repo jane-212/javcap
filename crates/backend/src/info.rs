@@ -8,6 +8,8 @@ use tokio::{
 };
 use tracing::info;
 
+use crate::Video;
+
 #[derive(Default, Serialize)]
 pub struct Info {
     title: String,
@@ -102,24 +104,28 @@ impl Info {
         }
         fs::create_dir_all(&path).await?;
         info!("create {}", path.display());
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(path.join("poster.jpg"))
-            .await?
-            .write_all(&self.poster)
-            .await?;
-        info!("write poster.jpg to {}", path.join("poster.jpg").display());
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(path.join("fanart.jpg"))
-            .await?
-            .write_all(&self.fanart)
-            .await?;
-        info!("write fanart.jpg to {}", path.join("fanart.jpg").display());
+        if !self.poster.is_empty() {
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(path.join("poster.jpg"))
+                .await?
+                .write_all(&self.poster)
+                .await?;
+            info!("write poster.jpg to {}", path.join("poster.jpg").display());
+        }
+        if !self.fanart.is_empty() {
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(path.join("fanart.jpg"))
+                .await?
+                .write_all(&self.fanart)
+                .await?;
+            info!("write fanart.jpg to {}", path.join("fanart.jpg").display());
+        }
         OpenOptions::new()
             .create(true)
             .write(true)
@@ -139,7 +145,25 @@ impl Info {
         Ok(())
     }
 
-    pub fn check(self) -> Option<Info> {
+    fn fix_normal(&mut self) {
+        if self.plot.is_empty() {
+            self.plot = self.title.clone();
+        }
+        if self.director.is_empty() {
+            self.director = self.studio.clone();
+        }
+    }
+
+    fn fix_fc2(&mut self) {
+        if self.plot.is_empty() {
+            self.plot = self.title.clone();
+        }
+        if self.actors.is_empty() {
+            self.actors.push(self.director.clone());
+        }
+    }
+
+    fn check_normal(self) -> Option<Info> {
         if self.title.is_empty() {
             return None;
         }
@@ -172,6 +196,48 @@ impl Info {
         }
 
         Some(self)
+    }
+
+    fn check_fc2(self) -> Option<Info> {
+        if self.title.is_empty() {
+            return None;
+        }
+        if self.plot.is_empty() {
+            return None;
+        }
+        if self.runtime == 0 {
+            return None;
+        }
+        if self.director.is_empty() {
+            return None;
+        }
+        if self.premiered.is_empty() {
+            return None;
+        }
+        if self.studio.is_empty() {
+            return None;
+        }
+        if self.actors.is_empty() {
+            return None;
+        }
+        if self.fanart.is_empty() {
+            return None;
+        }
+        
+        Some(self)
+    }
+
+    pub fn check(mut self, video: &Video) -> Option<Info> {
+        match video {
+            Video::FC2(_, _) => {
+                self.fix_fc2();
+                self.check_fc2()
+            }
+            Video::Normal(_, _) => {
+                self.fix_normal();
+                self.check_normal()
+            }
+        }
     }
 
     fn combine_vec<T: Eq + Hash>(left: Vec<T>, right: Vec<T>) -> Vec<T> {

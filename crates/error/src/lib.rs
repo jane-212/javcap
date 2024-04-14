@@ -19,9 +19,9 @@ pub enum Error {
     Parse { path: PathBuf },
     #[error("network error")]
     Client(#[from] reqwest::Error),
-    #[error("info of {0} not complete")]
+    #[error("info not complete({0})")]
     Info(String),
-    #[error("movie {0} already exists")]
+    #[error("movie already exists({0})")]
     AlreadyExists(String),
 }
 
