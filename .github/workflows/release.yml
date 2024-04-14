@@ -104,7 +104,7 @@ jobs:
           echo "target flag is: ${{ env.TARGET_FLAGS }}"
           echo "target dir is: ${{ env.TARGET_DIR }}"
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            apt-get update && apt-get install -y musl-tools
+            sudo apt-get update && sudo apt-get install -y musl-tools
           fi
 
       - name: Build release binary
