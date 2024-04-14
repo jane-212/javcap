@@ -63,10 +63,10 @@ async fn run() -> Result<bool> {
     info!("config loaded");
     let paths = walk(&pwd, &config);
     info!("total {} videos found", paths.len());
-    let bar = Bar::new(paths.len() as u64)?;
+    let mut bar = Bar::new(paths.len() as u64)?;
     let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
     for path in paths {
-        if let Err(err) = handle(&path, &bar, &backend, &config).await {
+        if let Err(err) = handle(&path, &mut bar, &backend, &config).await {
             bar.warn(&format!("{}({})", err, path.display()));
         }
     }
@@ -91,7 +91,7 @@ fn init_tracing(path: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn handle(path: &Path, bar: &Bar, backend: &Backend, config: &Config) -> Result<()> {
+async fn handle(path: &Path, bar: &mut Bar, backend: &Backend, config: &Config) -> Result<()> {
     let video = Video::parse(path)?;
     bar.message(&format!("search {}", video.id()));
     let Some(info) = backend.search(&video).await else {

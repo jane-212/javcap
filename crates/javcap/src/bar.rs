@@ -11,6 +11,8 @@ pub struct Bar {
     multi: MultiProgress,
     info: ProgressBar,
     process: ProgressBar,
+    success: u32,
+    failed: u32,
 }
 
 impl Bar {
@@ -35,6 +37,8 @@ impl Bar {
             multi,
             info,
             process,
+            success: 0,
+            failed: 0,
         })
     }
 
@@ -43,18 +47,20 @@ impl Bar {
         self.info.set_message(msg.to_string());
     }
 
-    pub fn info(&self, msg: &str) {
+    pub fn info(&mut self, msg: &str) {
+        self.success += 1;
         info!("{msg}");
         self.process.inc(1);
         self.process
             .println(format!("{:>10} {}", style("Handle").green().bold(), msg));
     }
 
-    pub fn warn(&self, msg: &str) {
+    pub fn warn(&mut self, msg: &str) {
+        self.failed += 1;
         warn!("{msg}");
         self.process.inc(1);
         self.process
-            .println(format!("{:>10} {}", style("Handle").red().bold(), msg));
+            .println(format!("{:>10} {}", style("Handle").yellow().bold(), msg));
     }
 }
 
@@ -62,10 +68,19 @@ impl Drop for Bar {
     fn drop(&mut self) {
         self.multi.clear().ok();
         println!(
-            "{:>10} took {}",
-            style("Finish").green().bold(),
+            "{:>10} {}({}) {}({}) took {}",
+            style("Finish").blue().bold(),
+            style("Success").green().bold(),
+            self.success,
+            style("Failed").yellow().bold(),
+            self.failed,
             HumanDuration(self.timer.elapsed())
         );
-        info!("took {}", HumanDuration(self.timer.elapsed()));
+        info!(
+            "Success({}) Failed({}) took {}",
+            self.success,
+            self.failed,
+            HumanDuration(self.timer.elapsed())
+        );
     }
 }
