@@ -118,6 +118,7 @@ async fn handle(path: &Path, bar: &mut Bar, backend: &Backend, config: &Config) 
         Ok(video) => {
             bar.message(&format!("search {}", video.id()));
             let Some(info) = backend.search(&video).await else {
+                move_to_other(path, config).await?;
                 return Err(Error::Info(video.id().to_string()));
             };
             bar.message(&format!("write {}", video.id()));
