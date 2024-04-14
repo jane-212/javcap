@@ -62,7 +62,10 @@ async fn run() -> Result<bool> {
     );
     let config = Config::load(&pwd.join(CONFIG_NAME)).await?;
     info!("config loaded");
-    let root = pwd.join(&config.file.root);
+    let mut root = PathBuf::from(&config.file.root);
+    if root.is_relative() {
+        root = pwd.join(root);
+    }
     let paths = walk(&root, &config);
     info!("total {} videos found", paths.len());
     let mut bar = Bar::new(paths.len() as u64)?;
