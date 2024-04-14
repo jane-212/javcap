@@ -103,6 +103,9 @@ jobs:
           echo "cargo command is: ${{ env.CARGO }}"
           echo "target flag is: ${{ env.TARGET_FLAGS }}"
           echo "target dir is: ${{ env.TARGET_DIR }}"
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            apt update && apt install -y musl-tools
+          fi
 
       - name: Build release binary
         shell: bash
