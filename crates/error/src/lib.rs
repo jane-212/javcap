@@ -15,8 +15,8 @@ pub enum Error {
     Config(#[from] de::Error),
     #[error("template error")]
     Template(#[from] style::TemplateError),
-    #[error("id not found: {}", path.display())]
-    Parse { path: PathBuf },
+    #[error("id not found({0})")]
+    Parse(String),
     #[error("network error")]
     Client(#[from] reqwest::Error),
     #[error("info not complete({0})")]
