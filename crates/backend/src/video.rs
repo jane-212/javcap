@@ -4,8 +4,8 @@ use error::{Error, Result};
 use nom::{
     branch::alt,
     bytes::{
-        complete::take_while,
-        streaming::{tag, take_while1},
+        complete::{take_while, take_while1},
+        streaming::tag,
     },
     combinator::{eof, map, opt},
     multi::many0,
@@ -89,7 +89,7 @@ impl Video {
                 Video::split,
                 opt(tag("PPV")),
                 Video::split,
-                take_while(|c: char| c.is_ascii_digit()),
+                take_while1(|c: char| c.is_ascii_digit()),
             )),
             |(_, _, _, _, num)| ("FC2-PPV", num),
         )(input)
@@ -100,7 +100,7 @@ impl Video {
             tuple((
                 take_while1(|c: char| c.is_ascii_alphabetic()),
                 Video::split,
-                take_while(|c: char| c.is_ascii_digit()),
+                take_while1(|c: char| c.is_ascii_digit()),
             )),
             |(id, _, num)| (id, num),
         )(input)
