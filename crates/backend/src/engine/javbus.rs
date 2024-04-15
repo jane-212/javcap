@@ -8,8 +8,7 @@ use scraper::selectable::Selectable;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::video::Video;
-use crate::{select, Engine, Info};
+use crate::{select, Engine, Info, Video};
 
 pub struct Javbus {
     client: Arc<Client>,

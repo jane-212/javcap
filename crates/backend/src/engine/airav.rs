@@ -6,8 +6,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use tracing::{info, warn};
 
-use crate::video::Video;
-use crate::{Engine, Info};
+use crate::{Engine, Info, Video};
 
 pub struct Airav {
     client: Arc<Client>,

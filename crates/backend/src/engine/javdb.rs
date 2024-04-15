@@ -6,8 +6,7 @@ use reqwest::Client;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::video::Video;
-use crate::{select, Engine, Info};
+use crate::{select, Engine, Info, Video};
 
 pub struct Javdb {
     client: Arc<Client>,

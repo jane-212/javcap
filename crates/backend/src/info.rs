@@ -150,9 +150,6 @@ impl Info {
     }
 
     fn fix_normal(&mut self) {
-        if self.plot.is_empty() {
-            self.plot = self.title.clone();
-        }
         if self.director.is_empty() {
             self.director = self.studio.clone();
         }

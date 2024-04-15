@@ -12,7 +12,7 @@ mod engine;
 mod info;
 mod video;
 
-use engine::{Airav, Avsox, Jav321, Javbus, Javdb, Javlib};
+use engine::{Airav, Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
 use info::Info;
 pub use video::Video;
 
@@ -51,6 +51,7 @@ impl Backend {
             Arc::new(Box::new(Jav321::new(client.clone()))),
             Arc::new(Box::new(Avsox::new(client.clone()))),
             Arc::new(Box::new(Airav::new(client.clone()))),
+            Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
 
         Ok(Backend { engines })
@@ -78,6 +79,8 @@ impl Backend {
             }
         }
 
+        #[cfg(debug_assertions)]
+        info.show_info("SUMARY");
         info.check(video)
     }
 }
