@@ -19,17 +19,20 @@ pub struct Bar {
 impl Bar {
     pub fn new(len: u64) -> Result<Bar> {
         let multi = MultiProgress::new();
-        let info = multi.add(ProgressBar::new_spinner());
+        let info = multi.add(ProgressBar::new(len));
         info.enable_steady_tick(Duration::from_millis(100));
         info.set_style(
-            ProgressStyle::with_template("{prefix:>10.blue.bold} {spinner} {msg}")?
+            ProgressStyle::with_template("{prefix:>10.blue.bold} {spinner} [{pos}/{len}] {msg}")?
                 .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         info.set_prefix("Handle");
         let process = multi.add(ProgressBar::new(len));
+        process.enable_steady_tick(Duration::from_secs(1));
         process.set_style(
-            ProgressStyle::with_template("{prefix:>10.blue.bold} |{wide_bar}| {pos}/{len} ")?
-                .progress_chars("█▉▊▋▌▍▎▏  "),
+            ProgressStyle::with_template(
+                "{prefix:>10.blue.bold} [{elapsed_precise}][{wide_bar}] ",
+            )?
+            .progress_chars("=> "),
         );
         process.set_prefix("Process");
 
@@ -52,17 +55,19 @@ impl Bar {
     pub fn info(&mut self, msg: &str) {
         self.success += 1;
         info!("{msg}");
+        self.info.inc(1);
         self.process.inc(1);
         self.process
-            .println(format!("{:>10} {}", style("Handle").green().bold(), msg));
+            .println(format!("{:>10} ✔️️ {}", style("Handle").green().bold(), msg));
     }
 
     pub fn warn(&mut self, msg: &str) {
         self.failed += 1;
         warn!("{msg}");
+        self.info.inc(1);
         self.process.inc(1);
         self.process
-            .println(format!("{:>10} {}", style("Handle").yellow().bold(), msg));
+            .println(format!("{:>10} ✖️ {}", style("Handle").yellow().bold(), msg));
     }
 }
 
@@ -72,7 +77,11 @@ impl Drop for Bar {
         println!(
             "{:>10} {}{}({}) {}({}) took {}",
             style("Finish").blue().bold(),
-            if self.total == self.success { "🎉 " } else { "" },
+            if self.total == self.success {
+                "🎉 "
+            } else {
+                ""
+            },
             style("Success").green().bold(),
             self.success,
             style("Failed").yellow().bold(),
