@@ -22,13 +22,13 @@ impl Bar {
         let info = multi.add(ProgressBar::new_spinner());
         info.enable_steady_tick(Duration::from_millis(100));
         info.set_style(
-            ProgressStyle::with_template("{prefix:>10.cyan.bold} {spinner} {msg}")?
+            ProgressStyle::with_template("{prefix:>10.blue.bold} {spinner} {msg}")?
                 .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         info.set_prefix("Handle");
         let process = multi.add(ProgressBar::new(len));
         process.set_style(
-            ProgressStyle::with_template("{prefix:>10.cyan.bold} |{wide_bar}| {pos}/{len} ")?
+            ProgressStyle::with_template("{prefix:>10.blue.bold} |{wide_bar}| {pos}/{len} ")?
                 .progress_chars("█▉▊▋▌▍▎▏  "),
         );
         process.set_prefix("Process");

@@ -65,9 +65,9 @@ impl Video {
     fn parse_name(input: &str) -> IResult<&str, (&str, &str)> {
         map(
             tuple((
-                take_while(|c: char| !c.is_ascii_alphanumeric()),
+                take_while(|c: char| !c.is_ascii_alphabetic()),
                 Video::name,
-                take_while(|c: char| !c.is_ascii_alphanumeric()),
+                take_while(|c: char| !c.is_ascii_digit()),
                 eof,
             )),
             |(_, id, _, _)| id,
