@@ -9,14 +9,17 @@ use reqwest::{
     Client, Proxy,
 };
 use tracing::warn;
+use translate::Translate;
 use video::Video;
 
 mod engine;
 mod info;
+mod translate;
 pub mod video;
 
 pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,
+    translate: Translate,
 }
 
 impl Backend {
@@ -52,11 +55,12 @@ impl Backend {
             Arc::new(Box::new(Airav::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
+        let translate = Translate::new(client);
 
-        Ok(Backend { engines })
+        Ok(Backend { engines, translate })
     }
 
-    pub async fn search(&self, video: &Video) -> Option<Info> {
+    pub async fn search(&mut self, video: &Video) -> Option<Info> {
         let mut info = Info::new(video.id().to_string());
         let mut handles = Vec::with_capacity(self.engines.len());
         for engine in self.engines.clone() {
@@ -66,7 +70,6 @@ impl Backend {
                 handles.push(handle);
             }
         }
-
         for handle in handles {
             if let Ok(new_info) = handle.await {
                 match new_info {
@@ -77,6 +80,7 @@ impl Backend {
                 }
             }
         }
+        self.translate.translate(&mut info).await.ok();
 
         #[cfg(debug_assertions)]
         info.show_info("SUMARY");

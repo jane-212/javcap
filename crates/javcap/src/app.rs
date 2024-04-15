@@ -53,7 +53,7 @@ impl App {
         })
     }
 
-    pub async fn run(&self) -> Result<bool> {
+    pub async fn run(&mut self) -> Result<bool> {
         let paths = self.walk();
         info!("total {} videos found", paths.len());
         let mut bar = Bar::new(paths.len() as u64)?;
@@ -87,7 +87,7 @@ impl App {
         Ok(())
     }
 
-    async fn handle(&self, path: &Path, bar: &mut Bar) -> Result<()> {
+    async fn handle(&mut self, path: &Path, bar: &mut Bar) -> Result<()> {
         match Video::parse(path) {
             Ok(video) => {
                 bar.message(&format!("search {}", video.id()));

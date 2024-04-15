@@ -40,6 +40,14 @@ impl Info {
         }
     }
 
+    pub fn get_title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn get_plot(&self) -> &str {
+        &self.plot
+    }
+
     fn to_nfo(&self) -> String {
         formatdoc!(
             "

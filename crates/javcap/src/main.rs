@@ -36,6 +36,6 @@ fn wait_for_quit() {
 }
 
 async fn run() -> Result<bool> {
-    let app = App::new().await?;
+    let mut app = App::new().await?;
     app.run().await
 }
