@@ -1,20 +1,19 @@
 use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
+use engine::{Airav, Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
 use error::Result;
+use info::Info;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Proxy,
 };
 use tracing::warn;
+use video::Video;
 
 mod engine;
 mod info;
-mod video;
-
-use engine::{Airav, Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
-use info::Info;
-pub use video::Video;
+pub mod video;
 
 pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,

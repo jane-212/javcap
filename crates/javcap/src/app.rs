@@ -3,7 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use backend::{Backend, Video};
+use backend::video::Video;
+use backend::Backend;
 use config::Config;
 use error::{Error, Result};
 use time::{macros::format_description, UtcOffset};
