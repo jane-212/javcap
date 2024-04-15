@@ -17,3 +17,4 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-appender.workspace = true
 time.workspace = true
+async-recursion.workspace = true
