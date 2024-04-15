@@ -26,3 +26,4 @@ A data capture for jav movie.
 - [x] javlib
 - [x] airav
 - [x] avsox
+- [x] mgstage
