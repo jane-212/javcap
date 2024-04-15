@@ -22,6 +22,7 @@ pub struct App {
 #[derive(Deserialize)]
 pub struct File {
     pub root: String,
+    pub remove_empty: bool,
     pub output: String,
     pub other: String,
     pub exclude: Vec<String>,
@@ -52,6 +53,7 @@ impl Config {
             .await?;
         let mut config: Config = toml::from_str(&config)?;
         config.file.exclude.push(config.file.output.clone());
+        config.file.exclude.push(config.file.other.clone());
 
         Ok(config)
     }

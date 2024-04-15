@@ -3,6 +3,7 @@ quit_on_finish = false
 
 [file]
 root = "."
+remove_empty = true
 output = "output"
 other = "other"
 exclude = []

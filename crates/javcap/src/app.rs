@@ -62,8 +62,26 @@ impl App {
                 bar.warn(&format!("{}", err));
             }
         }
+        if self.config.file.remove_empty {
+            self.remove_empty().await?;
+        }
 
         Ok(self.config.app.quit_on_finish)
+    }
+
+    async fn remove_empty(&self) -> Result<()> {
+        for entry in (self.root.read_dir()?)
+            .flatten()
+            .filter(|entry| entry.path().is_dir())
+        {
+            let path = entry.path();
+            if path.read_dir()?.next().is_none() {
+                info!("remove empty {}", path.display());
+                fs::remove_dir(path).await?;
+            }
+        }
+
+        Ok(())
     }
 
     async fn move_to_other(&self, path: &Path) -> Result<()> {
