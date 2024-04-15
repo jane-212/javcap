@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use async_recursion::async_recursion;
 use backend::video::Video;
 use backend::Backend;
 use config::Config;
@@ -63,49 +62,8 @@ impl App {
                 bar.warn(&format!("{}", err));
             }
         }
-        if self.config.file.remove_empty {
-            self.remove_empty().await?;
-        }
 
         Ok(self.config.app.quit_on_finish)
-    }
-
-    async fn remove_empty(&self) -> Result<()> {
-        for entry in (self.root.read_dir()?)
-            .flatten()
-            .filter(|entry| entry.path().is_dir())
-        {
-            let path = entry.path();
-            if path
-                .file_name()
-                .and_then(|name| name.to_str().map(|name| name.starts_with('.')))
-                .unwrap_or(true)
-            {
-                continue;
-            }
-            if App::is_empty(&path).await? {
-                info!("remove empty {}", path.display());
-                fs::remove_dir_all(path).await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    #[async_recursion]
-    async fn is_empty(path: &Path) -> Result<bool> {
-        while let Some(entry) = fs::read_dir(path).await?.next_entry().await? {
-            if !entry
-                .file_name()
-                .to_str()
-                .map(|name| name.starts_with('.'))
-                .unwrap_or(false)
-            {
-                return App::is_empty(&entry.path()).await;
-            }
-        }
-
-        Ok(true)
     }
 
     async fn move_to_other(&self, path: &Path) -> Result<()> {

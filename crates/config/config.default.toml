@@ -3,11 +3,10 @@ quit_on_finish = false
 
 [file]
 root = "."
-remove_empty = true
 output = "output"
 other = "other"
 exclude = []
-ext = ["mp4", "mkv", "avi", "ts"]
+ext = ["mp4", "mkv", "avi", "ts", "mov"]
 
 [network]
 proxy = "http://127.0.0.1:8888"
