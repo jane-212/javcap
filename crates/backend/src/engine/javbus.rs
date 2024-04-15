@@ -88,7 +88,7 @@ impl Javbus {
             .next()
             .map(|title| title.inner_html())
         {
-            info = info.title(title);
+            info.title(title);
         }
         let tags = doc
             .select(&selectors().tag)
@@ -97,30 +97,24 @@ impl Javbus {
         let pairs = Javbus::parse_tags(&tags);
         for (k, v) in pairs {
             match k {
-                "發行日期" => info = info.premiered(v.to_string()),
-                "長度" => {
-                    info = info.runtime(
-                        v.chars()
-                            .filter(|c| c.is_ascii_digit())
-                            .collect::<String>()
-                            .parse::<u32>()
-                            .unwrap_or(0),
-                    )
-                }
-                "導演" => info = info.director(v.to_string()),
-                "製作商" => info = info.studio(v.to_string()),
-                "類別" => {
-                    info = info.genres(
-                        v.lines()
-                            .map(|line| line.trim())
-                            .filter(|line| !line.contains("多選提交"))
-                            .map(|line| line.to_string())
-                            .collect(),
-                    )
-                }
-                "演員" => {
-                    info = info.actors(v.lines().map(|line| line.trim().to_string()).collect())
-                }
+                "發行日期" => info.premiered(v.to_string()),
+                "長度" => info.runtime(
+                    v.chars()
+                        .filter(|c| c.is_ascii_digit())
+                        .collect::<String>()
+                        .parse::<u32>()
+                        .unwrap_or(0),
+                ),
+                "導演" => info.director(v.to_string()),
+                "製作商" => info.studio(v.to_string()),
+                "類別" => info.genres(
+                    v.lines()
+                        .map(|line| line.trim())
+                        .filter(|line| !line.contains("多選提交"))
+                        .map(|line| line.to_string())
+                        .collect(),
+                ),
+                "演員" => info.actors(v.lines().map(|line| line.trim().to_string()).collect()),
                 _ => {}
             }
         }
@@ -169,11 +163,11 @@ impl Engine for Javbus {
         let (fanart, mut info) = self.load_info(&href, info).await?;
         if let Some(poster) = poster {
             let poster = self.load_img(&poster).await?;
-            info = info.poster(poster);
+            info.poster(poster);
         }
         if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
-            info = info.fanart(fanart);
+            info.fanart(fanart);
         }
 
         info!("{} found in Javbus", video.id());

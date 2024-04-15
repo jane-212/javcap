@@ -71,7 +71,7 @@ impl Backend {
             if let Ok(new_info) = handle.await {
                 match new_info {
                     Ok(new_info) => {
-                        info = info.merge(new_info);
+                        info.merge(new_info);
                     }
                     Err(err) => warn!("{err}"),
                 }

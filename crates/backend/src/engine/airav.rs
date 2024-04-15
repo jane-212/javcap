@@ -137,14 +137,13 @@ impl Airav {
             .json::<Response>()
             .await?;
         let res = res.result;
-        info = info
-            .title(res.name)
-            .premiered(res.publish_date)
-            .plot(res.description)
-            .actors(res.actors.into_iter().map(|actor| actor.name).collect())
-            .genres(res.tags.into_iter().map(|tag| tag.name).collect());
+        info.title(res.name);
+        info.premiered(res.publish_date);
+        info.plot(res.description);
+        info.actors(res.actors.into_iter().map(|actor| actor.name).collect());
+        info.genres(res.tags.into_iter().map(|tag| tag.name).collect());
         if let Some(studio) = res.factories.into_iter().next().map(|fac| fac.name) {
-            info = info.studio(studio);
+            info.studio(studio);
         }
 
         Ok(info)
@@ -167,7 +166,7 @@ impl Engine for Airav {
         let mut info = self.load_info(&href, info).await?;
         if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
-            info = info.fanart(fanart);
+            info.fanart(fanart);
         }
 
         info!("{} found in Airav", video.id());

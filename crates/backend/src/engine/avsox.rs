@@ -60,7 +60,7 @@ impl Avsox {
             .next()
             .map(|title| title.inner_html())
         {
-            info = info.title(title);
+            info.title(title);
         }
         let fanart = doc
             .select(&selectors().fanart)
@@ -73,18 +73,16 @@ impl Avsox {
         let tags = Avsox::parse_tags(&tags);
         for (k, v) in tags {
             match k {
-                "发行时间" => info = info.premiered(v.to_string()),
-                "长度" => {
-                    info = info.runtime(
-                        v.chars()
-                            .take_while(|c| c.is_ascii_digit())
-                            .collect::<String>()
-                            .parse::<u32>()
-                            .unwrap_or(0),
-                    )
-                }
-                "制作商" => info = info.studio(v.to_string()),
-                "系列" => info = info.director(v.to_string()),
+                "发行时间" => info.premiered(v.to_string()),
+                "长度" => info.runtime(
+                    v.chars()
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect::<String>()
+                        .parse::<u32>()
+                        .unwrap_or(0),
+                ),
+                "制作商" => info.studio(v.to_string()),
+                "系列" => info.director(v.to_string()),
                 _ => {}
             }
         }
@@ -133,7 +131,7 @@ impl Engine for Avsox {
         let (fanart, mut info) = self.load_info(&href, info).await?;
         if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
-            info = info.fanart(fanart);
+            info.fanart(fanart);
         }
 
         info!("{} found in Avsox", video.id());

@@ -244,23 +244,23 @@ impl Info {
         }
     }
 
-    fn combine_vec<T: Eq + Hash>(left: Vec<T>, right: Vec<T>) -> Vec<T> {
+    fn combine_vec<T: Eq + Hash + Clone>(left: &[T], right: &[T]) -> Vec<T> {
         let mut hset = HashSet::new();
         for item in left {
-            hset.insert(item);
+            hset.insert(item.clone());
         }
         for item in right {
-            hset.insert(item);
+            hset.insert(item.clone());
         }
 
         hset.into_iter().collect()
     }
 
-    fn select_long(left: String, right: String) -> String {
+    fn select_long(left: &str, right: &str) -> String {
         if left.len() > right.len() {
-            left
+            left.to_string()
         } else {
-            right
+            right.to_string()
         }
     }
 
@@ -297,92 +297,79 @@ impl Info {
         info!("{:-^25}", format!(" {} END ", id));
     }
 
-    pub fn merge(mut self, other: Info) -> Info {
+    pub fn merge(&mut self, other: Info) {
         if self.title.is_empty() {
-            self.title = Info::select_long(self.title, other.title);
+            self.title = Info::select_long(&self.title, &other.title);
         }
         if self.rating == 0.0 {
             self.rating = other.rating;
         }
         if self.plot.is_empty() {
-            self.plot = Info::select_long(self.plot, other.plot);
+            self.plot = Info::select_long(&self.plot, &other.plot);
         }
         if self.runtime == 0 {
             self.runtime = other.runtime;
         }
-        self.genres = Info::combine_vec(self.genres, other.genres);
+        self.genres = Info::combine_vec(&self.genres, &other.genres);
         if self.director.is_empty() {
-            self.director = Info::select_long(self.director, other.director);
+            self.director = Info::select_long(&self.director, &other.director);
         }
         if self.premiered.is_empty() {
-            self.premiered = Info::select_long(self.premiered, other.premiered);
+            self.premiered = Info::select_long(&self.premiered, &other.premiered);
         }
         if self.studio.is_empty() {
-            self.studio = Info::select_long(self.studio, other.studio);
+            self.studio = Info::select_long(&self.studio, &other.studio);
         }
-        self.actors = Info::combine_vec(self.actors, other.actors);
+        self.actors = Info::combine_vec(&self.actors, &other.actors);
         if self.poster.is_empty() {
             self.poster = other.poster;
         }
         if self.fanart.is_empty() {
             self.fanart = other.fanart;
         }
-
-        self
     }
 
-    pub fn title(mut self, title: String) -> Info {
+    pub fn title(&mut self, title: String) {
         self.title = title;
-        self
     }
 
-    pub fn poster(mut self, poster: Vec<u8>) -> Info {
+    pub fn poster(&mut self, poster: Vec<u8>) {
         self.poster = poster;
-        self
     }
 
-    pub fn fanart(mut self, fanart: Vec<u8>) -> Info {
+    pub fn fanart(&mut self, fanart: Vec<u8>) {
         self.fanart = fanart;
-        self
     }
 
-    pub fn rating(mut self, rating: f64) -> Info {
+    pub fn rating(&mut self, rating: f64) {
         self.rating = rating;
-        self
     }
 
-    pub fn plot(mut self, plot: String) -> Info {
+    pub fn plot(&mut self, plot: String) {
         self.plot = plot;
-        self
     }
 
-    pub fn runtime(mut self, runtime: u32) -> Info {
+    pub fn runtime(&mut self, runtime: u32) {
         self.runtime = runtime;
-        self
     }
 
-    pub fn genres(mut self, genres: Vec<String>) -> Info {
+    pub fn genres(&mut self, genres: Vec<String>) {
         self.genres = genres;
-        self
     }
 
-    pub fn director(mut self, director: String) -> Info {
+    pub fn director(&mut self, director: String) {
         self.director = director;
-        self
     }
 
-    pub fn premiered(mut self, premiered: String) -> Info {
+    pub fn premiered(&mut self, premiered: String) {
         self.premiered = premiered;
-        self
     }
 
-    pub fn studio(mut self, studio: String) -> Info {
+    pub fn studio(&mut self, studio: String) {
         self.studio = studio;
-        self
     }
 
-    pub fn actors(mut self, actors: Vec<String>) -> Info {
+    pub fn actors(&mut self, actors: Vec<String>) {
         self.actors = actors;
-        self
     }
 }

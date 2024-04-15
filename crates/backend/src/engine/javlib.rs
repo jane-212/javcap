@@ -48,7 +48,7 @@ impl Javlib {
             .next()
             .map(|title| title.inner_html())
         {
-            info = info.title(title);
+            info.title(title);
         }
         let fanart = doc
             .select(&selectors().fanart)
@@ -68,28 +68,24 @@ impl Javlib {
             .collect::<Vec<(&str, &str)>>();
         for (k, v) in tags {
             match k {
-                "发行日期" => info = info.premiered(v.to_string()),
-                "长度" => {
-                    info = info.runtime(
-                        v.chars()
-                            .filter(|c| c.is_ascii_digit())
-                            .collect::<String>()
-                            .parse::<u32>()
-                            .unwrap_or(0),
-                    )
-                }
-                "导演" => info = info.director(v.to_string()),
-                "制作商" => info = info.studio(v.to_string()),
-                "使用者评价" => {
-                    info = info.rating(
-                        v.chars()
-                            .filter(|c| c.is_ascii_digit() || *c == '.')
-                            .collect::<String>()
-                            .parse::<f64>()
-                            .unwrap_or(0.0),
-                    )
-                }
-                "演员" => info = info.actors(vec![v.to_string()]),
+                "发行日期" => info.premiered(v.to_string()),
+                "长度" => info.runtime(
+                    v.chars()
+                        .filter(|c| c.is_ascii_digit())
+                        .collect::<String>()
+                        .parse::<u32>()
+                        .unwrap_or(0),
+                ),
+                "导演" => info.director(v.to_string()),
+                "制作商" => info.studio(v.to_string()),
+                "使用者评价" => info.rating(
+                    v.chars()
+                        .filter(|c| c.is_ascii_digit() || *c == '.')
+                        .collect::<String>()
+                        .parse::<f64>()
+                        .unwrap_or(0.0),
+                ),
+                "演员" => info.actors(vec![v.to_string()]),
                 _ => {}
             }
         }
@@ -97,7 +93,7 @@ impl Javlib {
             .select(&selectors().genre)
             .map(|genre| genre.inner_html())
             .collect::<Vec<String>>();
-        info = info.genres(genres);
+        info.genres(genres);
 
         Ok((fanart, info))
     }
@@ -119,7 +115,7 @@ impl Engine for Javlib {
         let (fanart, mut info) = Javlib::load_info(res, info)?;
         if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
-            info = info.fanart(fanart);
+            info.fanart(fanart);
         }
 
         info!("{} found in Javlib", video.id());

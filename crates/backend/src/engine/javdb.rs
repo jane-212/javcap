@@ -64,7 +64,7 @@ impl Javdb {
                 .flat_map(|text| text.trim().chars())
                 .collect::<String>()
         }) {
-            info = info.title(title);
+            info.title(title);
         }
         let tags = doc
             .select(&selectors().tag)
@@ -76,7 +76,7 @@ impl Javdb {
             .collect::<Vec<(&str, &str)>>();
         for (k, v) in tags {
             match k {
-                "日期" => info = info.premiered(v.to_string()),
+                "日期" => info.premiered(v.to_string()),
                 "時長" => {
                     let runtime = v
                         .chars()
@@ -84,10 +84,10 @@ impl Javdb {
                         .collect::<String>()
                         .parse::<u32>()
                         .unwrap_or(0);
-                    info = info.runtime(runtime)
+                    info.runtime(runtime)
                 }
-                "導演" => info = info.director(v.to_string()),
-                "片商" => info = info.studio(v.to_string()),
+                "導演" => info.director(v.to_string()),
+                "片商" => info.studio(v.to_string()),
                 "評分" => {
                     let rating = v
                         .chars()
@@ -95,14 +95,14 @@ impl Javdb {
                         .collect::<String>()
                         .parse::<f64>()
                         .unwrap_or(0.0);
-                    info = info.rating(rating * 2.0);
+                    info.rating(rating * 2.0);
                 }
                 "類別" => {
                     let genres = v
                         .split(',')
                         .map(|genre| genre.trim().to_string())
                         .collect::<Vec<String>>();
-                    info = info.genres(genres);
+                    info.genres(genres);
                 }
                 "演員" => {
                     let actors = v
@@ -114,7 +114,7 @@ impl Javdb {
                                 .to_string()
                         })
                         .collect::<Vec<String>>();
-                    info = info.actors(actors);
+                    info.actors(actors);
                 }
                 _ => {}
             }
@@ -140,7 +140,7 @@ impl Engine for Javdb {
         let (fanart, mut info) = self.load_info(&href, info).await?;
         if let Some(fanart) = fanart {
             let fanart = self.load_img(&fanart).await?;
-            info = info.fanart(fanart);
+            info.fanart(fanart);
         }
 
         info!("{} found in Javdb", video.id());

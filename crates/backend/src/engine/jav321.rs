@@ -55,7 +55,7 @@ impl Jav321 {
             .next()
             .and_then(|title| title.text().next().map(|title| title.to_string()))
         {
-            info = info.title(title);
+            info.title(title);
         }
         let poster = doc
             .select(&selectors().poster)
@@ -66,7 +66,7 @@ impl Jav321 {
             .next()
             .and_then(|plot| plot.text().next().map(|plot| plot.to_string()))
         {
-            info = info.plot(plot);
+            info.plot(plot);
         }
         if let Some(tags) = doc
             .select(&selectors().tag)
@@ -87,19 +87,17 @@ impl Jav321 {
                             actors.push(actor.to_string());
                         }
 
-                        info = info.actors(actors);
+                        info.actors(actors);
                     }
-                    "發行商" => info = info.studio(v.to_string()),
-                    "發行日期" => info = info.premiered(v.to_string()),
-                    "播放時長" => {
-                        info = info.runtime(
-                            v.chars()
-                                .filter(|c| c.is_ascii_digit())
-                                .collect::<String>()
-                                .parse::<u32>()
-                                .unwrap_or(0),
-                        )
-                    }
+                    "發行商" => info.studio(v.to_string()),
+                    "發行日期" => info.premiered(v.to_string()),
+                    "播放時長" => info.runtime(
+                        v.chars()
+                            .filter(|c| c.is_ascii_digit())
+                            .collect::<String>()
+                            .parse::<u32>()
+                            .unwrap_or(0),
+                    ),
                     _ => {}
                 }
             }
@@ -158,7 +156,7 @@ impl Engine for Jav321 {
         let (poster, mut info) = Jav321::load_info(res, info)?;
         if let Some(poster) = poster {
             let poster = self.load_img(&poster).await?;
-            info = info.poster(poster);
+            info.poster(poster);
         }
 
         info!("{} found in Jav321", video.id());
