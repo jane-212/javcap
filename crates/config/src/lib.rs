@@ -12,11 +12,19 @@ pub struct Config {
     pub app: App,
     pub file: File,
     pub network: Network,
+    pub avatar: Avatar,
 }
 
 #[derive(Deserialize)]
 pub struct App {
     pub quit_on_finish: bool,
+}
+
+#[derive(Deserialize)]
+pub struct Avatar {
+    pub host: String,
+    pub api_key: String,
+    pub refresh: bool,
 }
 
 #[derive(Deserialize)]
@@ -64,10 +72,10 @@ impl Config {
             .truncate(true)
             .open(path)
             .await?
-            .write_all(
-                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/config.default.toml"))
-                    .as_bytes(),
-            )
+            .write_all(include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/config.default.toml"
+            )))
             .await?;
 
         Ok(())

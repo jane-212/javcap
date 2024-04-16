@@ -15,3 +15,6 @@ serde.workspace = true
 tracing.workspace = true
 nom.workspace = true
 indoc.workspace = true
+indicatif.workspace = true
+console.workspace = true
+base64.workspace = true

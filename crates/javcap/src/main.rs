@@ -6,7 +6,6 @@ use error::Result;
 use tracing::{error, info};
 
 mod app;
-mod bar;
 
 #[tokio::main]
 async fn main() {

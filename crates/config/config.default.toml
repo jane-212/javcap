@@ -11,3 +11,8 @@ ext = ["mp4", "mkv", "avi", "ts", "mov"]
 [network]
 proxy = "http://127.0.0.1:8888"
 timeout = 10
+
+[avatar]
+refresh = false
+host = "http://localhost:8096"
+api_key = ""

@@ -61,6 +61,12 @@ impl Bar {
             .println(format!("{:>10} ✔️️ {}", style("Handle").green().bold(), msg));
     }
 
+    pub fn println(&self, msg: &str) {
+        info!("{msg}");
+        self.process
+            .println(format!("{:>10}️️ {}", style("Now").green().bold(), msg));
+    }
+
     pub fn warn(&mut self, msg: &str) {
         self.failed += 1;
         warn!("{msg}");

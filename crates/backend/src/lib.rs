@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
+use avatar::Avatar;
 use engine::{Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
 use error::{Error, Result};
 use info::Info;
@@ -12,6 +13,8 @@ use tracing::warn;
 use translate::Translate;
 use video::Video;
 
+mod avatar;
+pub mod bar;
 mod engine;
 mod info;
 mod translate;
@@ -21,10 +24,11 @@ pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,
     translate: Translate,
     client: Arc<Client>,
+    avatar: Avatar,
 }
 
 impl Backend {
-    pub fn new(proxy: &str, timeout: u64) -> Result<Backend> {
+    pub fn new(proxy: &str, timeout: u64, host: &str, api_key: &str) -> Result<Backend> {
         let mut headers = HeaderMap::new();
         headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"));
         headers.insert(
@@ -56,12 +60,20 @@ impl Backend {
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
         let translate = Translate::new(client.clone());
+        let avatar = Avatar::new(client.clone(), host.to_string(), api_key.to_string());
 
         Ok(Backend {
             engines,
             translate,
             client,
+            avatar,
         })
+    }
+
+    pub async fn refresh_avatar(&self) -> Result<()> {
+        self.avatar.refresh().await?;
+
+        Ok(())
     }
 
     pub async fn ping(&self, url: &str) -> Result<()> {

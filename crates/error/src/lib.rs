@@ -25,6 +25,10 @@ pub enum Error {
     AlreadyExists(String),
     #[error("proxy may not work")]
     Proxy,
+    #[error("connect to gfriends repo failed")]
+    Avatar,
+    #[error("connect to emby failed")]
+    Emby,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

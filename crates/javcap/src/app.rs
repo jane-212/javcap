@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use backend::bar::Bar;
 use backend::video::Video;
 use backend::Backend;
 use config::Config;
@@ -15,8 +16,6 @@ use tracing::{info, Level};
 use tracing_appender::rolling;
 use tracing_subscriber::fmt::time::OffsetTime;
 use walkdir::WalkDir;
-
-use crate::bar::Bar;
 
 pub struct App {
     root: PathBuf,
@@ -46,7 +45,12 @@ impl App {
             root = pwd.join(&root).canonicalize().unwrap_or(root);
         }
         info!("root {}", root.display());
-        let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
+        let backend = Backend::new(
+            &config.network.proxy,
+            config.network.timeout,
+            &config.avatar.host,
+            &config.avatar.api_key,
+        )?;
         let network_bar = ProgressBar::new_spinner();
         network_bar.enable_steady_tick(Duration::from_millis(100));
         network_bar.set_style(
@@ -70,10 +74,15 @@ impl App {
         let paths = self.walk();
         info!("total {} videos found", paths.len());
         let mut bar = Bar::new(paths.len() as u64)?;
+        bar.println("MOVIE");
         for path in paths {
             if let Err(err) = self.handle(&path, &mut bar).await {
                 bar.warn(&format!("{}", err));
             }
+        }
+        drop(bar);
+        if self.config.avatar.refresh {
+            self.backend.refresh_avatar().await?;
         }
 
         Ok(self.config.app.quit_on_finish)
