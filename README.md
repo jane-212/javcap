@@ -24,6 +24,5 @@ A data capture for jav movie.
 - [x] javbus
 - [x] javdb
 - [x] javlib
-- [x] airav
 - [x] avsox
 - [x] mgstage
