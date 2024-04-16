@@ -66,7 +66,11 @@ jobs:
             rust: stable
             target: aarch64-unknown-linux-gnu
             
-          - build: macos
+          - build: macos-aarch64
+            os: macos-latest
+            rust: stable
+            target: aarch64-apple-darwin
+          - build: macos-x86
             os: macos-latest
             rust: stable
             target: x86_64-apple-darwin
