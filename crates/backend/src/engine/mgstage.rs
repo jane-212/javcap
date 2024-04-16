@@ -72,7 +72,7 @@ impl Mgstage {
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
-            .map(|title| title.inner_html())
+            .map(|title| title.inner_html().trim().to_string())
         {
             info.title(title);
         }
@@ -83,7 +83,7 @@ impl Mgstage {
         if let Some(plot) = doc
             .select(&selectors().plot)
             .next()
-            .map(|plot| plot.inner_html())
+            .map(|plot| plot.inner_html().trim().to_string())
         {
             info.plot(plot);
         }

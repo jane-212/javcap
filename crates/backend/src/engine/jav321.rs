@@ -52,7 +52,7 @@ impl Jav321 {
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
-            .and_then(|title| title.text().next().map(|title| title.to_string()))
+            .and_then(|title| title.text().next().map(|title| title.trim().to_string()))
         {
             info.title(title);
         }
@@ -63,7 +63,7 @@ impl Jav321 {
         if let Some(plot) = doc
             .select(&selectors().plot)
             .next()
-            .and_then(|plot| plot.text().next().map(|plot| plot.to_string()))
+            .and_then(|plot| plot.text().next().map(|plot| plot.trim().to_string()))
         {
             info.plot(plot);
         }

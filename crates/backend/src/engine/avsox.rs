@@ -57,7 +57,7 @@ impl Avsox {
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
-            .map(|title| title.inner_html())
+            .map(|title| title.inner_html().trim().to_string())
         {
             info.title(title);
         }
