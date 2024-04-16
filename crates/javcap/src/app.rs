@@ -1,12 +1,14 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use backend::video::Video;
 use backend::Backend;
 use config::Config;
 use error::{Error, Result};
+use indicatif::{ProgressBar, ProgressStyle};
 use time::{macros::format_description, UtcOffset};
 use tokio::fs;
 use tracing::{info, Level};
@@ -45,6 +47,17 @@ impl App {
         }
         info!("root {}", root.display());
         let backend = Backend::new(&config.network.proxy, config.network.timeout)?;
+        let network_bar = ProgressBar::new_spinner();
+        network_bar.enable_steady_tick(Duration::from_millis(100));
+        network_bar.set_style(
+            ProgressStyle::with_template("{prefix:>10.blue.bold} {spinner} {msg}")?
+                .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
+        );
+        network_bar.set_prefix("Check");
+        network_bar.set_message("checking network");
+        backend.ping("https://www.javbus.com").await?;
+        network_bar.finish_and_clear();
+        info!("network check passed");
 
         Ok(App {
             root,

@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
-use engine::{Airav, Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
-use error::Result;
+use engine::{Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
+use error::{Error, Result};
 use info::Info;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
@@ -20,6 +20,7 @@ pub mod video;
 pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,
     translate: Translate,
+    client: Arc<Client>,
 }
 
 impl Backend {
@@ -52,12 +53,30 @@ impl Backend {
             Arc::new(Box::new(Javlib::new(client.clone()))),
             Arc::new(Box::new(Jav321::new(client.clone()))),
             Arc::new(Box::new(Avsox::new(client.clone()))),
-            Arc::new(Box::new(Airav::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
-        let translate = Translate::new(client);
+        let translate = Translate::new(client.clone());
 
-        Ok(Backend { engines, translate })
+        Ok(Backend {
+            engines,
+            translate,
+            client,
+        })
+    }
+
+    pub async fn ping(&self, url: &str) -> Result<()> {
+        let status = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(|_| Error::Proxy)?
+            .status();
+        if !status.is_success() {
+            return Err(Error::Proxy);
+        }
+
+        Ok(())
     }
 
     pub async fn search(&mut self, video: &Video) -> Option<Info> {

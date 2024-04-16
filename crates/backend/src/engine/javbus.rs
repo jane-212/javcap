@@ -62,7 +62,7 @@ impl Javbus {
         Ok(Some((href.to_string(), Some(poster))))
     }
 
-    async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
         select!(
             title: "body > div.container > h3",
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
@@ -118,7 +118,7 @@ impl Javbus {
             }
         }
 
-        Ok((fanart, info))
+        Ok(fanart)
     }
 
     fn parse_tags(tags: &[String]) -> Vec<(&str, &str)> {
@@ -154,19 +154,18 @@ impl Javbus {
 impl Engine for Javbus {
     async fn search(&self, video: &Video) -> Result<Info> {
         info!("search {} in Javbus", video.id());
-        let info = Info::default();
+        let mut info = Info::default();
         let Some((href, poster)) = self.find_item(video).await? else {
             warn!("{} not found in Javbus", video.id());
             return Ok(info);
         };
-        let (fanart, mut info) = self.load_info(&href, info).await?;
+        if let Some(fanart) = self.load_info(&href, &mut info).await? {
+            let fanart = self.load_img(&fanart).await?;
+            info.fanart(fanart);
+        }
         if let Some(poster) = poster {
             let poster = self.load_img(&poster).await?;
             info.poster(poster);
-        }
-        if let Some(fanart) = fanart {
-            let fanart = self.load_img(&fanart).await?;
-            info.fanart(fanart);
         }
 
         info!("{} found in Javbus", video.id());

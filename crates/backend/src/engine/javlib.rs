@@ -34,7 +34,7 @@ impl Javlib {
         Ok(Some(res))
     }
 
-    fn load_info(res: String, mut info: Info) -> Result<(Option<String>, Info)> {
+    fn load_info(res: String, info: &mut Info) -> Result<Option<String>> {
         select!(
             title: "#video_title > h3 > a",
             fanart: "#video_jacket_img",
@@ -94,7 +94,7 @@ impl Javlib {
             .collect::<Vec<String>>();
         info.genres(genres);
 
-        Ok((fanart, info))
+        Ok(fanart)
     }
 
     async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
@@ -106,13 +106,12 @@ impl Javlib {
 impl Engine for Javlib {
     async fn search(&self, video: &Video) -> Result<Info> {
         info!("search {} in Javlib", video.id());
-        let info = Info::default();
+        let mut info = Info::default();
         let Some(res) = self.find_item(video).await? else {
             warn!("{} not found in Javlib", video.id());
             return Ok(info);
         };
-        let (fanart, mut info) = Javlib::load_info(res, info)?;
-        if let Some(fanart) = fanart {
+        if let Some(fanart) = Javlib::load_info(res, &mut info)? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);
         }

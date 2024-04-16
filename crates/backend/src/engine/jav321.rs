@@ -41,7 +41,7 @@ impl Jav321 {
         Ok(Some(res))
     }
 
-    fn load_info(res: String, mut info: Info) -> Result<(Option<String>, Info)> {
+    fn load_info(res: String, info: &mut Info) -> Result<Option<String>> {
         select!(
             title: "body > div:nth-child(3) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-heading > h3",
             poster: "body > div:nth-child(3) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(1) > div.col-md-3 > img",
@@ -102,7 +102,7 @@ impl Jav321 {
             }
         }
 
-        Ok((poster, info))
+        Ok(poster)
     }
 
     fn parse_tags<'a>(lines: &'a [&'a str]) -> Vec<(&str, &str)> {
@@ -147,13 +147,12 @@ impl Jav321 {
 impl Engine for Jav321 {
     async fn search(&self, video: &Video) -> Result<Info> {
         info!("search {} in Jav321", video.id());
-        let info = Info::default();
+        let mut info = Info::default();
         let Some(res) = self.find_item(video).await? else {
             warn!("{} not found in Jav321", video.id());
             return Ok(info);
         };
-        let (poster, mut info) = Jav321::load_info(res, info)?;
-        if let Some(poster) = poster {
+        if let Some(poster) = Jav321::load_info(res, &mut info)? {
             let poster = self.load_img(&poster).await?;
             info.poster(poster);
         }

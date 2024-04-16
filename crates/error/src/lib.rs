@@ -23,6 +23,8 @@ pub enum Error {
     Info(String),
     #[error("movie already exists({0})")]
     AlreadyExists(String),
+    #[error("proxy may not work")]
+    Proxy,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

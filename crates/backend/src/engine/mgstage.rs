@@ -53,7 +53,7 @@ impl Mgstage {
         Ok(Some(format!("{}{}", Mgstage::HOST, href)))
     }
 
-    async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
         select!(
             title: "#center_column > div.common_detail_cover > h1",
             poster: "#center_column > div.common_detail_cover > div.detail_left > div > div > h2 > img",
@@ -120,7 +120,7 @@ impl Mgstage {
             }
         }
 
-        Ok((poster, info))
+        Ok(poster)
     }
 
     fn parse_tags(tags: &[String]) -> Vec<(&str, &str)> {
@@ -138,13 +138,12 @@ impl Mgstage {
 impl Engine for Mgstage {
     async fn search(&self, video: &Video) -> Result<Info> {
         info!("search {} in Mgstage", video.id());
-        let info = Info::default();
+        let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {
             warn!("{} not found in Mgstage", video.id());
             return Ok(info);
         };
-        let (poster, mut info) = self.load_info(&href, info).await?;
-        if let Some(poster) = poster {
+        if let Some(poster) = self.load_info(&href, &mut info).await? {
             let poster = self.load_img(&poster).await?;
             info.poster(poster);
         }

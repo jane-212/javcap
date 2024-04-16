@@ -46,7 +46,7 @@ impl Avsox {
         Ok(Some(href))
     }
 
-    async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
         select!(
             title: "body > div.container > h3",
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
@@ -86,7 +86,7 @@ impl Avsox {
             }
         }
 
-        Ok((fanart, info))
+        Ok(fanart)
     }
 
     fn parse_tags(tags: &[String]) -> Vec<(&str, &str)> {
@@ -122,13 +122,12 @@ impl Avsox {
 impl Engine for Avsox {
     async fn search(&self, video: &Video) -> Result<Info> {
         info!("search {} in Avsox", video.id());
-        let info = Info::default();
+        let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {
             warn!("{} not found in Avsox", video.id());
             return Ok(info);
         };
-        let (fanart, mut info) = self.load_info(&href, info).await?;
-        if let Some(fanart) = fanart {
+        if let Some(fanart) = self.load_info(&href, &mut info).await? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);
         }

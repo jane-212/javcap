@@ -45,7 +45,7 @@ impl Javdb {
         Ok(Some(href))
     }
 
-    async fn load_info(&self, href: &str, mut info: Info) -> Result<(Option<String>, Info)> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
         select!(
             title: "body > section > div > div.video-detail > h2",
             fanart: "body > section > div > div.video-detail > div.video-meta-panel > div > div.column.column-video-cover > a > img",
@@ -119,7 +119,7 @@ impl Javdb {
             }
         }
 
-        Ok((fanart, info))
+        Ok(fanart)
     }
 
     async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
@@ -131,13 +131,12 @@ impl Javdb {
 impl Engine for Javdb {
     async fn search(&self, video: &Video) -> Result<Info> {
         info!("search {} in Javdb", video.id());
-        let info = Info::default();
+        let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {
             warn!("{} not found in Javdb", video.id());
             return Ok(info);
         };
-        let (fanart, mut info) = self.load_info(&href, info).await?;
-        if let Some(fanart) = fanart {
+        if let Some(fanart) = self.load_info(&href, &mut info).await? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);
         }
