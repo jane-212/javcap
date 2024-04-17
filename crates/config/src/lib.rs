@@ -49,6 +49,7 @@ pub struct File {
     pub other: String,
     pub exclude: Vec<String>,
     pub ext: Vec<String>,
+    pub remove_empty: bool,
 }
 
 #[derive(Deserialize, Validate)]

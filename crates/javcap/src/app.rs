@@ -8,6 +8,7 @@ use backend::bar::Bar;
 use backend::video::Video;
 use backend::Backend;
 use config::Config;
+use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use time::{macros::format_description, UtcOffset};
 use tokio::fs;
@@ -61,13 +62,17 @@ impl App {
                 .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         network_bar.set_prefix("Check");
-        network_bar.set_message("checking network");
+        network_bar.set_message("check network");
         backend
             .ping("https://www.javbus.com")
             .await
             .map_err(|err| anyhow::anyhow!("check network failed, caused by {err}"))?;
         network_bar.finish_and_clear();
         info!("network check passed");
+        println!(
+            "{:>10} ✔ network check passed",
+            style("Check").green().bold()
+        );
 
         Ok(App {
             root,
@@ -90,8 +95,38 @@ impl App {
         if self.config.avatar.refresh {
             self.backend.refresh_avatar().await?;
         }
+        if self.config.file.remove_empty {
+            self.remove_empty().await?;
+        }
 
         Ok(self.config.app.quit_on_finish)
+    }
+
+    async fn remove_empty(&self) -> anyhow::Result<()> {
+        let mut entrys = fs::read_dir(&self.root).await?;
+        while let Some(entry) = entrys.next_entry().await? {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.starts_with('.') {
+                    continue;
+                }
+                for exclude in self.config.file.exclude.iter() {
+                    if name == exclude {
+                        continue;
+                    }
+                }
+                if fs::read_dir(entry.path())
+                    .await?
+                    .next_entry()
+                    .await?
+                    .is_none()
+                {
+                    fs::remove_dir(entry.path()).await?;
+                    info!("remove {}", entry.path().display());
+                }
+            }
+        }
+
+        Ok(())
     }
 
     async fn move_to_other(&self, path: &Path) -> anyhow::Result<()> {

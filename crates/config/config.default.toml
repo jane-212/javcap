@@ -13,6 +13,8 @@ other = "other"
 exclude = []
 # 那些后缀的文件会被识别为视频文件。
 ext = ["mp4", "mkv", "avi", "ts", "mov"]
+# 是否移除空目录。
+remove_empty = false
 
 [video]
 # 是否翻译视频信息，免费翻译接口限制2秒一次，每天1000次，如果翻译失败会使用未翻译的信息。
