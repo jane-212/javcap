@@ -37,12 +37,6 @@ jobs:
     needs: ["create-release"]
     runs-on: ${{ matrix.os }}
     env:
-      # For some builds, we use cross to test on 32-bit and big-endian
-      # systems.
-      CARGO: cargo
-      # When CARGO is set to CROSS, TARGET_DIR includes matrix.target.
-      TARGET_DIR: ./target
-      # Emit backtraces on panics.
       RUST_BACKTRACE: 1
     strategy:
       fail-fast: false
@@ -56,7 +50,7 @@ jobs:
             os: ubuntu-latest
             rust: stable
             target: x86_64-unknown-linux-gnu
-            
+
           - build: stable-aarch64-musl
             os: ubuntu-latest
             rust: stable
@@ -65,7 +59,7 @@ jobs:
             os: ubuntu-latest
             rust: stable
             target: aarch64-unknown-linux-gnu
-            
+
           - build: macos-aarch64
             os: macos-latest
             rust: stable
@@ -74,7 +68,7 @@ jobs:
             os: macos-latest
             rust: stable
             target: x86_64-apple-darwin
-            
+
           - build: win-msvc
             os: windows-latest
             rust: stable
@@ -99,14 +93,13 @@ jobs:
       - name: Show command used for Cargo
         shell: bash
         run: |
-          echo "cargo command is: ${{ env.CARGO }}"
           echo "target flag is: ${{ env.TARGET_FLAGS }}"
           echo "target dir is: ${{ env.TARGET_DIR }}"
 
       - name: Build release binary
         shell: bash
         run: |
-          ${{ env.CARGO }} install cross
+          cargo install cross
           cross build --verbose --release ${{ env.TARGET_FLAGS }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             bin="target/${{ matrix.target }}/release/javcap.exe"
@@ -148,4 +141,4 @@ jobs:
         shell: bash
         run: |
           version="${{ needs.create-release.outputs.version }}"
-          gh release upload "$version" ${{ env.ASSET }} ${{ env.ASSET_SUM }}
+          gh release upload "$version" ${{ env.ASSET }}
