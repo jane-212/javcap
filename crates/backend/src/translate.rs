@@ -6,6 +6,7 @@ use std::{
 use reqwest::Client;
 use serde::Deserialize;
 use tokio::time::sleep;
+use tracing::warn;
 
 use crate::info::Info;
 
@@ -40,7 +41,7 @@ impl Translate {
         #[derive(Deserialize)]
         struct Response {
             code: u32,
-            data: String,
+            data: Option<String>,
             msg: String,
         }
         if self.timer.elapsed() < Translate::INTERVAL {
@@ -55,9 +56,10 @@ impl Translate {
             .await?
             .json::<Response>()
             .await?;
-        if res.code == 200 {
-            Ok(Some(res.data))
+        if let Some(data) = res.data {
+            Ok(Some(data))
         } else {
+            warn!("translate {text} failed, caused by {}", res.msg);
             Ok(None)
         }
     }

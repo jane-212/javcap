@@ -10,7 +10,7 @@ mod app;
 async fn main() {
     match run().await {
         Ok(should_quit) => {
-            finish_and_quit(should_quit);
+            finish_and_quit(!should_quit);
         }
         Err(err) => {
             error!("{err}");

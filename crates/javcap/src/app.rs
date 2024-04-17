@@ -52,6 +52,7 @@ impl App {
             config.network.timeout,
             &config.avatar.host,
             &config.avatar.api_key,
+            config.video.translate,
         )?;
         let network_bar = ProgressBar::new_spinner();
         network_bar.enable_steady_tick(Duration::from_millis(100));
@@ -61,7 +62,10 @@ impl App {
         );
         network_bar.set_prefix("Check");
         network_bar.set_message("checking network");
-        backend.ping("https://www.javbus.com").await?;
+        backend
+            .ping("https://www.javbus.com")
+            .await
+            .map_err(|err| anyhow::anyhow!("check network failed, caused by {err}"))?;
         network_bar.finish_and_clear();
         info!("network check passed");
 

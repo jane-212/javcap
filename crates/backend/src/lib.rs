@@ -8,7 +8,7 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Proxy,
 };
-use tracing::warn;
+use tracing::{info, warn};
 use translate::Translate;
 use video::Video;
 
@@ -21,13 +21,19 @@ pub mod video;
 
 pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,
-    translate: Translate,
+    translate: Option<Translate>,
     client: Arc<Client>,
     avatar: Avatar,
 }
 
 impl Backend {
-    pub fn new(proxy: &str, timeout: u64, host: &str, api_key: &str) -> anyhow::Result<Backend> {
+    pub fn new(
+        proxy: &str,
+        timeout: u64,
+        host: &str,
+        api_key: &str,
+        translate: bool,
+    ) -> anyhow::Result<Backend> {
         let mut headers = HeaderMap::new();
         headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"));
         headers.insert(
@@ -47,7 +53,10 @@ impl Backend {
         let client = Client::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(timeout))
-            .proxy(Proxy::https(proxy)?)
+            .proxy(
+                Proxy::https(proxy)
+                    .map_err(|_| anyhow::anyhow!("proxy {proxy} is not validate"))?,
+            )
             .build()?;
         let client = Arc::new(client);
         let engines: Vec<Arc<Box<dyn Engine>>> = vec![
@@ -58,7 +67,11 @@ impl Backend {
             Arc::new(Box::new(Avsox::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
-        let translate = Translate::new(client.clone());
+        let translate = if translate {
+            Some(Translate::new(client.clone()))
+        } else {
+            None
+        };
         let avatar = Avatar::new(client.clone(), host.to_string(), api_key.to_string());
 
         Ok(Backend {
@@ -104,7 +117,12 @@ impl Backend {
                 }
             }
         }
-        self.translate.translate(&mut info).await.ok();
+        if let Some(translate) = self.translate.as_mut() {
+            info!("translate {}", video.id());
+            if let Err(err) = translate.translate(&mut info).await {
+                warn!("translate {} failed, caused by {err}", video.id());
+            }
+        }
 
         #[cfg(debug_assertions)]
         info.show_info("SUMARY");

@@ -30,6 +30,7 @@ time = { version = "0.3.36", features = ["macros"] }
 indoc = "2.0.5"
 base64 = "0.22.0"
 anyhow = "1.0.82"
+validator = { version = "0.18.1", features = ["derive"] }
 
 [profile.release]
 lto = true

@@ -25,12 +25,17 @@ impl Avatar {
     }
 
     pub async fn refresh(&self) -> anyhow::Result<()> {
-        let actors = self.get_actors().await?;
+        let actors = self
+            .get_actors()
+            .await
+            .map_err(|err| anyhow::anyhow!("get actors from emby failed, caused by {err}"))?;
         info!("total {} actors", actors.len());
         let mut bar = Bar::new(actors.len() as u64)?;
         bar.println("AVATAR");
         bar.message("load file tree");
-        let actor_map = self.load_file_tree().await?;
+        let actor_map = self.load_file_tree().await.map_err(|err| {
+            anyhow::anyhow!("load file tree from gfriends repo failed, caused by {err}")
+        })?;
         info!("actor map loaded");
         for actor in actors {
             if let Err(err) = self.handle(actor, &actor_map, &mut bar).await {
