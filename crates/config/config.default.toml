@@ -1,18 +1,29 @@
 [app]
+# 是否应该在运行结束时退出。
 quit_on_finish = false
 
 [file]
+# 运行的根目录，支持绝对路径和相对路径。
 root = "."
+# 视频的输出位置。
 output = "output"
+# 未能识别id的视频的输出位置。
 other = "other"
+# 不希望被扫描的文件夹名称，output和other参数对应的目录会被自动忽略。
 exclude = []
+# 那些后缀的文件会被识别为视频文件。
 ext = ["mp4", "mkv", "avi", "ts", "mov"]
 
 [network]
+# 网络的代理地址。
 proxy = "http://127.0.0.1:8888"
+# 网络请求的超时时间。
 timeout = 10
 
 [avatar]
+# 是否刷新emby中的头像。
 refresh = false
+# emby的访问地址。
 host = "http://localhost:8096"
+# emby的api key。
 api_key = ""
