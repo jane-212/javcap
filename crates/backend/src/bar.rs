@@ -46,6 +46,18 @@ impl Bar {
         })
     }
 
+    pub fn new_check() -> anyhow::Result<ProgressBar> {
+        let bar = ProgressBar::new_spinner();
+        bar.enable_steady_tick(Duration::from_millis(100));
+        bar.set_style(
+            ProgressStyle::with_template("{prefix:>10.blue.bold} {spinner} {msg}")?
+                .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
+        );
+        bar.set_prefix("Check");
+
+        Ok(bar)
+    }
+
     pub fn message(&self, msg: &str) {
         info!("{msg}");
         self.info.set_message(msg.to_string());

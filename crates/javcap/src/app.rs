@@ -1,7 +1,6 @@
 use std::{
     env,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use backend::bar::Bar;
@@ -9,10 +8,9 @@ use backend::video::Video;
 use backend::Backend;
 use config::Config;
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
 use time::{macros::format_description, UtcOffset};
 use tokio::fs;
-use tracing::{info, Level};
+use tracing::{info, warn, Level};
 use tracing_appender::rolling;
 use tracing_subscriber::fmt::time::OffsetTime;
 use walkdir::WalkDir;
@@ -27,9 +25,9 @@ impl App {
     const CONFIG_NAME: &'static str = "config.toml";
     const LOG_NAME: &'static str = "logs";
 
-    pub async fn new() -> anyhow::Result<App> {
+    pub async fn new() -> anyhow::Result<Self> {
         let pwd = env::current_dir()?;
-        App::init_tracing(&pwd);
+        Self::init_tracing(&pwd);
         info!(
             "{:-^30}",
             format!(
@@ -38,10 +36,10 @@ impl App {
                 env!("CARGO_PKG_VERSION")
             )
         );
-        let config = Config::load(&pwd.join(App::CONFIG_NAME)).await?;
+        let config = Config::load(&pwd.join(Self::CONFIG_NAME)).await?;
         info!(
             "config loaded from {}",
-            pwd.join(App::CONFIG_NAME).display()
+            pwd.join(Self::CONFIG_NAME).display()
         );
         let mut root = PathBuf::from(&config.file.root);
         if root.is_relative() {
@@ -53,53 +51,57 @@ impl App {
             config.network.timeout,
             &config.avatar.host,
             &config.avatar.api_key,
-            config.video.translate,
         )?;
-        let network_bar = ProgressBar::new_spinner();
-        network_bar.enable_steady_tick(Duration::from_millis(100));
-        network_bar.set_style(
-            ProgressStyle::with_template("{prefix:>10.blue.bold} {spinner} {msg}")?
-                .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
-        );
-        network_bar.set_prefix("Check");
-        network_bar.set_message("check network");
-        backend
-            .ping("https://www.javbus.com")
-            .await
-            .map_err(|err| anyhow::anyhow!("check network failed, caused by {err}"))?;
-        network_bar.finish_and_clear();
-        info!("network check passed");
-        println!(
-            "{:>10} ✔ network check passed",
-            style("Check").green().bold()
-        );
 
-        Ok(App {
+        Ok(Self {
             root,
             config,
             backend,
         })
     }
 
+    async fn check(&self) -> anyhow::Result<()> {
+        let bar = backend::bar::Bar::new_check()?;
+        bar.set_message("check network");
+        self.backend
+            .ping("https://www.javbus.com")
+            .await
+            .map_err(|err| anyhow::anyhow!("check network failed, caused by {err}"))?;
+        bar.finish_and_clear();
+        info!("network check passed");
+        println!(
+            "{:>10} ✔ network check passed",
+            style("Check").green().bold()
+        );
+
+        Ok(())
+    }
+
     pub async fn run(&mut self) -> anyhow::Result<bool> {
+        self.check().await?;
         let paths = self.walk();
         info!("total {} videos found", paths.len());
-        let mut bar = Bar::new(paths.len() as u64)?;
-        bar.println("MOVIE");
-        for path in paths {
-            if let Err(err) = self.handle(&path, &mut bar).await {
-                bar.warn(&format!("{}", err));
+        {
+            let mut bar = Bar::new(paths.len() as u64)?;
+            bar.println("MOVIE");
+            for path in paths {
+                if let Err(err) = self.handle(&path, &mut bar).await {
+                    bar.warn(&format!("{}", err));
+                }
             }
         }
-        drop(bar);
         if self.config.avatar.refresh {
-            self.backend.refresh_avatar().await?;
+            self.refresh_avatar().await?;
         }
         if self.config.file.remove_empty {
             self.remove_empty().await?;
         }
 
         Ok(self.config.app.quit_on_finish)
+    }
+
+    async fn refresh_avatar(&self) -> anyhow::Result<()> {
+        self.backend.refresh_avatar().await
     }
 
     async fn remove_empty(&self) -> anyhow::Result<()> {
@@ -164,9 +166,15 @@ impl App {
         match Video::parse(path) {
             Ok(video) => {
                 bar.message(&format!("search {}", video.id()));
-                let Some(info) = self.backend.search(&video).await else {
+                let Some(mut info) = self.backend.search(&video).await else {
                     anyhow::bail!("info of {} not complete", video.id());
                 };
+                if self.config.video.translate {
+                    info!("translate {}", video.id());
+                    if let Err(err) = self.backend.translate(&mut info).await {
+                        warn!("translate {} failed, caused by {err}", video.id());
+                    }
+                }
                 bar.message(&format!("write {}", video.id()));
                 info.write_to(&self.root.join(&self.config.file.output), path)
                     .await
@@ -225,7 +233,7 @@ impl App {
     }
 
     fn init_tracing(path: &Path) {
-        let daily = rolling::daily(path.join(App::LOG_NAME), "log");
+        let daily = rolling::daily(path.join(Self::LOG_NAME), "log");
         let timer = OffsetTime::new(
             UtcOffset::from_hms(8, 0, 0).expect("set timezone error"),
             format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),

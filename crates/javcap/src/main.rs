@@ -10,7 +10,7 @@ mod app;
 async fn main() {
     match run().await {
         Ok(should_quit) => {
-            finish_and_quit(!should_quit);
+            finish_and_quit(should_quit);
         }
         Err(err) => {
             error!("{err}");
@@ -20,9 +20,9 @@ async fn main() {
     }
 }
 
-fn finish_and_quit(should_wait: bool) {
+fn finish_and_quit(should_quit: bool) {
     info!("{:-^30}", " Finish ");
-    if should_wait {
+    if !should_quit {
         wait_for_quit();
     }
 }

@@ -8,7 +8,7 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Proxy,
 };
-use tracing::{info, warn};
+use tracing::warn;
 use translate::Translate;
 use video::Video;
 
@@ -21,19 +21,13 @@ pub mod video;
 
 pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,
-    translate: Option<Translate>,
+    translate: Translate,
     client: Arc<Client>,
     avatar: Avatar,
 }
 
 impl Backend {
-    pub fn new(
-        proxy: &str,
-        timeout: u64,
-        host: &str,
-        api_key: &str,
-        translate: bool,
-    ) -> anyhow::Result<Backend> {
+    pub fn new(proxy: &str, timeout: u64, host: &str, api_key: &str) -> anyhow::Result<Backend> {
         let mut headers = HeaderMap::new();
         headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"));
         headers.insert(
@@ -67,11 +61,7 @@ impl Backend {
             Arc::new(Box::new(Avsox::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
-        let translate = if translate {
-            Some(Translate::new(client.clone()))
-        } else {
-            None
-        };
+        let translate = Translate::new(client.clone());
         let avatar = Avatar::new(client.clone(), host.to_string(), api_key.to_string());
 
         Ok(Backend {
@@ -83,9 +73,7 @@ impl Backend {
     }
 
     pub async fn refresh_avatar(&self) -> anyhow::Result<()> {
-        self.avatar.refresh().await?;
-
-        Ok(())
+        self.avatar.refresh().await
     }
 
     pub async fn ping(&self, url: &str) -> anyhow::Result<()> {
@@ -117,16 +105,14 @@ impl Backend {
                 }
             }
         }
-        if let Some(translate) = self.translate.as_mut() {
-            info!("translate {}", video.id());
-            if let Err(err) = translate.translate(&mut info).await {
-                warn!("translate {} failed, caused by {err}", video.id());
-            }
-        }
 
         #[cfg(debug_assertions)]
         info.show_info("SUMARY");
         info.check(video)
+    }
+
+    pub async fn translate(&mut self, info: &mut Info) -> anyhow::Result<()> {
+        self.translate.translate(info).await
     }
 }
 
