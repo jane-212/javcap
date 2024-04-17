@@ -13,7 +13,7 @@ other = "other"
 exclude = []
 # 那些后缀的文件会被识别为视频文件。
 ext = ["mp4", "mkv", "avi", "ts", "mov"]
-# 是否移除空目录。
+# 是否移除空目录,如果目录下只有.开头的文件或文件夹也会被认为是空目录。
 remove_empty = false
 
 [video]

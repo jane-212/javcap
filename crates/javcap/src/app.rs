@@ -114,19 +114,29 @@ impl App {
                         continue;
                     }
                 }
-                if fs::read_dir(entry.path())
-                    .await?
-                    .next_entry()
-                    .await?
-                    .is_none()
-                {
-                    fs::remove_dir(entry.path()).await?;
+                if App::is_empty(&entry.path()).await? {
+                    fs::remove_dir_all(entry.path()).await?;
                     info!("remove {}", entry.path().display());
                 }
             }
         }
 
         Ok(())
+    }
+
+    async fn is_empty(path: &Path) -> anyhow::Result<bool> {
+        let mut entrys = fs::read_dir(path).await?;
+        while let Some(entry) = entrys.next_entry().await? {
+            if let Some(name) = entry.file_name().to_str() {
+                if !name.starts_with('.') {
+                    return Ok(false);
+                }
+            } else {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 
     async fn move_to_other(&self, path: &Path) -> anyhow::Result<()> {
