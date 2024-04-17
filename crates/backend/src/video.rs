@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 
-use error::{Error, Result};
 use nom::{
     branch::alt,
     bytes::{
@@ -40,20 +39,15 @@ impl Video {
         self.id() == format!("{}-{}", id, num)
     }
 
-    pub fn parse(path: &Path) -> Result<Video> {
+    pub fn parse(path: &Path) -> anyhow::Result<Video> {
         let name = path
             .file_name()
             .and_then(|name| name.to_str())
             .and_then(|name| name.rsplit_once('.'))
             .map(|name| name.0.to_uppercase())
             .unwrap_or("".to_string());
-        let (_, (id, num)) = Video::parse_name(&name).map_err(|_| {
-            Error::Parse(
-                path.file_name()
-                    .and_then(|name| name.to_str().map(|name| name.to_string()))
-                    .unwrap_or("-".to_string()),
-            )
-        })?;
+        let (_, (id, num)) =
+            Video::parse_name(&name).map_err(|_| anyhow::anyhow!("id not found in {name}"))?;
         let video = match id {
             "FC2-PPV" => Video::FC2(format!("{}-{}", id, num), path.to_path_buf()),
             _ => Video::Normal(format!("{}-{}", id, num), path.to_path_buf()),

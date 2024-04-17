@@ -3,6 +3,7 @@ mod jav321;
 mod javbus;
 mod javdb;
 mod javlib;
+mod macros;
 mod mgstage;
 
 pub use avsox::*;

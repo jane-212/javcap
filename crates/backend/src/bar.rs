@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use console::style;
-use error::Result;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use tokio::time::Instant;
 use tracing::{info, warn};
@@ -17,7 +16,7 @@ pub struct Bar {
 }
 
 impl Bar {
-    pub fn new(len: u64) -> Result<Bar> {
+    pub fn new(len: u64) -> anyhow::Result<Bar> {
         let multi = MultiProgress::new();
         let info = multi.add(ProgressBar::new(len));
         info.enable_steady_tick(Duration::from_millis(100));

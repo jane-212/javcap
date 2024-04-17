@@ -1,4 +1,3 @@
-use error::{Error, Result};
 use indoc::formatdoc;
 use serde::Serialize;
 use std::{collections::HashSet, hash::Hash, path::Path};
@@ -100,7 +99,7 @@ impl Info {
         )
     }
 
-    pub async fn write_to(self, path: &Path, file: &Path) -> Result<()> {
+    pub async fn write_to(self, path: &Path, file: &Path) -> anyhow::Result<()> {
         let path = path.join(&self.studio).join(&self.id);
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
@@ -108,11 +107,7 @@ impl Info {
             None => self.id.to_string(),
         };
         if path.join(&to_file).exists() {
-            return Err(Error::AlreadyExists(
-                path.canonicalize()
-                    .map(|path| path.display().to_string())
-                    .unwrap_or("-".to_string()),
-            ));
+            anyhow::bail!("video {} already exists", self.id);
         }
         fs::create_dir_all(&path).await?;
         info!("create {}", path.display());

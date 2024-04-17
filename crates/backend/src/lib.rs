@@ -3,7 +3,6 @@ use std::{sync::Arc, time::Duration};
 use async_trait::async_trait;
 use avatar::Avatar;
 use engine::{Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
-use error::{Error, Result};
 use info::Info;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
@@ -28,7 +27,7 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn new(proxy: &str, timeout: u64, host: &str, api_key: &str) -> Result<Backend> {
+    pub fn new(proxy: &str, timeout: u64, host: &str, api_key: &str) -> anyhow::Result<Backend> {
         let mut headers = HeaderMap::new();
         headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"));
         headers.insert(
@@ -70,22 +69,16 @@ impl Backend {
         })
     }
 
-    pub async fn refresh_avatar(&self) -> Result<()> {
+    pub async fn refresh_avatar(&self) -> anyhow::Result<()> {
         self.avatar.refresh().await?;
 
         Ok(())
     }
 
-    pub async fn ping(&self, url: &str) -> Result<()> {
-        let status = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(|_| Error::Proxy)?
-            .status();
+    pub async fn ping(&self, url: &str) -> anyhow::Result<()> {
+        let status = self.client.get(url).send().await?.status();
         if !status.is_success() {
-            return Err(Error::Proxy);
+            anyhow::bail!("ping url {url} failed");
         }
 
         Ok(())
@@ -121,7 +114,7 @@ impl Backend {
 
 #[async_trait]
 pub trait Engine: Send + Sync {
-    async fn search(&self, video: &Video) -> Result<Info>;
+    async fn search(&self, video: &Video) -> anyhow::Result<Info>;
     fn could_solve(&self, video: &Video) -> bool;
 }
 

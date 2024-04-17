@@ -9,4 +9,4 @@ edition = "2021"
 toml.workspace = true
 serde.workspace = true
 tokio.workspace = true
-error.workspace = true
+anyhow.workspace = true

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use error::{Error, Result};
 use reqwest::Client;
 use serde::Deserialize;
 use tracing::info;
@@ -25,13 +24,13 @@ impl Avatar {
         }
     }
 
-    pub async fn refresh(&self) -> Result<()> {
-        let actors = self.get_actors().await.map_err(|_| Error::Emby)?;
+    pub async fn refresh(&self) -> anyhow::Result<()> {
+        let actors = self.get_actors().await?;
         info!("total {} actors", actors.len());
         let mut bar = Bar::new(actors.len() as u64)?;
         bar.println("AVATAR");
         bar.message("load file tree");
-        let actor_map = self.load_file_tree().await.map_err(|_| Error::Avatar)?;
+        let actor_map = self.load_file_tree().await?;
         info!("actor map loaded");
         for actor in actors {
             if let Err(err) = self.handle(actor, &actor_map, &mut bar).await {
@@ -47,14 +46,19 @@ impl Avatar {
         actor: (String, String),
         actor_map: &HashMap<String, HashMap<String, String>>,
         bar: &mut Bar,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         let (id, name) = actor;
         let file_name = format!("{}.jpg", name);
         if let Some(company) = actor_map.iter().find(|map| map.1.get(&file_name).is_some()) {
             if let Some(file_name) = company.1.get(&file_name) {
                 let url = format!("{}/Content/{}/{}", Avatar::HOST, company.0, file_name);
-                let img = self.load_img(&url).await?;
-                self.save_img(&id, img).await?;
+                let img = self
+                    .load_img(&url)
+                    .await
+                    .map_err(|_| anyhow::anyhow!("get avatar of {name} failed"))?;
+                self.save_img(&id, img)
+                    .await
+                    .map_err(|_| anyhow::anyhow!("send avatar of {name} to emby failed"))?;
                 bar.info(&format!("{name}({id})"));
                 return Ok(());
             }
@@ -64,7 +68,7 @@ impl Avatar {
         Ok(())
     }
 
-    async fn save_img(&self, id: &str, img: String) -> Result<()> {
+    async fn save_img(&self, id: &str, img: String) -> anyhow::Result<()> {
         let url = format!(
             "{}/Items/{}/Images/Primary?api_key={}",
             self.host, id, self.api_key
@@ -79,20 +83,20 @@ impl Avatar {
             .status()
             .is_success()
         {
-            return Err(Error::Emby);
+            anyhow::bail!("send avatar to emby failed");
         }
 
         Ok(())
     }
 
-    async fn load_img(&self, url: &str) -> Result<String> {
+    async fn load_img(&self, url: &str) -> anyhow::Result<String> {
         let bytes = self.client.get(url).send().await?.bytes().await?;
         let img = BASE64_STANDARD.encode(bytes);
 
         Ok(img)
     }
 
-    async fn get_actors(&self) -> Result<Vec<(String, String)>> {
+    async fn get_actors(&self) -> anyhow::Result<Vec<(String, String)>> {
         #[allow(dead_code)]
         #[derive(Deserialize)]
         struct Response {
@@ -139,7 +143,7 @@ impl Avatar {
             .collect())
     }
 
-    async fn load_file_tree(&self) -> Result<HashMap<String, HashMap<String, String>>> {
+    async fn load_file_tree(&self) -> anyhow::Result<HashMap<String, HashMap<String, String>>> {
         #[allow(dead_code)]
         #[derive(Deserialize)]
         struct Response {

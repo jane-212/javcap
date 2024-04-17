@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 reqwest.workspace = true
 scraper.workspace = true
-error.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
 serde.workspace = true
@@ -18,3 +17,4 @@ indoc.workspace = true
 indicatif.workspace = true
 console.workspace = true
 base64.workspace = true
+anyhow.workspace = true

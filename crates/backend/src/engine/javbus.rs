@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use error::Result;
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::{select, Engine, Info, Video};
+use crate::{image_loader, select, Engine, Info, Video};
 
 pub struct Javbus {
     client: Arc<Client>,
     headers: HeaderMap,
 }
+image_loader!(Javbus);
 
 impl Javbus {
     const HOST: &'static str = "https://www.javbus.com";
@@ -25,7 +25,7 @@ impl Javbus {
         Javbus { client, headers }
     }
 
-    async fn find_item(&self, video: &Video) -> Result<Option<(String, Option<String>)>> {
+    async fn find_item(&self, video: &Video) -> anyhow::Result<Option<(String, Option<String>)>> {
         select!(
             items: "#waterfall > div.item > a.movie-box",
             poster: "div.photo-frame > img",
@@ -62,7 +62,7 @@ impl Javbus {
         Ok(Some((href.to_string(), Some(poster))))
     }
 
-    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> anyhow::Result<Option<String>> {
         select!(
             title: "body > div.container > h3",
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
@@ -144,15 +144,11 @@ impl Javbus {
 
         pairs
     }
-
-    async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
-    }
 }
 
 #[async_trait]
 impl Engine for Javbus {
-    async fn search(&self, video: &Video) -> Result<Info> {
+    async fn search(&self, video: &Video) -> anyhow::Result<Info> {
         info!("search {} in Javbus", video.id());
         let mut info = Info::default();
         let Some((href, poster)) = self.find_item(video).await? else {

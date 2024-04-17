@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-error.workspace = true
 config.workspace = true
 tokio.workspace = true
 walkdir.workspace = true
@@ -18,3 +17,4 @@ time.workspace = true
 console.workspace = true
 indicatif.workspace = true
 reqwest.workspace = true
+anyhow.workspace = true

@@ -2,23 +2,23 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use error::Result;
 use reqwest::Client;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::{select, Engine, Info, Video};
+use crate::{image_loader, select, Engine, Info, Video};
 
 pub struct Jav321 {
     client: Arc<Client>,
 }
+image_loader!(Jav321);
 
 impl Jav321 {
     pub fn new(client: Arc<Client>) -> Jav321 {
         Jav321 { client }
     }
 
-    async fn find_item(&self, video: &Video) -> Result<Option<String>> {
+    async fn find_item(&self, video: &Video) -> anyhow::Result<Option<String>> {
         select!(
             info: "body > div.row > div.col-md-10.col-md-offset-1.col-xs-10 > div.alert.alert-danger"
         );
@@ -41,7 +41,7 @@ impl Jav321 {
         Ok(Some(res))
     }
 
-    fn load_info(res: String, info: &mut Info) -> Result<Option<String>> {
+    fn load_info(res: String, info: &mut Info) -> anyhow::Result<Option<String>> {
         select!(
             title: "body > div:nth-child(3) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-heading > h3",
             poster: "body > div:nth-child(3) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(1) > div.col-md-3 > img",
@@ -137,15 +137,11 @@ impl Jav321 {
 
         tags
     }
-
-    async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
-    }
 }
 
 #[async_trait]
 impl Engine for Jav321 {
-    async fn search(&self, video: &Video) -> Result<Info> {
+    async fn search(&self, video: &Video) -> anyhow::Result<Info> {
         info!("search {} in Jav321", video.id());
         let mut info = Info::default();
         let Some(res) = self.find_item(video).await? else {

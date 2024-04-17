@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use error::{Error, Result};
 use serde::Deserialize;
 use tokio::{
     fs::OpenOptions,
@@ -43,13 +42,11 @@ pub struct Network {
 }
 
 impl Config {
-    pub async fn load(path: &Path) -> Result<Config> {
+    pub async fn load(path: &Path) -> anyhow::Result<Config> {
         if !path.exists() {
             Config::generate_default_config(path).await?;
 
-            return Err(Error::ConfigNotFound {
-                path: path.to_path_buf(),
-            });
+            anyhow::bail!("config file not found, auto generate");
         }
         let mut config = String::new();
         OpenOptions::new()
@@ -65,7 +62,7 @@ impl Config {
         Ok(config)
     }
 
-    async fn generate_default_config(path: &Path) -> Result<()> {
+    async fn generate_default_config(path: &Path) -> anyhow::Result<()> {
         OpenOptions::new()
             .create(true)
             .write(true)

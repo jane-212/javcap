@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use error::Result;
 use reqwest::Client;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::{select, Engine, Info, Video};
+use crate::{image_loader, select, Engine, Info, Video};
 
 pub struct Javdb {
     client: Arc<Client>,
 }
+image_loader!(Javdb);
 
 impl Javdb {
     const HOST: &'static str = "https://javdb.com";
@@ -19,7 +19,7 @@ impl Javdb {
         Javdb { client }
     }
 
-    async fn find_item(&self, video: &Video) -> Result<Option<String>> {
+    async fn find_item(&self, video: &Video) -> anyhow::Result<Option<String>> {
         select!(
             items: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div.item > a",
             id: "div.video-title > strong"
@@ -45,7 +45,7 @@ impl Javdb {
         Ok(Some(href))
     }
 
-    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> anyhow::Result<Option<String>> {
         select!(
             title: "body > section > div > div.video-detail > h2",
             fanart: "body > section > div > div.video-detail > div.video-meta-panel > div > div.column.column-video-cover > a > img",
@@ -121,15 +121,11 @@ impl Javdb {
 
         Ok(fanart)
     }
-
-    async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
-    }
 }
 
 #[async_trait]
 impl Engine for Javdb {
-    async fn search(&self, video: &Video) -> Result<Info> {
+    async fn search(&self, video: &Video) -> anyhow::Result<Info> {
         info!("search {} in Javdb", video.id());
         let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {

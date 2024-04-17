@@ -1,24 +1,24 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use error::Result;
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::{select, Engine, Info, Video};
+use crate::{image_loader, select, Engine, Info, Video};
 
 pub struct Avsox {
     client: Arc<Client>,
 }
+image_loader!(Avsox);
 
 impl Avsox {
     pub fn new(client: Arc<Client>) -> Avsox {
         Avsox { client }
     }
 
-    async fn find_item(&self, video: &Video) -> Result<Option<String>> {
+    async fn find_item(&self, video: &Video) -> anyhow::Result<Option<String>> {
         select!(
             item: "#waterfall > div.item",
             id: "a > div.photo-info > span > date:nth-child(3)",
@@ -46,7 +46,7 @@ impl Avsox {
         Ok(Some(href))
     }
 
-    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> anyhow::Result<Option<String>> {
         select!(
             title: "body > div.container > h3",
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
@@ -112,15 +112,11 @@ impl Avsox {
 
         ret
     }
-
-    async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
-    }
 }
 
 #[async_trait]
 impl Engine for Avsox {
-    async fn search(&self, video: &Video) -> Result<Info> {
+    async fn search(&self, video: &Video) -> anyhow::Result<Info> {
         info!("search {} in Avsox", video.id());
         let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {

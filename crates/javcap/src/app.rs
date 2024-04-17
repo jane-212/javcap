@@ -8,7 +8,6 @@ use backend::bar::Bar;
 use backend::video::Video;
 use backend::Backend;
 use config::Config;
-use error::{Error, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 use time::{macros::format_description, UtcOffset};
 use tokio::fs;
@@ -27,7 +26,7 @@ impl App {
     const CONFIG_NAME: &'static str = "config.toml";
     const LOG_NAME: &'static str = "logs";
 
-    pub async fn new() -> Result<App> {
+    pub async fn new() -> anyhow::Result<App> {
         let pwd = env::current_dir()?;
         App::init_tracing(&pwd);
         info!(
@@ -39,12 +38,15 @@ impl App {
             )
         );
         let config = Config::load(&pwd.join(App::CONFIG_NAME)).await?;
-        info!("config loaded");
+        info!(
+            "config loaded from {}",
+            pwd.join(App::CONFIG_NAME).display()
+        );
         let mut root = PathBuf::from(&config.file.root);
         if root.is_relative() {
             root = pwd.join(&root).canonicalize().unwrap_or(root);
         }
-        info!("root {}", root.display());
+        info!("root path {}", root.display());
         let backend = Backend::new(
             &config.network.proxy,
             config.network.timeout,
@@ -70,7 +72,7 @@ impl App {
         })
     }
 
-    pub async fn run(&mut self) -> Result<bool> {
+    pub async fn run(&mut self) -> anyhow::Result<bool> {
         let paths = self.walk();
         info!("total {} videos found", paths.len());
         let mut bar = Bar::new(paths.len() as u64)?;
@@ -88,7 +90,7 @@ impl App {
         Ok(self.config.app.quit_on_finish)
     }
 
-    async fn move_to_other(&self, path: &Path) -> Result<()> {
+    async fn move_to_other(&self, path: &Path) -> anyhow::Result<()> {
         if let Some(name) = path.file_stem().and_then(|name| name.to_str()) {
             let ext = path.extension().and_then(|ext| ext.to_str());
             let to_file = match ext {
@@ -98,7 +100,7 @@ impl App {
             let out = self.root.join(&self.config.file.other).join(name);
             let out_file = out.join(&to_file);
             if out_file.exists() {
-                return Err(Error::AlreadyExists(out_file.display().to_string()));
+                anyhow::bail!("video {} already exists", out_file.display());
             }
             fs::create_dir_all(&out).await?;
             info!("create {}", out.display());
@@ -109,20 +111,23 @@ impl App {
         Ok(())
     }
 
-    async fn handle(&mut self, path: &Path, bar: &mut Bar) -> Result<()> {
+    async fn handle(&mut self, path: &Path, bar: &mut Bar) -> anyhow::Result<()> {
         match Video::parse(path) {
             Ok(video) => {
                 bar.message(&format!("search {}", video.id()));
                 let Some(info) = self.backend.search(&video).await else {
-                    return Err(Error::Info(video.id().to_string()));
+                    anyhow::bail!("info of {} not complete", video.id());
                 };
                 bar.message(&format!("write {}", video.id()));
                 info.write_to(&self.root.join(&self.config.file.output), path)
-                    .await?;
+                    .await
+                    .map_err(|err| anyhow::anyhow!("save info failed, caused by {err}"))?;
                 bar.info(video.id());
             }
             Err(err) => {
-                self.move_to_other(path).await?;
+                self.move_to_other(path).await.map_err(|err| {
+                    anyhow::anyhow!("move video to other failed, caused by {err}")
+                })?;
                 return Err(err);
             }
         }

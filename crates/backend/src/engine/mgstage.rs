@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use error::Result;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client,
@@ -9,12 +8,13 @@ use reqwest::{
 use scraper::Html;
 use tracing::{info, warn};
 
-use crate::{select, Engine, Info, Video};
+use crate::{image_loader, select, Engine, Info, Video};
 
 pub struct Mgstage {
     client: Arc<Client>,
     headers: HeaderMap,
 }
+image_loader!(Mgstage);
 
 impl Mgstage {
     const HOST: &'static str = "https://www.mgstage.com";
@@ -28,7 +28,7 @@ impl Mgstage {
         Mgstage { client, headers }
     }
 
-    async fn find_item(&self, video: &Video) -> Result<Option<String>> {
+    async fn find_item(&self, video: &Video) -> anyhow::Result<Option<String>> {
         select!(
             href: "#center_column > div.search_list > div > ul > li > h5 > a"
         );
@@ -53,7 +53,7 @@ impl Mgstage {
         Ok(Some(format!("{}{}", Mgstage::HOST, href)))
     }
 
-    async fn load_info(&self, href: &str, info: &mut Info) -> Result<Option<String>> {
+    async fn load_info(&self, href: &str, info: &mut Info) -> anyhow::Result<Option<String>> {
         select!(
             title: "#center_column > div.common_detail_cover > h1",
             poster: "#center_column > div.common_detail_cover > div.detail_left > div > div > h2 > img",
@@ -128,15 +128,11 @@ impl Mgstage {
             .flat_map(|tag| tag.split_once('：').map(|(k, v)| (k.trim(), v.trim())))
             .collect()
     }
-
-    async fn load_img(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
-    }
 }
 
 #[async_trait]
 impl Engine for Mgstage {
-    async fn search(&self, video: &Video) -> Result<Info> {
+    async fn search(&self, video: &Video) -> anyhow::Result<Info> {
         info!("search {} in Mgstage", video.id());
         let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {

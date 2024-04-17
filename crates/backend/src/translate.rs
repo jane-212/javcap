@@ -3,7 +3,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use error::Result;
 use reqwest::Client;
 use serde::Deserialize;
 use tokio::time::sleep;
@@ -25,7 +24,7 @@ impl Translate {
         }
     }
 
-    pub async fn translate(&mut self, info: &mut Info) -> Result<()> {
+    pub async fn translate(&mut self, info: &mut Info) -> anyhow::Result<()> {
         if let Some(title) = self.get_trans(info.get_title()).await? {
             info.title(title);
         }
@@ -36,7 +35,7 @@ impl Translate {
         Ok(())
     }
 
-    async fn get_trans(&mut self, text: &str) -> Result<Option<String>> {
+    async fn get_trans(&mut self, text: &str) -> anyhow::Result<Option<String>> {
         #[allow(dead_code)]
         #[derive(Deserialize)]
         struct Response {
