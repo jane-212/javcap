@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use avatar::Avatar;
@@ -9,7 +9,7 @@ use reqwest::{
     Client, Proxy,
 };
 use tracing::{info, warn};
-use translate::Translate;
+use translate::Translator;
 use video::Video;
 
 mod avatar;
@@ -21,29 +21,38 @@ pub mod video;
 
 pub struct Backend {
     engines: Vec<Arc<Box<dyn Engine>>>,
-    translate: Translate,
+    translate: Option<Box<dyn Translator>>,
     client: Arc<Client>,
     avatar: Avatar,
 }
 
 impl Backend {
-    pub fn new(proxy: &str, timeout: u64, host: &str, api_key: &str) -> anyhow::Result<Backend> {
-        let mut headers = HeaderMap::new();
-        headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"));
-        headers.insert(
-            header::ACCEPT_ENCODING,
-            HeaderValue::from_static("gzip, deflate, br"),
-        );
-        headers.insert(
-            header::ACCEPT,
-            HeaderValue::from_static(
-                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            ),
-        );
-        headers.insert(
-            header::ACCEPT_LANGUAGE,
-            HeaderValue::from_static("zh-CN,zh-Hans;q=0.9"),
-        );
+    pub fn new(
+        proxy: &str,
+        timeout: u64,
+        host: &str,
+        api_key: &str,
+        translate: &config::Translate,
+    ) -> anyhow::Result<Backend> {
+        let headers = {
+            let mut headers = HeaderMap::new();
+            headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"));
+            headers.insert(
+                header::ACCEPT_ENCODING,
+                HeaderValue::from_static("gzip, deflate, br"),
+            );
+            headers.insert(
+                header::ACCEPT,
+                HeaderValue::from_static(
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                ),
+            );
+            headers.insert(
+                header::ACCEPT_LANGUAGE,
+                HeaderValue::from_static("zh-CN,zh-Hans;q=0.9"),
+            );
+            headers
+        };
         let client = Client::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(timeout))
@@ -61,7 +70,9 @@ impl Backend {
             Arc::new(Box::new(Avsox::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
-        let translate = Translate::new(client.clone());
+        let translate = match translate {
+            config::Translate::Disable => None,
+        };
         let avatar = Avatar::new(client.clone(), host.to_string(), api_key.to_string());
 
         Ok(Backend {
@@ -115,7 +126,21 @@ impl Backend {
     }
 
     pub async fn translate(&mut self, info: &mut Info) -> anyhow::Result<()> {
-        self.translate.translate(info).await
+        if let Some(ref translate) = self.translate {
+            info!("translate");
+            let mut text = BTreeMap::new();
+            text.insert("title", info.get_title().to_string());
+            text.insert("plot", info.get_plot().to_string());
+            let res = translate.translate(text).await;
+            if let Some(title) = res.get("title") {
+                info.title(title.to_string());
+            }
+            if let Some(plot) = res.get("plot") {
+                info.plot(plot.to_string());
+            }
+        }
+
+        Ok(())
     }
 }
 

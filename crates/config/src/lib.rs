@@ -26,7 +26,7 @@ pub struct App {
 
 #[derive(Deserialize)]
 pub struct Video {
-    pub translate: bool,
+    pub translate: Translate,
     pub rules: Vec<Rule>,
 }
 
@@ -42,6 +42,12 @@ pub enum Rule {
     Studio,
     #[serde(rename = "actor")]
     Actor,
+}
+
+#[derive(Deserialize)]
+pub enum Translate {
+    #[serde(rename = "disable")]
+    Disable,
 }
 
 #[derive(Deserialize, Validate)]

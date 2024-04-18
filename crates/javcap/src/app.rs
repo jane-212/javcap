@@ -51,6 +51,7 @@ impl App {
             config.network.timeout,
             &config.avatar.host,
             &config.avatar.api_key,
+            &config.video.translate,
         )?;
 
         Ok(Self {
@@ -169,11 +170,8 @@ impl App {
                 let Some(mut info) = self.backend.search(&video).await else {
                     anyhow::bail!("info of {} not complete", video.id());
                 };
-                if self.config.video.translate {
-                    info!("translate {}", video.id());
-                    if let Err(err) = self.backend.translate(&mut info).await {
-                        warn!("translate {} failed, caused by {err}", video.id());
-                    }
+                if let Err(err) = self.backend.translate(&mut info).await {
+                    warn!("translate {} failed, caused by {err}", video.id());
                 }
                 bar.message(&format!("write {}", video.id()));
                 info.write_to(

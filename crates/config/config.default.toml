@@ -17,8 +17,11 @@ ext = ["mp4", "mkv", "avi", "ts", "mov"]
 remove_empty = false
 
 [video]
-# 是否翻译视频信息，免费翻译接口限制2秒一次，每天1000次，如果翻译失败会使用未翻译的信息。
-translate = false
+# 是否翻译视频信息。
+# 如果翻译失败会使用未翻译的信息。
+# 可选择项
+# disable
+translate = "disable"
 # 视频该以哪种规则分类，默认为 厂商/号码，可选择的值为["title", "id", "director", "studio", "actor"]
 rules = ["studio", "id"]
 
