@@ -90,8 +90,8 @@ impl Backend {
         let mut handles = Vec::with_capacity(self.engines.len());
         for engine in self.engines.clone() {
             if engine.could_solve(video) {
-                let id = engine.id();
                 info!("search {} in {}", video.id(), engine.id());
+                let id = engine.id().to_string();
                 let video = video.clone();
                 let handle = tokio::spawn(async move { engine.search(&video).await });
                 handles.push((id, handle));
