@@ -9,7 +9,6 @@ use validator::Validate;
 
 #[derive(Deserialize, Validate)]
 pub struct Config {
-    #[validate(nested)]
     pub app: App,
     #[validate(nested)]
     pub file: File,
@@ -17,18 +16,32 @@ pub struct Config {
     pub network: Network,
     #[validate(nested)]
     pub avatar: Avatar,
-    #[validate(nested)]
     pub video: Video,
 }
 
-#[derive(Deserialize, Validate)]
+#[derive(Deserialize)]
 pub struct App {
     pub quit_on_finish: bool,
 }
 
-#[derive(Deserialize, Validate)]
+#[derive(Deserialize)]
 pub struct Video {
     pub translate: bool,
+    pub rules: Vec<Rule>,
+}
+
+#[derive(Deserialize)]
+pub enum Rule {
+    #[serde(rename = "title")]
+    Title,
+    #[serde(rename = "id")]
+    Id,
+    #[serde(rename = "director")]
+    Director,
+    #[serde(rename = "studio")]
+    Studio,
+    #[serde(rename = "actor")]
+    Actor,
 }
 
 #[derive(Deserialize, Validate)]
@@ -54,7 +67,7 @@ pub struct File {
 
 #[derive(Deserialize, Validate)]
 pub struct Network {
-    #[validate(url)]
+    #[validate(url(message = "should be a url"))]
     pub proxy: String,
     pub timeout: u64,
 }

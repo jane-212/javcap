@@ -1,6 +1,6 @@
 use indoc::formatdoc;
 use serde::Serialize;
-use std::{collections::HashSet, hash::Hash, path::Path};
+use std::path::{Path, PathBuf};
 use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
@@ -99,8 +99,35 @@ impl Info {
         )
     }
 
-    pub async fn write_to(self, path: &Path, file: &Path, idx: u32) -> anyhow::Result<()> {
-        let path = path.join(&self.studio).join(&self.id);
+    fn concat_rules(&self, path: &Path, rules: &[config::Rule]) -> PathBuf {
+        let mut path = path.to_path_buf();
+        for rule in rules {
+            match rule {
+                config::Rule::Title => path = path.join(&self.title),
+                config::Rule::Id => path = path.join(&self.id),
+                config::Rule::Director => path = path.join(&self.director),
+                config::Rule::Studio => path = path.join(&self.studio),
+                config::Rule::Actor => {
+                    path = path.join(
+                        self.actors
+                            .first()
+                            .map(|actor| actor.as_str())
+                            .unwrap_or("-"),
+                    )
+                }
+            }
+        }
+        path
+    }
+
+    pub async fn write_to(
+        self,
+        path: &Path,
+        file: &Path,
+        idx: u32,
+        rules: &[config::Rule],
+    ) -> anyhow::Result<()> {
+        let path = self.concat_rules(path, rules);
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
             Some(ext) => {
@@ -253,16 +280,16 @@ impl Info {
         }
     }
 
-    fn combine_vec<T: Eq + Hash + Clone>(left: &[T], right: &[T]) -> Vec<T> {
-        let mut hset = HashSet::new();
-        for item in left {
-            hset.insert(item.clone());
-        }
-        for item in right {
-            hset.insert(item.clone());
+    fn combine_vec<T: Eq + Clone>(left: &[T], right: &[T]) -> Vec<T> {
+        let mut new_vec = left.to_vec();
+        for v in right {
+            if new_vec.contains(v) {
+                continue;
+            }
+            new_vec.push(v.to_owned());
         }
 
-        hset.into_iter().collect()
+        new_vec
     }
 
     fn select_long(left: &str, right: &str) -> String {
