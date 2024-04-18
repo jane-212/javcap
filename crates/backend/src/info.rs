@@ -324,10 +324,10 @@ impl Info {
             self.studio = Info::select_long(&self.studio, &other.studio);
         }
         self.actors = Info::combine_vec(&self.actors, &other.actors);
-        if self.poster.is_empty() {
+        if self.poster.len() < other.poster.len() {
             self.poster = other.poster;
         }
-        if self.fanart.is_empty() {
+        if self.fanart.len() < other.fanart.len() {
             self.fanart = other.fanart;
         }
     }

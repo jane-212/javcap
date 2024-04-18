@@ -4,26 +4,26 @@ videos=( \
     "STARS-804.mp4" \
     "SONE-143.mp4" \
     "FC2-PPV-1292936.mp4" \
-    "ABF-047.mp4"
+    "https:www.javbus.com@Stars-804.mp4"
 )
 dev_dir="dev"
 out="$dev_dir/out"
 
 dev() {
     clear
-    mkdir $dev_dir
-    mkdir $out
+    mkdir "$dev_dir"
+    mkdir "$out"
     for video in ${videos[@]}
     do
         file="$out/$video"
-        touch $file
+        touch "$file"
     done
     cargo run
 }
 
 clear() {
-    rm -rf $dev_dir
-    rm -rf logs
+    rm -rf "$dev_dir"
+    rm -rf "logs"
 }
 
 help() {
