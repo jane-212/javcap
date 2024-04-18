@@ -1,19 +1,20 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use macros::Engine;
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
-use tracing::{info, warn};
 
-use crate::{image_loader, select, Engine, Info, Video};
+use crate::{select, Engine, Info, Video};
 
+#[derive(Engine)]
+#[engine(image_loader)]
 pub struct Javbus {
     client: Arc<Client>,
     headers: HeaderMap,
 }
-image_loader!(Javbus);
 
 impl Javbus {
     const HOST: &'static str = "https://www.javbus.com";
@@ -149,10 +150,8 @@ impl Javbus {
 #[async_trait]
 impl Engine for Javbus {
     async fn search(&self, video: &Video) -> anyhow::Result<Info> {
-        info!("search {} in Javbus", video.id());
         let mut info = Info::default();
         let Some((href, poster)) = self.find_item(video).await? else {
-            warn!("{} not found in Javbus", video.id());
             return Ok(info);
         };
         if let Some(fanart) = self.load_info(&href, &mut info).await? {
@@ -164,7 +163,6 @@ impl Engine for Javbus {
             info.poster(poster);
         }
 
-        info!("{} found in Javbus", video.id());
         Ok(info)
     }
 
@@ -173,5 +171,9 @@ impl Engine for Javbus {
             Video::FC2(_, _, _) => false,
             Video::Normal(_, _, _) => true,
         }
+    }
+
+    fn id(&self) -> &'static str {
+        self.key()
     }
 }

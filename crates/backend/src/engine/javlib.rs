@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use macros::Engine;
 use reqwest::Client;
 use scraper::Html;
-use tracing::{info, warn};
 
-use crate::{image_loader, select, Engine, Info, Video};
+use crate::{select, Engine, Info, Video};
 
+#[derive(Engine)]
+#[engine(image_loader)]
 pub struct Javlib {
     client: Arc<Client>,
 }
-image_loader!(Javlib);
 
 impl Javlib {
     pub fn new(client: Arc<Client>) -> Javlib {
@@ -101,10 +102,8 @@ impl Javlib {
 #[async_trait]
 impl Engine for Javlib {
     async fn search(&self, video: &Video) -> anyhow::Result<Info> {
-        info!("search {} in Javlib", video.id());
         let mut info = Info::default();
         let Some(res) = self.find_item(video).await? else {
-            warn!("{} not found in Javlib", video.id());
             return Ok(info);
         };
         if let Some(fanart) = Javlib::load_info(res, &mut info)? {
@@ -112,7 +111,6 @@ impl Engine for Javlib {
             info.fanart(fanart);
         }
 
-        info!("{} found in Javlib", video.id());
         Ok(info)
     }
 
@@ -121,5 +119,9 @@ impl Engine for Javlib {
             Video::FC2(_, _, _) => false,
             Video::Normal(_, _, _) => true,
         }
+    }
+
+    fn id(&self) -> &'static str {
+        self.key()
     }
 }

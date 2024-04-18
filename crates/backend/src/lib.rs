@@ -8,7 +8,7 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Proxy,
 };
-use tracing::warn;
+use tracing::{info, warn};
 use translate::Translate;
 use video::Video;
 
@@ -90,18 +90,21 @@ impl Backend {
         let mut handles = Vec::with_capacity(self.engines.len());
         for engine in self.engines.clone() {
             if engine.could_solve(video) {
+                let id = engine.id();
+                info!("search {} in {}", video.id(), engine.id());
                 let video = video.clone();
                 let handle = tokio::spawn(async move { engine.search(&video).await });
-                handles.push(handle);
+                handles.push((id, handle));
             }
         }
-        for handle in handles {
+        for (id, handle) in handles {
             if let Ok(new_info) = handle.await {
                 match new_info {
                     Ok(new_info) => {
+                        info!("found {} in {}", video.id(), id);
                         info.merge(new_info);
                     }
-                    Err(err) => warn!("{err}"),
+                    Err(err) => warn!("{} not found in {id}, caused by {err}", video.id()),
                 }
             }
         }
@@ -120,6 +123,7 @@ impl Backend {
 pub trait Engine: Send + Sync {
     async fn search(&self, video: &Video) -> anyhow::Result<Info>;
     fn could_solve(&self, video: &Video) -> bool;
+    fn id(&self) -> &'static str;
 }
 
 #[macro_export]

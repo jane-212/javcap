@@ -1,17 +1,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use macros::Engine;
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
-use tracing::{info, warn};
 
-use crate::{image_loader, select, Engine, Info, Video};
+use crate::{select, Engine, Info, Video};
 
+#[derive(Engine)]
+#[engine(image_loader)]
 pub struct Avsox {
     client: Arc<Client>,
 }
-image_loader!(Avsox);
 
 impl Avsox {
     pub fn new(client: Arc<Client>) -> Avsox {
@@ -117,10 +118,8 @@ impl Avsox {
 #[async_trait]
 impl Engine for Avsox {
     async fn search(&self, video: &Video) -> anyhow::Result<Info> {
-        info!("search {} in Avsox", video.id());
         let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {
-            warn!("{} not found in Avsox", video.id());
             return Ok(info);
         };
         if let Some(fanart) = self.load_info(&href, &mut info).await? {
@@ -128,7 +127,6 @@ impl Engine for Avsox {
             info.fanart(fanart);
         }
 
-        info!("{} found in Avsox", video.id());
         Ok(info)
     }
 
@@ -137,5 +135,9 @@ impl Engine for Avsox {
             Video::FC2(_, _, _) => true,
             Video::Normal(_, _, _) => false,
         }
+    }
+
+    fn id(&self) -> &'static str {
+        self.key()
     }
 }

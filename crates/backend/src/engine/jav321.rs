@@ -2,16 +2,17 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use macros::Engine;
 use reqwest::Client;
 use scraper::Html;
-use tracing::{info, warn};
 
-use crate::{image_loader, select, Engine, Info, Video};
+use crate::{select, Engine, Info, Video};
 
+#[derive(Engine)]
+#[engine(image_loader)]
 pub struct Jav321 {
     client: Arc<Client>,
 }
-image_loader!(Jav321);
 
 impl Jav321 {
     pub fn new(client: Arc<Client>) -> Jav321 {
@@ -142,10 +143,8 @@ impl Jav321 {
 #[async_trait]
 impl Engine for Jav321 {
     async fn search(&self, video: &Video) -> anyhow::Result<Info> {
-        info!("search {} in Jav321", video.id());
         let mut info = Info::default();
         let Some(res) = self.find_item(video).await? else {
-            warn!("{} not found in Jav321", video.id());
             return Ok(info);
         };
         if let Some(poster) = Jav321::load_info(res, &mut info)? {
@@ -153,7 +152,6 @@ impl Engine for Jav321 {
             info.poster(poster);
         }
 
-        info!("{} found in Jav321", video.id());
         Ok(info)
     }
 
@@ -162,5 +160,9 @@ impl Engine for Jav321 {
             Video::FC2(_, _, _) => false,
             Video::Normal(_, _, _) => true,
         }
+    }
+
+    fn id(&self) -> &'static str {
+        self.key()
     }
 }

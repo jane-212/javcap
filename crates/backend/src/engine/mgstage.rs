@@ -1,20 +1,21 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use macros::Engine;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client,
 };
 use scraper::Html;
-use tracing::{info, warn};
 
-use crate::{image_loader, select, Engine, Info, Video};
+use crate::{select, Engine, Info, Video};
 
+#[derive(Engine)]
+#[engine(image_loader)]
 pub struct Mgstage {
     client: Arc<Client>,
     headers: HeaderMap,
 }
-image_loader!(Mgstage);
 
 impl Mgstage {
     const HOST: &'static str = "https://www.mgstage.com";
@@ -133,10 +134,8 @@ impl Mgstage {
 #[async_trait]
 impl Engine for Mgstage {
     async fn search(&self, video: &Video) -> anyhow::Result<Info> {
-        info!("search {} in Mgstage", video.id());
         let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {
-            warn!("{} not found in Mgstage", video.id());
             return Ok(info);
         };
         if let Some(poster) = self.load_info(&href, &mut info).await? {
@@ -144,7 +143,6 @@ impl Engine for Mgstage {
             info.poster(poster);
         }
 
-        info!("{} found in Mgstage", video.id());
         Ok(info)
     }
 
@@ -153,5 +151,9 @@ impl Engine for Mgstage {
             Video::FC2(_, _, _) => false,
             Video::Normal(_, _, _) => true,
         }
+    }
+
+    fn id(&self) -> &'static str {
+        self.key()
     }
 }
