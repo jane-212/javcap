@@ -176,7 +176,7 @@ impl App {
                     }
                 }
                 bar.message(&format!("write {}", video.id()));
-                info.write_to(&self.root.join(&self.config.file.output), path)
+                info.write_to(&self.root.join(&self.config.file.output), path, video.idx())
                     .await
                     .map_err(|err| anyhow::anyhow!("save info failed, caused by {err}"))?;
                 bar.info(video.id());

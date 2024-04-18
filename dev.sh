@@ -2,7 +2,9 @@
 
 videos=( \
     "STARS-804.mp4" \
-    "SONE-143.mp4" \
+    "STARS804.mp4" \
+    "SONE-143-1.mp4" \
+    "SONE-143-2.mp4" \
     "FC2-PPV-1292936.mp4" \
     "https:www.javbus.com@Stars-804.mp4"
 )

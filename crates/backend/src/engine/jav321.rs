@@ -159,8 +159,8 @@ impl Engine for Jav321 {
 
     fn could_solve(&self, video: &Video) -> bool {
         match video {
-            Video::FC2(_, _) => false,
-            Video::Normal(_, _) => true,
+            Video::FC2(_, _, _) => false,
+            Video::Normal(_, _, _) => true,
         }
     }
 }

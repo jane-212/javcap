@@ -134,8 +134,8 @@ impl Engine for Avsox {
 
     fn could_solve(&self, video: &Video) -> bool {
         match video {
-            Video::FC2(_, _) => true,
-            Video::Normal(_, _) => false,
+            Video::FC2(_, _, _) => true,
+            Video::Normal(_, _, _) => false,
         }
     }
 }

@@ -99,11 +99,17 @@ impl Info {
         )
     }
 
-    pub async fn write_to(self, path: &Path, file: &Path) -> anyhow::Result<()> {
+    pub async fn write_to(self, path: &Path, file: &Path, idx: u32) -> anyhow::Result<()> {
         let path = path.join(&self.studio).join(&self.id);
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
-            Some(ext) => format!("{}.{}", self.id, ext),
+            Some(ext) => {
+                if idx == 0 {
+                    format!("{}.{}", self.id, ext)
+                } else {
+                    format!("{}-{}.{}", self.id, idx, ext)
+                }
+            }
             None => self.id.to_string(),
         };
         if path.join(&to_file).exists() {
@@ -236,11 +242,11 @@ impl Info {
 
     pub fn check(mut self, video: &Video) -> Option<Info> {
         match video {
-            Video::FC2(_, _) => {
+            Video::FC2(_, _, _) => {
                 self.fix_fc2();
                 self.check_fc2()
             }
-            Video::Normal(_, _) => {
+            Video::Normal(_, _, _) => {
                 self.fix_normal();
                 self.check_normal()
             }
@@ -289,14 +295,8 @@ impl Info {
         info!("premiered: {}", empty_print(&self.premiered));
         info!("studio: {}", empty_print(&self.studio));
         info!("actors: {:#?}", self.actors);
-        info!(
-            "poster: {}",
-            if self.poster.is_empty() { "no" } else { "yes" }
-        );
-        info!(
-            "fanart: {}",
-            if self.fanart.is_empty() { "no" } else { "yes" }
-        );
+        info!("poster: {}", self.poster.len());
+        info!("fanart: {}", self.fanart.len());
         info!("{:-^25}", format!(" {} END ", id));
     }
 

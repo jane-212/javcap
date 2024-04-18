@@ -2,10 +2,7 @@ use std::path::{Path, PathBuf};
 
 use nom::{
     branch::alt,
-    bytes::{
-        complete::{take_while, take_while1},
-        streaming::tag,
-    },
+    bytes::complete::{tag, take_while, take_while1},
     combinator::{eof, map, opt},
     multi::many0,
     sequence::tuple,
@@ -14,27 +11,36 @@ use nom::{
 
 #[derive(Clone)]
 pub enum Video {
-    FC2(String, PathBuf),
-    Normal(String, PathBuf),
+    FC2(String, PathBuf, u32),
+    Normal(String, PathBuf, u32),
 }
 
 impl Video {
     pub fn id(&self) -> &str {
         match self {
-            Video::FC2(id, _) => id,
-            Video::Normal(id, _) => id,
+            Video::FC2(id, _, _) => id,
+            Video::Normal(id, _, _) => id,
         }
     }
 
     pub fn path(&self) -> &Path {
         match self {
-            Video::FC2(_, path) => path,
-            Video::Normal(_, path) => path,
+            Video::FC2(_, path, _) => path,
+            Video::Normal(_, path, _) => path,
+        }
+    }
+
+    pub fn idx(&self) -> u32 {
+        match self {
+            Video::FC2(_, _, idx) => *idx,
+            Video::Normal(_, _, idx) => *idx,
         }
     }
 
     pub fn matches(&self, id: &str) -> bool {
-        let (id, num) = Video::parse_name(id).map(|(_, id)| id).unwrap_or(("", ""));
+        let (id, num, _) = Video::parse_name(id)
+            .map(|(_, id)| id)
+            .unwrap_or(("", "", 0));
 
         self.id() == format!("{}-{}", id, num)
     }
@@ -45,17 +51,17 @@ impl Video {
             .and_then(|name| name.to_str())
             .map(|name| name.to_uppercase())
             .unwrap_or("".to_string());
-        let (_, (id, num)) =
+        let (_, (id, num, idx)) =
             Self::parse_name(&name).map_err(|_| anyhow::anyhow!("id not found in {name}"))?;
         let video = match id {
-            "FC2-PPV" => Video::FC2(format!("{}-{}", id, num), path.to_path_buf()),
-            _ => Video::Normal(format!("{}-{}", id, num), path.to_path_buf()),
+            "FC2-PPV" => Video::FC2(format!("{}-{}", id, num), path.to_path_buf(), idx),
+            _ => Video::Normal(format!("{}-{}", id, num), path.to_path_buf(), idx),
         };
 
         Ok(video)
     }
 
-    fn parse_name(input: &str) -> IResult<&str, (&str, &str)> {
+    fn parse_name(input: &str) -> IResult<&str, (&str, &str, u32)> {
         map(
             tuple((
                 take_while(|c: char| !c.is_ascii_alphabetic()),
@@ -71,11 +77,11 @@ impl Video {
         many0(alt((tag("-"), tag(" "))))(input)
     }
 
-    fn name(input: &str) -> IResult<&str, (&str, &str)> {
+    fn name(input: &str) -> IResult<&str, (&str, &str, u32)> {
         alt((Video::fc2, Video::normal))(input)
     }
 
-    fn fc2(input: &str) -> IResult<&str, (&str, &str)> {
+    fn fc2(input: &str) -> IResult<&str, (&str, &str, u32)> {
         map(
             tuple((
                 tag("FC2"),
@@ -83,21 +89,27 @@ impl Video {
                 opt(tag("PPV")),
                 Video::split,
                 take_while1(|c: char| c.is_ascii_digit()),
+                Video::split,
+                opt(tag("CD")),
+                take_while(|c: char| c.is_ascii_digit()),
                 take_while(|_| true),
             )),
-            |(_, _, _, _, num, _)| ("FC2-PPV", num),
+            |(_, _, _, _, num, _, _, idx, _)| ("FC2-PPV", num, idx.parse::<u32>().unwrap_or(0)),
         )(input)
     }
 
-    fn normal(input: &str) -> IResult<&str, (&str, &str)> {
+    fn normal(input: &str) -> IResult<&str, (&str, &str, u32)> {
         map(
             tuple((
                 take_while1(|c: char| c.is_ascii_alphabetic()),
                 Video::split,
                 take_while1(|c: char| c.is_ascii_digit()),
+                Video::split,
+                opt(tag("CD")),
+                take_while(|c: char| c.is_ascii_digit()),
                 take_while(|_| true),
             )),
-            |(id, _, num, _)| (id, num),
+            |(id, _, num, _, _, idx, _)| (id, num, idx.parse::<u32>().unwrap_or(0)),
         )(input)
     }
 }
