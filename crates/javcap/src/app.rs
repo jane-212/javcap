@@ -219,18 +219,20 @@ impl App {
             .flat_map(|entry| entry.ok())
             .map(|entry| entry.into_path())
             .filter(|path| {
-                path.extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(|ext| {
-                        for e in self.config.file.ext.iter() {
-                            if ext == e {
-                                return true;
+                path.is_file()
+                    && path
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| {
+                            for e in self.config.file.ext.iter() {
+                                if ext == e {
+                                    return true;
+                                }
                             }
-                        }
 
-                        false
-                    })
-                    .unwrap_or(false)
+                            false
+                        })
+                        .unwrap_or(false)
             })
             .collect()
     }
