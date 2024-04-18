@@ -58,7 +58,12 @@ impl Avatar {
         let file_name = format!("{}.jpg", name);
         if let Some(company) = actor_map.iter().find(|map| map.1.get(&file_name).is_some()) {
             if let Some(file_name) = company.1.get(&file_name) {
-                let url = format!("{}/Content/{}/{}", Avatar::HOST, company.0, file_name);
+                let url = format!(
+                    "{}/Content/{}/{}",
+                    Avatar::HOST,
+                    company.0,
+                    file_name.trim_start_matches("AI-Fix-")
+                );
                 let img = self
                     .load_img(&url)
                     .await
