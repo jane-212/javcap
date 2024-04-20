@@ -87,7 +87,7 @@ jobs:
       - name: Set target variables
         shell: bash
         run: |
-          echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET_FLAGS="--target ${{ matrix.target }} -Zlocation-detail=none"" >> $GITHUB_ENV
           echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
 
       - name: Show command used for Cargo
@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           cargo install cross
-          cross build --verbose --release ${{ env.TARGET_FLAGS }}
+          cross build -Z build-std=std,panic_abort --verbose --release ${{ env.TARGET_FLAGS }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             bin="target/${{ matrix.target }}/release/javcap.exe"
           else
