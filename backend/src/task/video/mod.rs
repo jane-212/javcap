@@ -72,7 +72,7 @@ impl Video {
         let mut info = Info::new(video.id().to_string());
         let mut handles = Vec::with_capacity(self.engines.len());
         for engine in self.engines.clone() {
-            if engine.could_solve(video) {
+            if engine.support(video) {
                 info!("search {} in {}", video.id(), engine.id());
                 let id = engine.id().to_string();
                 let video = video.clone();
@@ -271,7 +271,7 @@ impl Task for Video {
 #[async_trait]
 pub trait Engine: Send + Sync {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info>;
-    fn could_solve(&self, video: &VideoParser) -> bool;
+    fn support(&self, video: &VideoParser) -> bool;
     fn id(&self) -> &'static str;
 }
 
