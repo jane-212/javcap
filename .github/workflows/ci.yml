@@ -13,10 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show the version
-        run: |
-          echo "version is: ${{ github.ref_name }}"
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
