@@ -1,0 +1,27 @@
+name: "ci"
+
+on:
+  push:
+  pull_request:
+    types:
+      - opened
+
+jobs:
+  run-test:
+    name: run-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show the version
+        run: |
+          echo "version is: ${{ github.ref_name }}"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      - name: Run test
+        run: |
+          cargo test --workspace
