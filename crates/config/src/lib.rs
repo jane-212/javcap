@@ -30,7 +30,7 @@ pub struct Video {
     pub rules: Vec<Rule>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub enum Rule {
     #[serde(rename = "title")]
     Title,

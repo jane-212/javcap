@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::info;
 
-use crate::Video;
+use crate::task::video::VideoParser;
 
 #[derive(Default, Serialize)]
 pub struct Info {
@@ -267,13 +267,13 @@ impl Info {
         Some(self)
     }
 
-    pub fn check(mut self, video: &Video) -> Option<Info> {
+    pub fn check(mut self, video: &VideoParser) -> Option<Info> {
         match video {
-            Video::FC2(_, _, _) => {
+            VideoParser::FC2(_, _, _) => {
                 self.fix_fc2();
                 self.check_fc2()
             }
-            Video::Normal(_, _, _) => {
+            VideoParser::Normal(_, _, _) => {
                 self.fix_normal();
                 self.check_normal()
             }

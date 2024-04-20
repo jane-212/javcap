@@ -6,7 +6,8 @@ use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
 
-use crate::{select, Engine, Info, Video};
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -19,7 +20,7 @@ impl Avsox {
         Avsox { client }
     }
 
-    async fn find_item(&self, video: &Video) -> anyhow::Result<Option<String>> {
+    async fn find_item(&self, video: &VideoParser) -> anyhow::Result<Option<String>> {
         select!(
             item: "#waterfall > div.item",
             id: "a > div.photo-info > span > date:nth-child(3)",
@@ -117,7 +118,7 @@ impl Avsox {
 
 #[async_trait]
 impl Engine for Avsox {
-    async fn search(&self, video: &Video) -> anyhow::Result<Info> {
+    async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
         let Some(href) = self.find_item(video).await? else {
             return Ok(info);
@@ -130,10 +131,10 @@ impl Engine for Avsox {
         Ok(info)
     }
 
-    fn could_solve(&self, video: &Video) -> bool {
+    fn could_solve(&self, video: &VideoParser) -> bool {
         match video {
-            Video::FC2(_, _, _) => true,
-            Video::Normal(_, _, _) => false,
+            VideoParser::FC2(_, _, _) => true,
+            VideoParser::Normal(_, _, _) => false,
         }
     }
 

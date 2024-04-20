@@ -21,3 +21,4 @@ console.workspace = true
 base64.workspace = true
 anyhow.workspace = true
 config.workspace = true
+walkdir.workspace = true

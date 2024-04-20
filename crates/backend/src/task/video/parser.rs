@@ -10,42 +10,42 @@ use nom::{
 };
 
 #[derive(Clone)]
-pub enum Video {
+pub enum VideoParser {
     FC2(String, PathBuf, u32),
     Normal(String, PathBuf, u32),
 }
 
-impl Video {
+impl VideoParser {
     pub fn id(&self) -> &str {
         match self {
-            Video::FC2(id, _, _) => id,
-            Video::Normal(id, _, _) => id,
+            Self::FC2(id, _, _) => id,
+            Self::Normal(id, _, _) => id,
         }
     }
 
     pub fn path(&self) -> &Path {
         match self {
-            Video::FC2(_, path, _) => path,
-            Video::Normal(_, path, _) => path,
+            Self::FC2(_, path, _) => path,
+            Self::Normal(_, path, _) => path,
         }
     }
 
     pub fn idx(&self) -> u32 {
         match self {
-            Video::FC2(_, _, idx) => *idx,
-            Video::Normal(_, _, idx) => *idx,
+            Self::FC2(_, _, idx) => *idx,
+            Self::Normal(_, _, idx) => *idx,
         }
     }
 
     pub fn matches(&self, id: &str) -> bool {
-        let (id, num, _) = Video::parse_name(id)
+        let (id, num, _) = Self::parse_name(id)
             .map(|(_, id)| id)
             .unwrap_or(("", "", 0));
 
         self.id() == format!("{}-{}", id, num)
     }
 
-    pub fn parse(path: &Path) -> anyhow::Result<Video> {
+    pub fn parse(path: &Path) -> anyhow::Result<Self> {
         let name = path
             .file_stem()
             .and_then(|name| name.to_str())
@@ -54,8 +54,8 @@ impl Video {
         let (_, (id, num, idx)) =
             Self::parse_name(&name).map_err(|_| anyhow::anyhow!("id not found in {name}"))?;
         let video = match id {
-            "FC2-PPV" => Video::FC2(format!("{}-{}", id, num), path.to_path_buf(), idx),
-            _ => Video::Normal(format!("{}-{}", id, num), path.to_path_buf(), idx),
+            "FC2-PPV" => Self::FC2(format!("{}-{}", id, num), path.to_path_buf(), idx),
+            _ => Self::Normal(format!("{}-{}", id, num), path.to_path_buf(), idx),
         };
 
         Ok(video)
@@ -65,7 +65,7 @@ impl Video {
         map(
             tuple((
                 take_while(|c: char| !c.is_ascii_alphabetic()),
-                Video::name,
+                Self::name,
                 take_while(|c: char| !c.is_ascii_digit()),
                 eof,
             )),
@@ -78,18 +78,18 @@ impl Video {
     }
 
     fn name(input: &str) -> IResult<&str, (&str, &str, u32)> {
-        alt((Video::fc2, Video::normal))(input)
+        alt((Self::fc2, Self::normal))(input)
     }
 
     fn fc2(input: &str) -> IResult<&str, (&str, &str, u32)> {
         map(
             tuple((
                 tag("FC2"),
-                Video::split,
+                Self::split,
                 opt(tag("PPV")),
-                Video::split,
+                Self::split,
                 take_while1(|c: char| c.is_ascii_digit()),
-                Video::split,
+                Self::split,
                 opt(tag("CD")),
                 take_while(|c: char| c.is_ascii_digit()),
                 take_while(|_| true),
@@ -102,9 +102,9 @@ impl Video {
         map(
             tuple((
                 take_while1(|c: char| c.is_ascii_alphabetic()),
-                Video::split,
+                Self::split,
                 take_while1(|c: char| c.is_ascii_digit()),
-                Video::split,
+                Self::split,
                 opt(tag("CD")),
                 take_while(|c: char| c.is_ascii_digit()),
                 take_while(|_| true),

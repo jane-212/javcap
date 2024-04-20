@@ -1,13 +1,18 @@
 use std::{collections::HashMap, sync::Arc};
 
+use async_trait::async_trait;
 use base64::{prelude::BASE64_STANDARD, Engine};
+use config::Config;
 use reqwest::Client;
 use serde::Deserialize;
 use tracing::info;
 
 use crate::bar::Bar;
 
+use super::Task;
+
 pub struct Avatar {
+    enabled: bool,
     client: Arc<Client>,
     host: String,
     api_key: String,
@@ -16,11 +21,12 @@ pub struct Avatar {
 impl Avatar {
     const HOST: &'static str = "https://raw.githubusercontent.com/gfriends/gfriends/master";
 
-    pub fn new(client: Arc<Client>, host: String, api_key: String) -> Avatar {
+    pub fn new(client: Arc<Client>, config: &Config) -> Avatar {
         Avatar {
+            enabled: config.avatar.refresh,
             client,
-            host,
-            api_key,
+            host: config.avatar.host.to_string(),
+            api_key: config.avatar.api_key.to_string(),
         }
     }
 
@@ -30,18 +36,16 @@ impl Avatar {
             .await
             .map_err(|err| anyhow::anyhow!("get actors from emby failed, caused by {err}"))?;
         info!("total {} actors", actors.len());
-        {
-            let mut bar = Bar::new(actors.len() as u64)?;
-            bar.println("AVATAR");
-            bar.message("load file tree");
-            let actor_map = self.load_file_tree().await.map_err(|err| {
-                anyhow::anyhow!("load file tree from gfriends repo failed, caused by {err}")
-            })?;
-            info!("actor map loaded");
-            for actor in actors {
-                if let Err(err) = self.handle(actor, &actor_map, &mut bar).await {
-                    bar.warn(&format!("{}", err));
-                }
+        let mut bar = Bar::new(actors.len() as u64)?;
+        bar.println("AVATAR");
+        bar.message("load file tree");
+        let actor_map = self.load_file_tree().await.map_err(|err| {
+            anyhow::anyhow!("load file tree from gfriends repo failed, caused by {err}")
+        })?;
+        info!("actor map loaded");
+        for actor in actors {
+            if let Err(err) = self.handle(actor, &actor_map, &mut bar).await {
+                bar.warn(&format!("{}", err));
             }
         }
 
@@ -184,5 +188,15 @@ impl Avatar {
             .await?;
 
         Ok(res.content)
+    }
+}
+
+#[async_trait]
+impl Task for Avatar {
+    async fn run(&mut self) -> anyhow::Result<()> {
+        if !self.enabled {
+            return Ok(());
+        }
+        self.refresh().await
     }
 }
