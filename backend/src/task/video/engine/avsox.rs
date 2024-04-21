@@ -131,7 +131,7 @@ impl Engine for Avsox {
         Ok(info)
     }
 
-    fn could_solve(&self, video: &VideoParser) -> bool {
+    fn support(&self, video: &VideoParser) -> bool {
         match video {
             VideoParser::FC2(_, _, _) => true,
             VideoParser::Normal(_, _, _) => false,

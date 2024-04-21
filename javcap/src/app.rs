@@ -16,7 +16,7 @@ use tracing_appender::rolling;
 use tracing_subscriber::fmt::time::OffsetTime;
 
 pub struct App {
-    config: Config,
+    should_quit: bool,
     tasks: Vec<Box<dyn Task>>,
     checkers: Vec<Box<dyn Checker>>,
 }
@@ -49,7 +49,7 @@ impl App {
         let checkers: Vec<Box<dyn Checker>> = vec![Box::new(network_checker)];
 
         Ok(Self {
-            config,
+            should_quit: config.app.quit_on_finish,
             tasks,
             checkers,
         })
@@ -103,7 +103,7 @@ impl App {
             task.run().await?;
         }
 
-        Ok(self.config.app.quit_on_finish)
+        Ok(self.should_quit)
     }
 
     fn init_tracing(path: &Path) {

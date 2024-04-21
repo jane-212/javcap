@@ -170,7 +170,7 @@ impl Engine for Javbus {
         Ok(info)
     }
 
-    fn could_solve(&self, video: &VideoParser) -> bool {
+    fn support(&self, video: &VideoParser) -> bool {
         match video {
             VideoParser::FC2(_, _, _) => false,
             VideoParser::Normal(_, _, _) => true,

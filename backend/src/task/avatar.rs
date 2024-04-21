@@ -25,8 +25,8 @@ impl Avatar {
         Avatar {
             enabled: config.avatar.refresh,
             client,
-            host: config.avatar.host.to_string(),
-            api_key: config.avatar.api_key.to_string(),
+            host: config.avatar.host.clone(),
+            api_key: config.avatar.api_key.clone(),
         }
     }
 

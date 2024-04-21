@@ -9,7 +9,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum VideoParser {
     FC2(String, PathBuf, u32),
     Normal(String, PathBuf, u32),
@@ -111,5 +111,131 @@ impl VideoParser {
             )),
             |(id, _, num, _, _, idx, _)| (id, num, idx.parse::<u32>().unwrap_or(0)),
         )(input)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normal() {
+        let pairs = vec![
+            (
+                "stars-804.mp4",
+                Ok(VideoParser::Normal(
+                    "STARS-804".to_string(),
+                    PathBuf::from("stars-804.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "stars - 804.mp4",
+                Ok(VideoParser::Normal(
+                    "STARS-804".to_string(),
+                    PathBuf::from("stars - 804.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "stars804.mp4",
+                Ok(VideoParser::Normal(
+                    "STARS-804".to_string(),
+                    PathBuf::from("stars804.mp4"),
+                    0,
+                )),
+            ),
+            ("stars.mp4", Err("id not found in STARS".to_string())),
+        ];
+
+        for pair in pairs {
+            let path = PathBuf::from(pair.0);
+            let video = VideoParser::parse(&path).map_err(|err| err.to_string());
+            assert_eq!(video, pair.1)
+        }
+    }
+
+    #[test]
+    fn test_fc2() {
+        let pairs = vec![
+            (
+                "fc2-ppv-3234.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2-ppv-3234.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "fc2ppv3234.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2ppv3234.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "fc2-3234.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2-3234.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "fc23234.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc23234.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "fc2 - 3234.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2 - 3234.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "fc2 - ppv - 3234.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2 - ppv - 3234.mp4"),
+                    0,
+                )),
+            ),
+            (
+                "fc2-ppv-3234-1.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2-ppv-3234-1.mp4"),
+                    1,
+                )),
+            ),
+            (
+                "fc2-ppv-3234-2.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2-ppv-3234-2.mp4"),
+                    2,
+                )),
+            ),
+            (
+                "fc2-3234-2.mp4",
+                Ok(VideoParser::FC2(
+                    "FC2-PPV-3234".to_string(),
+                    PathBuf::from("fc2-3234-2.mp4"),
+                    2,
+                )),
+            ),
+        ];
+
+        for pair in pairs {
+            let path = PathBuf::from(pair.0);
+            let video = VideoParser::parse(&path).map_err(|err| err.to_string());
+            assert_eq!(video, pair.1)
+        }
     }
 }

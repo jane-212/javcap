@@ -28,7 +28,7 @@ jobs:
       - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create $VERSION --draft --verify-tag --title $VERSION
+        run: gh release create $VERSION --draft --generate-notes  --verify-tag --title $VERSION
     outputs:
       version: ${{ env.VERSION }}
 
@@ -44,34 +44,34 @@ jobs:
         include:
           - build: stable-x86-musl
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: x86_64-unknown-linux-musl
           - build: stable-x86-gnu
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: x86_64-unknown-linux-gnu
 
           - build: stable-aarch64-musl
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: aarch64-unknown-linux-musl
           - build: stable-aarch64-gnu
             os: ubuntu-latest
-            rust: stable
+            rust: nightly
             target: aarch64-unknown-linux-gnu
 
           - build: macos-aarch64
             os: macos-latest
-            rust: stable
+            rust: nightly
             target: aarch64-apple-darwin
           - build: macos-x86
             os: macos-latest
-            rust: stable
+            rust: nightly
             target: x86_64-apple-darwin
 
           - build: win-msvc
             os: windows-latest
-            rust: stable
+            rust: nightly
             target: x86_64-pc-windows-msvc
 
     steps:
@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           cargo install cross
-          cross build --verbose --release ${{ env.TARGET_FLAGS }}
+          RUSTFLAGS="-Zlocation-detail=none"cross build -Z build-std=std,panic_abort --verbose --release ${{ env.TARGET_FLAGS }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             bin="target/${{ matrix.target }}/release/javcap.exe"
           else
