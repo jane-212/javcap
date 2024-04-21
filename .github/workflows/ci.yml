@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check spelling of file.txt
+        uses: crate-ci/typos@master
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
