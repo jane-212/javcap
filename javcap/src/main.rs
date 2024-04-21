@@ -15,7 +15,7 @@ async fn main() {
         Err(err) => {
             error!("{err}");
             println!("{:>10} {}", style("Error").red().bold(), err);
-            finish_and_quit(true);
+            finish_and_quit(false);
         }
     }
 }
