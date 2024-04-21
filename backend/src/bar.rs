@@ -58,12 +58,14 @@ impl Bar {
         Ok(bar)
     }
 
-    pub fn message(&self, msg: &str) {
+    pub fn message(&self, msg: impl AsRef<str>) {
+        let msg = msg.as_ref();
         info!("{msg}");
         self.info.set_message(msg.to_string());
     }
 
-    pub fn info(&mut self, msg: &str) {
+    pub fn info(&mut self, msg: impl AsRef<str>) {
+        let msg = msg.as_ref();
         self.success += 1;
         info!("{msg}");
         self.info.inc(1);
@@ -72,13 +74,15 @@ impl Bar {
             .println(format!("{:>10} ✔️️ {}", style("Handle").green().bold(), msg));
     }
 
-    pub fn println(&self, msg: &str) {
+    pub fn println(&self, msg: impl AsRef<str>) {
+        let msg = msg.as_ref();
         info!("{msg}");
         self.process
             .println(format!("{:>10}️️ {}", style("Now").green().bold(), msg));
     }
 
-    pub fn warn(&mut self, msg: &str) {
+    pub fn warn(&mut self, msg: impl AsRef<str>) {
+        let msg = msg.as_ref();
         self.failed += 1;
         warn!("{msg}");
         self.info.inc(1);

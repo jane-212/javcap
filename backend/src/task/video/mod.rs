@@ -160,14 +160,13 @@ impl Video {
     async fn handle(&mut self, path: &Path, bar: &mut Bar) -> anyhow::Result<()> {
         match VideoParser::parse(path) {
             Ok(video) => {
-                bar.message(&format!("search {}", video.id()));
+                bar.message(video.id());
                 let Some(mut info) = self.search(&video).await else {
                     anyhow::bail!("info of {} not complete", video.id());
                 };
                 if let Err(err) = self.translate(&mut info).await {
                     warn!("translate {} failed, caused by {err}", video.id());
                 }
-                bar.message(&format!("write {}", video.id()));
                 info.write_to(
                     &self.root.join(&self.output),
                     path,
