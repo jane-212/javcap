@@ -28,7 +28,7 @@ jobs:
       - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create $VERSION --draft --verify-tag --title $VERSION
+        run: gh release create $VERSION --draft --generate-notes  --verify-tag --title $VERSION
     outputs:
       version: ${{ env.VERSION }}
 
