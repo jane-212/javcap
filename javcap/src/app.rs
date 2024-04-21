@@ -33,7 +33,7 @@ impl App {
             format!(
                 " {} - {} ",
                 env!("CARGO_PKG_NAME").to_uppercase(),
-                env!("CARGO_PKG_VERSION")
+                env!("VERSION")
             )
         );
         let config = Config::load(&pwd.join(Self::CONFIG_NAME)).await?;
