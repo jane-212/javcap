@@ -33,7 +33,6 @@ anyhow = "1.0.82"
 validator = { version = "0.18.1", features = ["derive"] }
 
 [profile.release]
-opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
