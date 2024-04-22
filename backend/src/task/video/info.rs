@@ -58,7 +58,7 @@ impl Info {
                 <plot>{plot}</plot>
                 <runtime>{runtime}</runtime>
                 <mpaa>{mpaa}</mpaa>
-                <uniqueid type=\"num\" defult=\"true\">{id}</uniqueid>
+                <uniqueid type=\"num\" default=\"true\">{id}</uniqueid>
             {genres}
             {tags}
                 <country>{country}</country>

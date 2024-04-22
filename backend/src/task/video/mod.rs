@@ -93,7 +93,7 @@ impl Video {
         }
 
         #[cfg(debug_assertions)]
-        info.show_info("SUMARY");
+        info.show_info("SUMMARY");
         info.check(video)
     }
 
@@ -189,8 +189,8 @@ impl Video {
     }
 
     async fn remove_empty(&self) -> anyhow::Result<()> {
-        let mut entrys = fs::read_dir(&self.root).await?;
-        while let Some(entry) = entrys.next_entry().await? {
+        let mut entries = fs::read_dir(&self.root).await?;
+        while let Some(entry) = entries.next_entry().await? {
             if let Some(name) = entry.file_name().to_str() {
                 if name.starts_with('.') {
                     continue;
@@ -211,8 +211,8 @@ impl Video {
     }
 
     async fn is_empty(path: &Path) -> anyhow::Result<bool> {
-        let mut entrys = fs::read_dir(path).await?;
-        while let Some(entry) = entrys.next_entry().await? {
+        let mut entries = fs::read_dir(path).await?;
+        while let Some(entry) = entries.next_entry().await? {
             if let Some(name) = entry.file_name().to_str() {
                 if !name.starts_with('.') {
                     return Ok(false);

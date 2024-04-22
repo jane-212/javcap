@@ -60,11 +60,11 @@ pub struct Avatar {
 
 #[derive(Deserialize, Validate)]
 pub struct File {
-    #[validate(length(min = 1, message = "should not be emtpy"))]
+    #[validate(length(min = 1, message = "should not be empty"))]
     pub root: String,
-    #[validate(length(min = 1, message = "should not be emtpy"))]
+    #[validate(length(min = 1, message = "should not be empty"))]
     pub output: String,
-    #[validate(length(min = 1, message = "should not be emtpy"))]
+    #[validate(length(min = 1, message = "should not be empty"))]
     pub other: String,
     pub exclude: Vec<String>,
     pub ext: Vec<String>,
