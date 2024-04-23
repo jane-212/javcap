@@ -100,13 +100,15 @@ jobs:
         shell: bash
         run: |
           cargo install cross
-          VERSION=${{ needs.create-release.outputs.version }} cross build --verbose --release ${{ env.TARGET_FLAGS }}
+          cross build --verbose --release ${{ env.TARGET_FLAGS }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             bin="target/${{ matrix.target }}/release/javcap.exe"
           else
             bin="target/${{ matrix.target }}/release/javcap"
           fi
           echo "BIN=$bin" >> $GITHUB_ENV
+        env:
+          VERSION: ${{ needs.create-release.outputs.version }}
 
       - name: Determine archive name
         shell: bash
