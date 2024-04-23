@@ -1,8 +1,23 @@
-# javcap
+<div align="center">
+  <a href="https://github.com/jane-212/javcap">
+    <img src="images/logo.png" alt="Logo" width="80" height="80">
+  </a>
 
-A data capture for jav movie.
+  <h3 align="center">Javcap</h3>
 
-# 该项目仅用于爬虫学习，请勿用作其他用途，否则后果自负。
+  <p align="center">
+    一个电影数据的刮削器
+  </p>
+</div>
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+
+## 效果
+
+![](images/run.gif)
 
 ## 下载
 
@@ -15,8 +30,6 @@ A data capture for jav movie.
 第一次运行会自动在当前目录生成 `config.toml` 文件,如果对 `toml` 类型文件有疑问可以[点击这里](https://toml.io/cn/)。
 
 编辑修改配置文件后再次运行,程序会自动搜索当前目录下所有视频并刮削数据。
-
-![](./images/run.gif)
 
 ## 目前支持的网站
 
