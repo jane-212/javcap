@@ -26,7 +26,20 @@ impl App {
     const LOG_NAME: &'static str = "logs";
 
     pub async fn new() -> anyhow::Result<Self> {
-        let pwd = env::current_dir()?;
+        let pwd = {
+            let mut args = env::args();
+            let binary_path = args
+                .next()
+                .ok_or(anyhow::anyhow!("get app execute path failed"))?;
+            let pwd = Path::new(&binary_path);
+            if pwd.is_absolute() {
+                pwd.parent()
+                    .ok_or(anyhow::anyhow!("get app execute parent path failed"))?
+                    .to_path_buf()
+            } else {
+                env::current_dir()?
+            }
+        };
         Self::init_tracing(&pwd);
         info!(
             "{:-^30}",
@@ -37,10 +50,7 @@ impl App {
             )
         );
         let config = Config::load(&pwd.join(Self::CONFIG_NAME)).await?;
-        info!(
-            "config loaded from {}",
-            pwd.join(Self::CONFIG_NAME).display()
-        );
+        info!("config loaded");
         let client = Self::default_client(&config)?;
         let video = Video::new(client.clone(), &config, &pwd)?;
         let avatar = Avatar::new(client.clone(), &config);
