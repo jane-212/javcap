@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/jane-212/javcap">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/logo.png" alt="Logo" width="160" height="160">
   </a>
 
   <h3 align="center">Javcap</h3>
@@ -9,6 +9,8 @@
     一个电影数据的刮削器
   </p>
 </div>
+
+</br>
 
 <div align="center">
   <a href="https://github.com/jane-212/javcap"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/jane-212/javcap?style=for-the-badge"/></a>
