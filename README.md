@@ -10,12 +10,12 @@
   </p>
 </div>
 
+</br>
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-
-## 效果
 
 ![](images/run.gif)
 
