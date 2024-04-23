@@ -11,11 +11,11 @@
 </div>
 
 <div align="center">
-  <a href="#">![GitHub Repo stars](https://img.shields.io/github/stars/jane-212/javcap?style=for-the-badge)</a>
-  <a href="#">![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jane-212/javcap/total?style=for-the-badge)</a>
-  <a href="#">![GitHub commit activity](https://img.shields.io/github/commit-activity/t/jane-212/javcap?style=for-the-badge)</a>
-  <a href="#">![GitHub top language](https://img.shields.io/github/languages/top/jane-212/javcap?style=for-the-badge)</a>
-  <a href="#">![GitHub License](https://img.shields.io/github/license/jane-212/javcap?style=for-the-badge)</a>
+  <a href="https://github.com/jane-212/javcap"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/jane-212/javcap?style=for-the-badge"/></a>
+  <a href="https://github.com/jane-212/javcap/releases"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/jane-212/javcap/total?style=for-the-badge"/></a>
+  <a href="https://github.com/jane-212/javcap/commits/main/"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/t/jane-212/javcap?style=for-the-badge"/></a>
+  <a href="https://github.com/jane-212/javcap"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/jane-212/javcap?style=for-the-badge"/></a>
+  <a href="https://github.com/jane-212/javcap/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/jane-212/javcap?style=for-the-badge"/></a>
 </div>
 
 ![](images/run.gif)
