@@ -1,0 +1,19 @@
+changelog:
+  exclude:
+    labels:
+      - "documentation"
+      - "duplicate"
+      - "help wanted"
+      - "invalid"
+      - "question"
+      - "wontfix"
+  categories:
+    - title: 🏕 Features
+      labels:
+        - "enhancement"
+    - title: "🐛 Bug Fixes"
+      labels:
+        - "bug"
+    - title: "👋 Good First Issue"
+      labels:
+        - "good first issue"
