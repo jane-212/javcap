@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/jane-212/javcap">
-    <img src="images/logo.jpg" alt="Logo" width="80" height="80">
+    <img src="images/logo.jpg" alt="Logo" width="80" height="80" style="border-radius: 50%;">
   </a>
 
   <h3 align="center">Javcap</h3>
@@ -10,6 +10,7 @@
   </p>
 </div>
 
+<div align="center">
 ![GitHub Repo stars](https://img.shields.io/github/stars/jane-212/javcap?style=for-the-badge)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jane-212/javcap/total?style=for-the-badge)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/jane-212/javcap?style=for-the-badge)
@@ -17,6 +18,7 @@
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/jane-212/javcap?style=for-the-badge)
 ![GitHub top language](https://img.shields.io/github/languages/top/jane-212/javcap?style=for-the-badge)
 ![GitHub License](https://img.shields.io/github/license/jane-212/javcap?style=for-the-badge)
+</div>
 
 ![](images/run.gif)
 
