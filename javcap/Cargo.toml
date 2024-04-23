@@ -17,3 +17,6 @@ console.workspace = true
 indicatif.workspace = true
 reqwest.workspace = true
 anyhow.workspace = true
+
+[package.metadata.cross.build.env]
+passthrough = ["VERSION"]
