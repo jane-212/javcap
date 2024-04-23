@@ -99,7 +99,6 @@ jobs:
       - name: Build release binary
         shell: bash
         run: |
-          export VERSION="${{ needs.create-release.outputs.version }}"
           cargo install cross
           cross build --verbose --release ${{ env.TARGET_FLAGS }}
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -108,6 +107,8 @@ jobs:
             bin="target/${{ matrix.target }}/release/javcap"
           fi
           echo "BIN=$bin" >> $GITHUB_ENV
+        env:
+          VERSION: ${{ needs.create-release.outputs.version }}
 
       - name: Determine archive name
         shell: bash
