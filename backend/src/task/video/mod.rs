@@ -211,6 +211,9 @@ impl Video {
     }
 
     async fn is_empty(path: &Path) -> anyhow::Result<bool> {
+        if !path.is_dir() {
+            return Ok(false);
+        }
         let mut entries = fs::read_dir(path).await?;
         while let Some(entry) = entries.next_entry().await? {
             if let Some(name) = entry.file_name().to_str() {
