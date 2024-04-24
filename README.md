@@ -53,8 +53,6 @@
 - [x] avsox
 - [x] mgstage
 
-![Cow say](images/cowsay.png)
-
 <div align="center">
-  <img src="images/cowsay.png" alt="Cow say" width="400" height="400">
+  <img src="images/cowsay.png" alt="Cow say" width="400">
 </div>
