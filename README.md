@@ -35,10 +35,10 @@
 
 第一次运行会自动在当前目录生成 `config.toml` 文件。
 
+编辑修改配置文件后再次运行,程序会自动搜索当前目录下所有视频并刮削数据。
+
 > [!NOTE]
 > 如果对 `toml` 类型文件有疑问可以[点击这里](https://toml.io/cn/)
-
-编辑修改配置文件后再次运行,程序会自动搜索当前目录下所有视频并刮削数据。
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png" alt="Robot" width="25" height="25" />
@@ -51,3 +51,7 @@
 - [x] javlib
 - [x] avsox
 - [x] mgstage
+
+<div align="center">
+  <img src="images/cowsay.png" alt="Cow say" width="400">
+</div>
