@@ -18,9 +18,28 @@
   <a href="https://github.com/jane-212/javcap/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/jane-212/javcap?style=for-the-badge&logo=github"></a>
   <a href="https://github.com/jane-212/javcap/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/jane-212/javcap?style=for-the-badge&logo=flathub"></a>
 </div>
+<h2>
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" />
+  特点
+</h2>
+
+- <p>
+    速度快
+    <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/High%20Voltage.png" alt="High Voltage" width="15" height="15" />
+  </p>
+
+- <p>
+    输出提示清晰
+    <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rainbow.png" alt="Rainbow" width="15" height="15" />
+  </p>
+
+- <p>
+    可执行文件小
+    <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Delivery%20Truck.png" alt="Delivery Truck" width="15" height="15" />
+  </p>
 
 <h2>
-  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Gear.png" alt="Gear" width="25" height="25" />
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png" alt="Party Popper" width="25" height="25" />
   怎么下载
 </h2>
 
@@ -52,6 +71,18 @@
 - [x] avsox
 - [x] mgstage
 
-<div align="center">
-  <img src="images/cowsay.png" alt="Cow say" width="400">
-</div>
+<h2>
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Comet.png" alt="Comet" width="25" height="25" />
+  其他
+</h2>
+
+```
+ ___________________
+< javcap is awesome >
+ -------------------
+       \   ^__^
+        \  (oo)\_______
+           (__)\       )\/\
+               ||----w |
+               ||     ||
+```
