@@ -52,6 +52,6 @@
 - [x] avsox
 - [x] mgstage
 
-<div align="center">
-  <img src="images/cowsay.png" alt="Cow say" width="400">
-</div>
+---
+
+<img src="images/cowsay.png" alt="Cow say" width="400">
