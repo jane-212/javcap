@@ -20,8 +20,6 @@
   <a href="https://github.com/jane-212/javcap/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/jane-212/javcap?style=for-the-badge"></a>
 </div>
 
-</br>
-
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Gear.png" alt="Gear" width="25" height="25" />
   如何下载
