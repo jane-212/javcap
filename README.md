@@ -20,6 +20,8 @@
   <a href="https://github.com/jane-212/javcap/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/jane-212/javcap?style=for-the-badge"></a>
 </div>
 
+![Cow say](images/cowsay.png)
+
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Gear.png" alt="Gear" width="25" height="25" />
   怎么下载
@@ -36,10 +38,10 @@
 
 第一次运行会自动在当前目录生成 `config.toml` 文件。
 
+编辑修改配置文件后再次运行,程序会自动搜索当前目录下所有视频并刮削数据。
+
 > [!NOTE]
 > 如果对 `toml` 类型文件有疑问可以[点击这里](https://toml.io/cn/)
-
-编辑修改配置文件后再次运行,程序会自动搜索当前目录下所有视频并刮削数据。
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png" alt="Robot" width="25" height="25" />
