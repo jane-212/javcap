@@ -20,7 +20,7 @@
 </div>
 
 <h2>
-  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Gear.png" alt="Gear" width="25" height="25" />
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Barber%20Pole.png" alt="Barber Pole" width="25" height="25" />
   怎么下载
 </h2>
 
@@ -53,6 +53,17 @@
 - [x] mgstage
 
 <h2>
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Comet.png" alt="Comet" width="25" height="25" />
+  其他
 </h2>
 
-<img src="images/cowsay.png" alt="Cow say" width="400">
+```
+ ___________________
+< javcap is awesome >
+ -------------------
+       \   ^__^
+        \  (oo)\_______
+           (__)\       )\/\
+               ||----w |
+               ||     ||
+```
