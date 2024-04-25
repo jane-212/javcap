@@ -25,9 +25,8 @@ pub struct Info {
     actors: Vec<String>,
     poster: Vec<u8>,
     fanart: Vec<u8>,
+    subtitle: Vec<u8>,
 }
-
-const MOVIE_NFO: &str = "movie.nfo";
 
 impl Info {
     pub fn new(id: String) -> Info {
@@ -37,6 +36,10 @@ impl Info {
             id,
             ..Default::default()
         }
+    }
+
+    pub fn get_id(&self) -> &str {
+        &self.id
     }
 
     pub fn get_title(&self) -> &str {
@@ -127,6 +130,9 @@ impl Info {
         idx: u32,
         rules: &[config::Rule],
     ) -> anyhow::Result<()> {
+        #[cfg(debug_assertions)]
+        self.show_info("SUMMARY");
+        
         let path = self.concat_rules(path, rules);
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
@@ -145,42 +151,62 @@ impl Info {
         fs::create_dir_all(&path).await?;
         info!("create {}", path.display());
         if !self.poster.is_empty() {
+            let file_name = "poster.jpg";
+            let path = path.join(file_name);
             OpenOptions::new()
                 .create(true)
                 .write(true)
                 .truncate(true)
-                .open(path.join("poster.jpg"))
+                .open(&path)
                 .await?
                 .write_all(&self.poster)
                 .await?;
-            info!("write poster.jpg to {}", path.join("poster.jpg").display());
+            info!("write {} to {}", file_name, path.display());
         }
         if !self.fanart.is_empty() {
+            let file_name = "fanart.jpg";
+            let path = path.join(file_name);
             OpenOptions::new()
                 .create(true)
                 .write(true)
                 .truncate(true)
-                .open(path.join("fanart.jpg"))
+                .open(&path)
                 .await?
                 .write_all(&self.fanart)
                 .await?;
-            info!("write fanart.jpg to {}", path.join("fanart.jpg").display());
+            info!("write {} to {}", file_name, path.display());
         }
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(path.join(MOVIE_NFO))
-            .await?
-            .write_all(self.to_nfo().as_bytes())
-            .await?;
-        info!("write {} to {}", MOVIE_NFO, path.join(MOVIE_NFO).display());
-        fs::rename(file, path.join(&to_file)).await?;
-        info!(
-            "move {} to {}",
-            file.display(),
-            path.join(&to_file).display()
-        );
+        if !self.subtitle.is_empty() {
+            let file_name = format!("{}.srt", self.id);
+            let path = path.join(&file_name);
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(&path)
+                .await?
+                .write_all(&self.subtitle)
+                .await?;
+            info!("write {} to {}", file_name, path.display());
+        }
+        {
+            let file_name = format!("{}.nfo", self.id);
+            let path = path.join(&file_name);
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(&path)
+                .await?
+                .write_all(self.to_nfo().as_bytes())
+                .await?;
+            info!("write {} to {}", file_name, path.display());
+        }
+        {
+            let path = path.join(&to_file);
+            fs::rename(file, &path).await?;
+            info!("move {} to {}", file.display(), path.display());
+        }
 
         Ok(())
     }
@@ -310,7 +336,7 @@ impl Info {
     }
 
     #[cfg(debug_assertions)]
-    pub fn show_info(&self, id: &str) {
+    fn show_info(&self, id: &str) {
         let empty_print = Info::empty_print;
         info!("{:-^25}", format!(" {} BEGIN ", id));
         info!("title: {}", empty_print(&self.title));
@@ -324,6 +350,7 @@ impl Info {
         info!("actors: {:#?}", self.actors);
         info!("poster: {}", self.poster.len());
         info!("fanart: {}", self.fanart.len());
+        info!("subtitle: {}", self.subtitle.len());
         info!("{:-^25}", format!(" {} END ", id));
     }
 
@@ -365,6 +392,10 @@ impl Info {
 
     pub fn poster(&mut self, poster: Vec<u8>) {
         self.poster = poster;
+    }
+
+    pub fn subtitle(&mut self, subtitle: Vec<u8>) {
+        self.subtitle = subtitle;
     }
 
     pub fn fanart(&mut self, fanart: Vec<u8>) {
