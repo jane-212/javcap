@@ -10,6 +10,7 @@ use engine::{Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
 use info::Info;
 use parser::VideoParser;
 use reqwest::Client;
+use subtitle::Subtitle;
 use tokio::fs;
 use tracing::{info, warn};
 use translate::Translator;
@@ -22,11 +23,13 @@ use super::Task;
 mod engine;
 mod info;
 pub mod parser;
+mod subtitle;
 mod translate;
 
 pub struct Video {
     engines: Vec<Arc<Box<dyn Engine>>>,
     translate: Option<Box<dyn Translator>>,
+    subtitle: Subtitle,
     remove_empty: bool,
     root: PathBuf,
     exclude: Vec<String>,
@@ -49,6 +52,7 @@ impl Video {
         let translate = match config.video.translate {
             config::Translate::Disable => None,
         };
+        let subtitle = Subtitle::new(client);
         let mut root = PathBuf::from(&config.file.root);
         if root.is_relative() {
             root = pwd.join(&root).canonicalize().unwrap_or(root);
@@ -58,6 +62,7 @@ impl Video {
         Ok(Self {
             engines,
             translate,
+            subtitle,
             remove_empty: config.file.remove_empty,
             root,
             exclude: config.file.exclude.clone(),
@@ -68,7 +73,7 @@ impl Video {
         })
     }
 
-    pub async fn search(&mut self, video: &VideoParser) -> Option<Info> {
+    pub async fn search(&mut self, video: &VideoParser) -> Info {
         let mut info = Info::new(video.id().to_string());
         let mut handles = Vec::with_capacity(self.engines.len());
         for engine in self.engines.clone() {
@@ -92,9 +97,7 @@ impl Video {
             }
         }
 
-        #[cfg(debug_assertions)]
-        info.show_info("SUMMARY");
-        info.check(video)
+        info
     }
 
     pub async fn translate(&mut self, info: &mut Info) -> anyhow::Result<()> {
@@ -161,12 +164,14 @@ impl Video {
         match VideoParser::parse(path) {
             Ok(video) => {
                 bar.message(video.id());
-                let Some(mut info) = self.search(&video).await else {
-                    anyhow::bail!("info of {} not complete", video.id());
-                };
+                let mut info = self.search(&video).await;
                 if let Err(err) = self.translate(&mut info).await {
                     warn!("translate {} failed, caused by {err}", video.id());
                 }
+                self.subtitle.find_subtitle(&mut info).await?;
+                let Some(info) = info.check(&video) else {
+                    anyhow::bail!("info of {} not complete", video.id());
+                };
                 info.write_to(
                     &self.root.join(&self.output),
                     path,
