@@ -7,6 +7,7 @@ changelog:
       - "invalid"
       - "question"
       - "wontfix"
+      - "good first issue"
   categories:
     - title: 🏕 Features
       labels:
@@ -14,6 +15,3 @@ changelog:
     - title: "🐛 Bug Fixes"
       labels:
         - "bug"
-    - title: "👋 Good First Issue"
-      labels:
-        - "good first issue"
