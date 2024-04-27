@@ -48,6 +48,8 @@ pub enum Rule {
 pub enum Translate {
     #[serde(rename = "disable")]
     Disable,
+    #[serde(rename = "app_world")]
+    AppWorld,
 }
 
 #[derive(Deserialize, Validate)]
