@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeMap,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -13,7 +12,7 @@ use reqwest::Client;
 use subtitle::Subtitle;
 use tokio::fs;
 use tracing::{info, warn};
-use translate::Translator;
+use translate::{AppWorld, Translator};
 use walkdir::WalkDir;
 
 use crate::bar::Bar;
@@ -49,10 +48,11 @@ impl Video {
             Arc::new(Box::new(Avsox::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
-        let translate = match config.video.translate {
+        let translate: Option<Box<dyn Translator>> = match config.video.translate {
             config::Translate::Disable => None,
+            config::Translate::AppWorld => Some(Box::new(AppWorld::new(client.clone()))),
         };
-        let subtitle = Subtitle::new(client);
+        let subtitle = Subtitle::new(client.clone());
         let mut root = PathBuf::from(&config.file.root);
         if root.is_relative() {
             root = pwd.join(&root).canonicalize().unwrap_or(root);
@@ -101,18 +101,9 @@ impl Video {
     }
 
     pub async fn translate(&mut self, info: &mut Info) -> anyhow::Result<()> {
-        if let Some(ref translate) = self.translate {
-            info!("translate");
-            let mut text = BTreeMap::new();
-            text.insert("title", info.get_title().to_string());
-            text.insert("plot", info.get_plot().to_string());
-            let res = translate.translate(text).await;
-            if let Some(title) = res.get("title") {
-                info.title(title.to_string());
-            }
-            if let Some(plot) = res.get("plot") {
-                info.plot(plot.to_string());
-            }
+        if let Some(translate) = &mut self.translate {
+            info!("translate {}", info.get_id());
+            translate.translate(info).await?;
         }
 
         Ok(())

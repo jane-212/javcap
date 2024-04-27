@@ -132,7 +132,7 @@ impl Info {
     ) -> anyhow::Result<()> {
         #[cfg(debug_assertions)]
         self.show_info("SUMMARY");
-        
+
         let path = self.concat_rules(path, rules);
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
