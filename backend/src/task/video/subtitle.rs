@@ -25,15 +25,11 @@ impl Subtitle {
         let Some(subtitle_href) = self.load_subtitle(href).await? else {
             return Ok(());
         };
-        let subtitle = self
-            .client
-            .get(subtitle_href)
-            .send()
-            .await?
-            .bytes()
-            .await?
-            .to_vec();
-        info.subtitle(subtitle);
+        let subtitle = self.client.get(subtitle_href).send().await?.text().await?;
+        if subtitle.contains("html") && subtitle.contains("404") {
+            return Ok(());
+        }
+        info.subtitle(subtitle.into_bytes());
 
         Ok(())
     }
