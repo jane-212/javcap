@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
+use super::Translator;
+use crate::task::video::info::Info;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
+use std::sync::Arc;
 use tokio::time::{sleep, Duration, Instant};
-
-use super::Translator;
-use crate::task::video::info::Info;
 
 pub struct AppWorld {
     client: Arc<Client>,
@@ -30,7 +28,9 @@ impl AppWorld {
             data: Option<String>,
             msg: String,
         }
+
         let text = text.as_ref();
+
         if self.last_tick.elapsed() < Self::INTERVAL {
             sleep(Self::INTERVAL).await;
         }

@@ -1,5 +1,3 @@
-use std::{env, path::Path, sync::Arc, time::Duration};
-
 use backend::check::network::Network;
 use backend::check::Checker;
 use backend::task::avatar::Avatar;
@@ -10,6 +8,7 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Proxy,
 };
+use std::{env, path::Path, sync::Arc, time::Duration};
 use time::{macros::format_description, UtcOffset};
 use tracing::{info, Level};
 use tracing_appender::rolling;
@@ -40,6 +39,7 @@ impl App {
                 env::current_dir()?
             }
         };
+
         Self::init_tracing(&pwd);
         info!(
             "{:-^30}",
@@ -49,12 +49,16 @@ impl App {
                 env!("VERSION")
             )
         );
+
         let config = Config::load(&pwd.join(Self::CONFIG_NAME)).await?;
         info!("config loaded");
+
         let client = Self::default_client(&config)?;
+
         let video = Video::new(client.clone(), &config, &pwd)?;
         let avatar = Avatar::new(client.clone(), &config);
         let tasks: Vec<Box<dyn Task>> = vec![Box::new(video), Box::new(avatar)];
+
         let network_checker = Network::new(client);
         let checkers: Vec<Box<dyn Checker>> = vec![Box::new(network_checker)];
 
@@ -86,6 +90,7 @@ impl App {
             headers
         };
         let proxy = &config.network.proxy;
+
         let client = Client::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(config.network.timeout))
@@ -109,6 +114,7 @@ impl App {
 
     pub async fn run(&mut self) -> anyhow::Result<bool> {
         self.check().await?;
+
         for task in self.tasks.iter_mut() {
             task.run().await?;
         }
@@ -122,6 +128,7 @@ impl App {
             UtcOffset::from_hms(8, 0, 0).expect("set timezone error"),
             format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),
         );
+
         tracing_subscriber::fmt()
             .with_writer(daily)
             .with_max_level(Level::INFO)

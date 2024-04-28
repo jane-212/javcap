@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 use async_trait::async_trait;
 use macros::Engine;
 use reqwest::Client;
 use scraper::Html;
-
-use crate::select;
-use crate::task::video::{Engine, Info, VideoParser};
+use std::sync::Arc;
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -23,12 +21,14 @@ impl Javlib {
         select!(
             info: "#rightcolumn > p > em"
         );
+
         let url = format!(
             "https://www.javlibrary.com/cn/vl_searchbyid.php?keyword={}",
             video.id()
         );
         let res = self.client.get(url).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         if doc.select(&selectors().info).next().is_some() {
             return Ok(None);
         }
@@ -43,7 +43,9 @@ impl Javlib {
             tag: "#video_info > div.item",
             genre: "#video_genres > table > tbody > tr > td.text > span.genre > a"
         );
+
         let doc = Html::parse_document(&res);
+
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
@@ -51,10 +53,12 @@ impl Javlib {
         {
             info.title(title);
         }
+
         let fanart = doc
             .select(&selectors().fanart)
             .next()
             .and_then(|fanart| fanart.attr("src").map(|src| src.to_string()));
+
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
@@ -67,6 +71,7 @@ impl Javlib {
                     .map(|(k, v)| (k.trim(), v.trim()))
             })
             .collect::<Vec<(&str, &str)>>();
+
         for (k, v) in tags {
             match k {
                 "发行日期" => info.premiered(v.to_string()),
@@ -90,6 +95,7 @@ impl Javlib {
                 _ => {}
             }
         }
+
         let genres = doc
             .select(&selectors().genre)
             .map(|genre| genre.inner_html())
@@ -104,9 +110,11 @@ impl Javlib {
 impl Engine for Javlib {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
+
         let Some(res) = self.find_item(video).await? else {
             return Ok(info);
         };
+
         if let Some(fanart) = Javlib::load_info(res, &mut info)? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);

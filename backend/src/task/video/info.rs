@@ -1,3 +1,4 @@
+use crate::task::video::VideoParser;
 use indoc::formatdoc;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -6,8 +7,6 @@ use tokio::{
     io::AsyncWriteExt,
 };
 use tracing::info;
-
-use crate::task::video::VideoParser;
 
 #[derive(Default, Serialize)]
 pub struct Info {
@@ -120,6 +119,7 @@ impl Info {
                 }
             }
         }
+
         path
     }
 
@@ -134,6 +134,7 @@ impl Info {
         self.show_info("SUMMARY");
 
         let path = self.concat_rules(path, rules);
+
         let ext = file.extension().and_then(|ext| ext.to_str());
         let to_file = match ext {
             Some(ext) => {
@@ -145,14 +146,18 @@ impl Info {
             }
             None => self.id.to_string(),
         };
+
         if path.join(&to_file).exists() {
             anyhow::bail!("video {} already exists", self.id);
         }
+
         fs::create_dir_all(&path).await?;
         info!("create {}", path.display());
+
         if !self.poster.is_empty() {
             let file_name = "poster.jpg";
             let path = path.join(file_name);
+
             OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -163,9 +168,11 @@ impl Info {
                 .await?;
             info!("write {} to {}", file_name, path.display());
         }
+
         if !self.fanart.is_empty() {
             let file_name = "fanart.jpg";
             let path = path.join(file_name);
+
             OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -176,9 +183,11 @@ impl Info {
                 .await?;
             info!("write {} to {}", file_name, path.display());
         }
+
         if !self.subtitle.is_empty() {
             let file_name = format!("{}.srt", self.id);
             let path = path.join(&file_name);
+
             OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -189,9 +198,11 @@ impl Info {
                 .await?;
             info!("write {} to {}", file_name, path.display());
         }
+
         {
             let file_name = format!("{}.nfo", self.id);
             let path = path.join(&file_name);
+
             OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -202,6 +213,7 @@ impl Info {
                 .await?;
             info!("write {} to {}", file_name, path.display());
         }
+
         {
             let path = path.join(&to_file);
             fs::rename(file, &path).await?;
@@ -338,6 +350,7 @@ impl Info {
     #[cfg(debug_assertions)]
     fn show_info(&self, id: &str) {
         let empty_print = Info::empty_print;
+
         info!("{:-^25}", format!(" {} BEGIN ", id));
         info!("title: {}", empty_print(&self.title));
         info!("rating: {}", self.rating);
@@ -367,7 +380,9 @@ impl Info {
         if self.runtime == 0 {
             self.runtime = other.runtime;
         }
+
         self.genres = Info::combine_vec(&self.genres, &other.genres);
+
         if self.director.is_empty() {
             self.director = Info::select_long(&self.director, &other.director);
         }
@@ -377,7 +392,9 @@ impl Info {
         if self.studio.is_empty() {
             self.studio = Info::select_long(&self.studio, &other.studio);
         }
+
         self.actors = Info::combine_vec(&self.actors, &other.actors);
+
         if self.poster.len() < other.poster.len() {
             self.poster = other.poster;
         }

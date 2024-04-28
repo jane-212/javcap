@@ -1,23 +1,20 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-
+use super::Task;
+use crate::bar::Bar;
 use async_trait::async_trait;
 use config::{Config, Rule};
 use engine::{Avsox, Jav321, Javbus, Javdb, Javlib, Mgstage};
 use info::Info;
 use parser::VideoParser;
 use reqwest::Client;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use subtitle::Subtitle;
 use tokio::fs;
 use tracing::{info, warn};
 use translate::{AppWorld, Translator};
 use walkdir::WalkDir;
-
-use crate::bar::Bar;
-
-use super::Task;
 
 mod engine;
 mod info;
@@ -48,11 +45,14 @@ impl Video {
             Arc::new(Box::new(Avsox::new(client.clone()))),
             Arc::new(Box::new(Mgstage::new(client.clone()))),
         ];
+
         let translate: Option<Box<dyn Translator>> = match config.video.translate {
             config::Translate::Disable => None,
             config::Translate::AppWorld => Some(Box::new(AppWorld::new(client.clone()))),
         };
+
         let subtitle = Subtitle::new(client.clone());
+
         let mut root = PathBuf::from(&config.file.root);
         if root.is_relative() {
             root = pwd.join(&root).canonicalize().unwrap_or(root);
@@ -76,15 +76,18 @@ impl Video {
     pub async fn search(&mut self, video: &VideoParser) -> Info {
         let mut info = Info::new(video.id().to_string());
         let mut handles = Vec::with_capacity(self.engines.len());
+
         for engine in self.engines.clone() {
             if engine.support(video) {
-                info!("search {} in {}", video.id(), engine.id());
                 let id = engine.id().to_string();
                 let video = video.clone();
+
+                info!("search {} in {}", video.id(), id);
                 let handle = tokio::spawn(async move { engine.search(&video).await });
                 handles.push((id, handle));
             }
         }
+
         for (id, handle) in handles {
             if let Ok(new_info) = handle.await {
                 match new_info {
@@ -155,11 +158,15 @@ impl Video {
         match VideoParser::parse(path) {
             Ok(video) => {
                 bar.message(video.id());
+
                 let mut info = self.search(&video).await;
+
                 if let Err(err) = self.translate(&mut info).await {
                     warn!("translate {} failed, caused by {err}", video.id());
                 }
+
                 self.subtitle.find_subtitle(&mut info).await?;
+
                 let Some(info) = info.check(&video) else {
                     anyhow::bail!("info of {} not complete", video.id());
                 };
@@ -171,12 +178,14 @@ impl Video {
                 )
                 .await
                 .map_err(|err| anyhow::anyhow!("save info failed, caused by {err}"))?;
+
                 bar.info(video.id());
             }
             Err(err) => {
                 self.move_to_other(path).await.map_err(|err| {
                     anyhow::anyhow!("move video to other failed, caused by {err}")
                 })?;
+
                 return Err(err);
             }
         }
@@ -191,11 +200,13 @@ impl Video {
                 if name.starts_with('.') {
                     continue;
                 }
+
                 for exclude in self.exclude.iter() {
                     if name == exclude {
                         continue;
                     }
                 }
+
                 if Self::is_empty(&entry.path()).await? {
                     fs::remove_dir_all(entry.path()).await?;
                     info!("remove {}", entry.path().display());
@@ -210,6 +221,7 @@ impl Video {
         if !path.is_dir() {
             return Ok(false);
         }
+
         let mut entries = fs::read_dir(path).await?;
         while let Some(entry) = entries.next_entry().await? {
             if let Some(name) = entry.file_name().to_str() {
@@ -231,13 +243,17 @@ impl Video {
                 Some(ext) => format!("{}.{}", name, ext),
                 None => name.to_string(),
             };
+
             let out = self.root.join(&self.other).join(name);
+
             let out_file = out.join(&to_file);
             if out_file.exists() {
                 anyhow::bail!("video {} already exists", out_file.display());
             }
+
             fs::create_dir_all(&out).await?;
             info!("create {}", out.display());
+
             fs::rename(path, &out_file).await?;
             info!("move {} to {}", path.display(), out_file.display());
         }
@@ -251,13 +267,16 @@ impl Task for Video {
     async fn run(&mut self) -> anyhow::Result<()> {
         let paths = self.walk();
         info!("total {} videos found", paths.len());
+
         let mut bar = Bar::new(paths.len() as u64)?;
         bar.println("MOVIE");
+
         for path in paths {
             if let Err(err) = self.handle(&path, &mut bar).await {
                 bar.warn(&format!("{}", err));
             }
         }
+
         if self.remove_empty {
             self.remove_empty().await?;
         }

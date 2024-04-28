@@ -1,13 +1,11 @@
-use std::sync::Arc;
-
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 use async_trait::async_trait;
 use macros::Engine;
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
-
-use crate::select;
-use crate::task::video::{Engine, Info, VideoParser};
+use std::sync::Arc;
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -26,9 +24,11 @@ impl Avsox {
             id: "a > div.photo-info > span > date:nth-child(3)",
             href: "a"
         );
+
         let url = format!("https://avsox.click/cn/search/{}", video.id());
         let res = self.client.get(url).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         let Some(item) = doc.select(&selectors().item).find(|item| {
             item.select(&selectors().id)
                 .next()
@@ -37,6 +37,7 @@ impl Avsox {
         }) else {
             return Ok(None);
         };
+
         let Some(href) = item
             .select(&selectors().href)
             .next()
@@ -54,8 +55,10 @@ impl Avsox {
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
             tag: "body > div.container > div.row.movie > div.col-md-3.info > p"
         );
+
         let res = self.client.get(href).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
@@ -63,15 +66,18 @@ impl Avsox {
         {
             info.title(title);
         }
+
         let fanart = doc
             .select(&selectors().fanart)
             .next()
             .and_then(|img| img.attr("src").map(|src| src.to_string()));
+
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|text| text.chars()).collect::<String>())
             .collect::<Vec<String>>();
         let tags = Avsox::parse_tags(&tags);
+
         for (k, v) in tags {
             match k {
                 "发行时间" => info.premiered(v.to_string()),
@@ -97,6 +103,7 @@ impl Avsox {
         let mut i = 0;
         let mut is_value = false;
         let mut key = "";
+
         while i < len {
             let tag = tags[i].as_str().trim();
             if tag.ends_with(':') {
@@ -120,9 +127,11 @@ impl Avsox {
 impl Engine for Avsox {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
+
         let Some(href) = self.find_item(video).await? else {
             return Ok(info);
         };
+
         if let Some(fanart) = self.load_info(&href, &mut info).await? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);

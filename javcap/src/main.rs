@@ -1,7 +1,6 @@
-use std::io::{self, Read, Write};
-
 use app::App;
 use console::style;
+use std::io::{self, Read, Write};
 use tracing::{error, info};
 
 mod app;
@@ -38,5 +37,6 @@ fn wait_for_quit() {
 
 async fn run() -> anyhow::Result<bool> {
     let mut app = App::new().await?;
+
     app.run().await
 }

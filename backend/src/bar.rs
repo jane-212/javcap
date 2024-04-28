@@ -1,7 +1,6 @@
-use std::time::Duration;
-
 use console::style;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
+use std::time::Duration;
 use tokio::time::Instant;
 use tracing::{info, warn};
 
@@ -18,6 +17,7 @@ pub struct Bar {
 impl Bar {
     pub fn new(len: u64) -> anyhow::Result<Bar> {
         let multi = MultiProgress::new();
+
         let info = multi.add(ProgressBar::new(len));
         info.enable_steady_tick(Duration::from_millis(100));
         info.set_style(
@@ -25,6 +25,7 @@ impl Bar {
                 .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         info.set_prefix("Handle");
+
         let process = multi.add(ProgressBar::new(len));
         process.enable_steady_tick(Duration::from_secs(1));
         process.set_style(
@@ -60,22 +61,26 @@ impl Bar {
 
     pub fn message(&self, msg: impl AsRef<str>) {
         let msg = msg.as_ref();
+
         info!("{msg}");
         self.info.set_message(msg.to_string());
     }
 
     pub fn info(&mut self, msg: impl AsRef<str>) {
         let msg = msg.as_ref();
+
         self.success += 1;
-        info!("{msg}");
         self.info.inc(1);
         self.process.inc(1);
+
+        info!("{msg}");
         self.process
             .println(format!("{:>10} ✔️️ {}", style("Handle").green().bold(), msg));
     }
 
     pub fn println(&self, msg: impl AsRef<str>) {
         let msg = msg.as_ref();
+
         info!("{msg}");
         self.process
             .println(format!("{:>10}️️ {}", style("Now").green().bold(), msg));
@@ -83,10 +88,12 @@ impl Bar {
 
     pub fn warn(&mut self, msg: impl AsRef<str>) {
         let msg = msg.as_ref();
+
         self.failed += 1;
-        warn!("{msg}");
         self.info.inc(1);
         self.process.inc(1);
+
+        warn!("{msg}");
         self.process
             .println(format!("{:>10} ✖️ {}", style("Handle").yellow().bold(), msg));
     }
@@ -94,6 +101,12 @@ impl Bar {
 
 impl Drop for Bar {
     fn drop(&mut self) {
+        info!(
+            "Success({}) Failed({}) took {}",
+            self.success,
+            self.failed,
+            HumanDuration(self.timer.elapsed())
+        );
         self.multi.clear().ok();
         println!(
             "{:>10} {}{}({}) {}({}) took {}",
@@ -106,12 +119,6 @@ impl Drop for Bar {
             style("Success").green().bold(),
             self.success,
             style("Failed").yellow().bold(),
-            self.failed,
-            HumanDuration(self.timer.elapsed())
-        );
-        info!(
-            "Success({}) Failed({}) took {}",
-            self.success,
             self.failed,
             HumanDuration(self.timer.elapsed())
         );

@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
+use super::Checker;
+use crate::bar::Bar;
 use async_trait::async_trait;
 use console::style;
 use reqwest::Client;
+use std::sync::Arc;
 use tracing::info;
-
-use super::Checker;
-use crate::bar::Bar;
 
 pub struct Network {
     client: Arc<Client>,
