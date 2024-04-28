@@ -1,6 +1,5 @@
-use std::path::Path;
-
 use serde::Deserialize;
+use std::path::Path;
 use tokio::{
     fs::OpenOptions,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -87,6 +86,7 @@ impl Config {
 
             anyhow::bail!("config file not found, auto generate");
         }
+
         let mut config = String::new();
         OpenOptions::new()
             .read(true)
@@ -94,6 +94,7 @@ impl Config {
             .await?
             .read_to_string(&mut config)
             .await?;
+
         let mut config: Config =
             toml::from_str(&config).map_err(|err| anyhow::anyhow!("config ->\n\n{err}"))?;
         config
@@ -111,6 +112,7 @@ impl Config {
         if self.file.other.trim().is_empty() {
             self.file.other = "other".to_string();
         }
+
         self.file.exclude.push(self.file.output.clone());
         self.file.exclude.push(self.file.other.clone());
     }

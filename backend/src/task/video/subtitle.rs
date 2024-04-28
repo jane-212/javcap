@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
+use super::info::Info;
+use crate::select;
 use reqwest::Client;
 use scraper::{selectable::Selectable, Html};
-
-use crate::select;
-
-use super::info::Info;
+use std::sync::Arc;
 
 pub struct Subtitle {
     client: Arc<Client>,
@@ -25,6 +22,7 @@ impl Subtitle {
         let Some(subtitle_href) = self.load_subtitle(href).await? else {
             return Ok(());
         };
+
         let subtitle = self.client.get(subtitle_href).send().await?.text().await?;
         if subtitle.contains("html") && subtitle.contains("404") {
             return Ok(());
@@ -40,8 +38,10 @@ impl Subtitle {
             language: "span:nth-child(2)",
             href: "span:nth-child(3) > a"
         );
+
         let res = self.client.get(href.as_ref()).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         let Some(item) = doc.select(&selectors().item).find(|item| {
             item.select(&selectors().language)
                 .next()
@@ -50,6 +50,7 @@ impl Subtitle {
         }) else {
             return Ok(None);
         };
+
         let subtitle_href = item
             .select(&selectors().href)
             .next()
@@ -63,9 +64,11 @@ impl Subtitle {
         select!(
             item: "body > div.subtitles > div > div > div > table > tbody > tr > td:nth-child(1) > a"
         );
+
         let url = format!("https://www.subtitlecat.com/index.php?search={}", id);
         let res = self.client.get(url).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         let Some(item) = doc
             .select(&selectors().item)
             .find(|item| item.inner_html().contains(id))

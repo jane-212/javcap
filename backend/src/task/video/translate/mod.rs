@@ -1,6 +1,5 @@
-use async_trait::async_trait;
-
 use super::info::Info;
+use async_trait::async_trait;
 
 mod app_world;
 

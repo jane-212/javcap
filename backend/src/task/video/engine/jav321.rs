@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 use async_trait::async_trait;
 use macros::Engine;
 use reqwest::Client;
 use scraper::Html;
-
-use crate::select;
-use crate::task::video::{Engine, Info, VideoParser};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -24,9 +22,11 @@ impl Jav321 {
         select!(
             info: "body > div.row > div.col-md-10.col-md-offset-1.col-xs-10 > div.alert.alert-danger"
         );
+
         let url = "https://tw.jav321.com/search";
         let mut form = HashMap::new();
         form.insert("sn", video.id());
+
         let res = self
             .client
             .post(url)
@@ -36,6 +36,7 @@ impl Jav321 {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
+
         if doc.select(&selectors().info).next().is_some() {
             return Ok(None);
         }
@@ -50,7 +51,9 @@ impl Jav321 {
             plot: "body > div:nth-child(3) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(3) > div",
             tag: "body > div:nth-child(3) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(1) > div.col-md-9"
         );
+
         let doc = Html::parse_document(&res);
+
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
@@ -58,10 +61,12 @@ impl Jav321 {
         {
             info.title(title);
         }
+
         let poster = doc
             .select(&selectors().poster)
             .next()
             .and_then(|img| img.attr("src").map(|src| src.to_string()));
+
         if let Some(plot) = doc
             .select(&selectors().plot)
             .next()
@@ -69,6 +74,7 @@ impl Jav321 {
         {
             info.plot(plot);
         }
+
         if let Some(tags) = doc
             .select(&selectors().tag)
             .next()
@@ -76,6 +82,7 @@ impl Jav321 {
         {
             let lines = tags.collect::<Vec<&str>>();
             let tags = Jav321::parse_tags(&lines);
+
             for (k, v) in tags {
                 match k {
                     "女優" => {
@@ -113,6 +120,7 @@ impl Jav321 {
         let mut i = 0;
         let mut key = "";
         let mut is_value = false;
+
         while i < len {
             let line = lines[i];
             match line {
@@ -145,9 +153,11 @@ impl Jav321 {
 impl Engine for Jav321 {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
+
         let Some(res) = self.find_item(video).await? else {
             return Ok(info);
         };
+
         if let Some(poster) = Jav321::load_info(res, &mut info)? {
             let poster = self.load_img(&poster).await?;
             info.poster(poster);

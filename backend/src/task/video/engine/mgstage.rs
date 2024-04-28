@@ -1,5 +1,5 @@
-use std::sync::Arc;
-
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 use async_trait::async_trait;
 use macros::Engine;
 use reqwest::{
@@ -7,9 +7,7 @@ use reqwest::{
     Client,
 };
 use scraper::Html;
-
-use crate::select;
-use crate::task::video::{Engine, Info, VideoParser};
+use std::sync::Arc;
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -34,6 +32,7 @@ impl Mgstage {
         select!(
             href: "#center_column > div.search_list > div > ul > li > h5 > a"
         );
+
         let url = format!("https://www.mgstage.com/search/cSearch.php?search_word={}&x=0&y=0&search_shop_id=&type=top", video.id());
         let res = self
             .client
@@ -44,6 +43,7 @@ impl Mgstage {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
+
         let Some(href) = doc
             .select(&selectors().href)
             .next()
@@ -62,6 +62,7 @@ impl Mgstage {
             plot: "#introduction > dd > p.txt.introduction",
             tag: "#center_column > div.common_detail_cover > div.detail_left > div > table:nth-child(3) > tbody > tr"
         );
+
         let res = self
             .client
             .get(href)
@@ -71,6 +72,7 @@ impl Mgstage {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
+
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
@@ -78,10 +80,12 @@ impl Mgstage {
         {
             info.title(title);
         }
+
         let poster = doc
             .select(&selectors().poster)
             .next()
             .and_then(|img| img.attr("src").map(|src| src.to_string()));
+
         if let Some(plot) = doc
             .select(&selectors().plot)
             .next()
@@ -89,11 +93,13 @@ impl Mgstage {
         {
             info.plot(plot);
         }
+
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
             .collect::<Vec<String>>();
         let tags = Mgstage::parse_tags(&tags);
+
         for (k, v) in tags {
             match k {
                 "出演" => info.actors(vec![v.to_string()]),
@@ -136,9 +142,11 @@ impl Mgstage {
 impl Engine for Mgstage {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
+
         let Some(href) = self.find_item(video).await? else {
             return Ok(info);
         };
+
         if let Some(poster) = self.load_info(&href, &mut info).await? {
             let poster = self.load_img(&poster).await?;
             info.poster(poster);

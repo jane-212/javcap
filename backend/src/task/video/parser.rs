@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -8,6 +6,7 @@ use nom::{
     sequence::tuple,
     IResult,
 };
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum VideoParser {
@@ -51,8 +50,10 @@ impl VideoParser {
             .and_then(|name| name.to_str())
             .map(|name| name.to_uppercase())
             .unwrap_or("".to_string());
+
         let (_, (id, num, idx)) =
             Self::parse_name(&name).map_err(|_| anyhow::anyhow!("id not found in {name}"))?;
+
         let video = match id {
             "FC2-PPV" => Self::FC2(format!("{}-{}", id, num), path.to_path_buf(), idx),
             _ => Self::Normal(format!("{}-{}", id, num), path.to_path_buf(), idx),
@@ -152,6 +153,7 @@ mod tests {
         for pair in pairs {
             let path = PathBuf::from(pair.0);
             let video = VideoParser::parse(&path).map_err(|err| err.to_string());
+
             assert_eq!(video, pair.1)
         }
     }
@@ -236,6 +238,7 @@ mod tests {
         for pair in pairs {
             let path = PathBuf::from(pair.0);
             let video = VideoParser::parse(&path).map_err(|err| err.to_string());
+
             assert_eq!(video, pair.1)
         }
     }

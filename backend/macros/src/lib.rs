@@ -27,19 +27,15 @@ fn struct_engine(ast: &DeriveInput, fields: &syn::Fields) -> TokenStream {
 
 fn struct_engine_named(ast: &DeriveInput) -> TokenStream {
     let name = &ast.ident;
-    let args = parse_args::<Ident>(&ast.attrs);
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+
+    let mut image_loader = quote! {};
+    let args = parse_args::<Ident>(&ast.attrs);
     if let Some(args) = args.as_ref() {
         if args.iter().any(|attr| attr == "image_loader") {
-            return quote! {
-                impl #impl_generics #name #ty_generics #where_clause {
-                    fn key(&self) -> &'static str {
-                        stringify!(#name)
-                    }
-
-                    async fn load_img(&self, url: &str) -> anyhow::Result<Vec<u8>> {
-                        Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
-                    }
+            image_loader = quote! {
+                async fn load_img(&self, url: &str) -> anyhow::Result<Vec<u8>> {
+                    Ok(self.client.get(url).send().await?.bytes().await?.to_vec())
                 }
             };
         }
@@ -50,6 +46,8 @@ fn struct_engine_named(ast: &DeriveInput) -> TokenStream {
             fn key(&self) -> &'static str {
                 stringify!(#name)
             }
+
+            #image_loader
         }
     }
 }

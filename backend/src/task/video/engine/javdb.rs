@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 use async_trait::async_trait;
 use macros::Engine;
 use reqwest::Client;
 use scraper::Html;
-
-use crate::select;
-use crate::task::video::{Engine, Info, VideoParser};
+use std::sync::Arc;
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -26,9 +24,11 @@ impl Javdb {
             items: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div.item > a",
             id: "div.video-title > strong"
         );
+
         let url = format!("https://javdb.com/search?q={}&f=all", video.id());
         let res = self.client.get(url).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         let Some(item) = doc.select(&selectors().items).find(|item| {
             item.select(&selectors().id)
                 .next()
@@ -37,6 +37,7 @@ impl Javdb {
         }) else {
             return Ok(None);
         };
+
         let Some(href) = item
             .attr("href")
             .map(|href| format!("{}{}", Javdb::HOST, href))
@@ -53,12 +54,15 @@ impl Javdb {
             fanart: "body > section > div > div.video-detail > div.video-meta-panel > div > div.column.column-video-cover > a > img",
             tag: "body > section > div > div.video-detail > div.video-meta-panel > div > div:nth-child(2) > nav > div.panel-block"
         );
+
         let res = self.client.get(href).send().await?.text().await?;
         let doc = Html::parse_document(&res);
+
         let fanart = doc
             .select(&selectors().fanart)
             .next()
             .and_then(|img| img.attr("src").map(|src| src.to_string()));
+
         if let Some(title) = doc.select(&selectors().title).next().map(|title| {
             title
                 .text()
@@ -67,6 +71,7 @@ impl Javdb {
         }) {
             info.title(title);
         }
+
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
@@ -75,6 +80,7 @@ impl Javdb {
             .iter()
             .flat_map(|tag| tag.split_once(':').map(|(k, v)| (k.trim(), v.trim())))
             .collect::<Vec<(&str, &str)>>();
+
         for (k, v) in tags {
             match k {
                 "日期" => info.premiered(v.to_string()),
@@ -85,6 +91,7 @@ impl Javdb {
                         .collect::<String>()
                         .parse::<u32>()
                         .unwrap_or(0);
+
                     info.runtime(runtime)
                 }
                 "導演" => info.director(v.to_string()),
@@ -96,6 +103,7 @@ impl Javdb {
                         .collect::<String>()
                         .parse::<f64>()
                         .unwrap_or(0.0);
+
                     info.rating(rating * 2.0);
                 }
                 "類別" => {
@@ -103,6 +111,7 @@ impl Javdb {
                         .split(',')
                         .map(|genre| genre.trim().to_string())
                         .collect::<Vec<String>>();
+
                     info.genres(genres);
                 }
                 "演員" => {
@@ -115,6 +124,7 @@ impl Javdb {
                                 .to_string()
                         })
                         .collect::<Vec<String>>();
+
                     info.actors(actors);
                 }
                 _ => {}
@@ -129,9 +139,11 @@ impl Javdb {
 impl Engine for Javdb {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
+
         let Some(href) = self.find_item(video).await? else {
             return Ok(info);
         };
+
         if let Some(fanart) = self.load_info(&href, &mut info).await? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);

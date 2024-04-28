@@ -1,14 +1,12 @@
-use std::sync::Arc;
-
+use crate::select;
+use crate::task::video::{Engine, Info, VideoParser};
 use async_trait::async_trait;
 use macros::Engine;
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use reqwest::Client;
 use scraper::selectable::Selectable;
 use scraper::Html;
-
-use crate::select;
-use crate::task::video::{Engine, Info, VideoParser};
+use std::sync::Arc;
 
 #[derive(Engine)]
 #[engine(image_loader)]
@@ -36,6 +34,7 @@ impl Javbus {
             poster: "div.photo-frame > img",
             id: "div.photo-info > span > date:nth-child(3)"
         );
+
         let url = format!("{}/search/{}&type=&parent=ce", Javbus::HOST, video.id());
         let res = self
             .client
@@ -46,6 +45,7 @@ impl Javbus {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
+
         let Some(item) = doc.select(&selectors().items).find(|item| {
             item.select(&selectors().id)
                 .next()
@@ -54,9 +54,11 @@ impl Javbus {
         }) else {
             return Ok(None);
         };
+
         let Some(href) = item.attr("href") else {
             return Ok(None);
         };
+
         let Some(poster) = item.select(&selectors().poster).next().and_then(|img| {
             img.attr("src")
                 .map(|src| format!("{}{}", Javbus::HOST, src))
@@ -73,6 +75,7 @@ impl Javbus {
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
             tag: "body > div.container > div.row.movie > div.col-md-3.info > p"
         );
+
         let res = self
             .client
             .get(href)
@@ -82,11 +85,13 @@ impl Javbus {
             .text()
             .await?;
         let doc = Html::parse_document(&res);
+
         let fanart = doc.select(&selectors().fanart).next().and_then(|fanart| {
             fanart
                 .attr("src")
                 .map(|src| format!("{}{}", Javbus::HOST, src))
         });
+
         if let Some(title) = doc
             .select(&selectors().title)
             .next()
@@ -94,11 +99,13 @@ impl Javbus {
         {
             info.title(title);
         }
+
         let tags = doc
             .select(&selectors().tag)
             .map(|tag| tag.text().flat_map(|tag| tag.chars()).collect::<String>())
             .collect::<Vec<String>>();
         let pairs = Javbus::parse_tags(&tags);
+
         for (k, v) in pairs {
             match k {
                 "發行日期" => info.premiered(v.to_string()),
@@ -131,6 +138,7 @@ impl Javbus {
         let mut i = 0;
         let mut pairs = Vec::new();
         let mut key = "";
+
         while i < len {
             let tag = tags[i].trim();
             if tag.ends_with(':') {
@@ -155,13 +163,16 @@ impl Javbus {
 impl Engine for Javbus {
     async fn search(&self, video: &VideoParser) -> anyhow::Result<Info> {
         let mut info = Info::default();
+
         let Some((href, poster)) = self.find_item(video).await? else {
             return Ok(info);
         };
+
         if let Some(fanart) = self.load_info(&href, &mut info).await? {
             let fanart = self.load_img(&fanart).await?;
             info.fanart(fanart);
         }
+
         if let Some(poster) = poster {
             let poster = self.load_img(&poster).await?;
             info.poster(poster);

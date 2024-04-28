@@ -1,15 +1,12 @@
-use std::{collections::HashMap, sync::Arc};
-
+use super::Task;
+use crate::bar::Bar;
 use async_trait::async_trait;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use config::Config;
 use reqwest::Client;
 use serde::Deserialize;
+use std::{collections::HashMap, sync::Arc};
 use tracing::info;
-
-use crate::bar::Bar;
-
-use super::Task;
 
 pub struct Avatar {
     enabled: bool,
@@ -36,13 +33,16 @@ impl Avatar {
             .await
             .map_err(|err| anyhow::anyhow!("get actors from emby failed, caused by {err}"))?;
         info!("total {} actors", actors.len());
+
         let mut bar = Bar::new(actors.len() as u64)?;
         bar.println("AVATAR");
         bar.message("load file tree");
+
         let actor_map = self.load_file_tree().await.map_err(|err| {
             anyhow::anyhow!("load file tree from gfriends repo failed, caused by {err}")
         })?;
         info!("actor map loaded");
+
         for actor in actors {
             if let Err(err) = self.handle(actor, &actor_map, &mut bar).await {
                 bar.warn(&format!("{}", err));
@@ -60,6 +60,7 @@ impl Avatar {
     ) -> anyhow::Result<()> {
         let (id, name) = actor;
         let file_name = format!("{}.jpg", name);
+
         if let Some(company) = actor_map.iter().find(|map| map.1.get(&file_name).is_some()) {
             if let Some(file_name) = company.1.get(&file_name) {
                 let url = format!(
@@ -68,19 +69,22 @@ impl Avatar {
                     company.0,
                     file_name.trim_start_matches("AI-Fix-")
                 );
+
                 let img = self
                     .load_img(&url)
                     .await
                     .map_err(|_| anyhow::anyhow!("get avatar of {name} failed"))?;
+
                 self.save_img(&id, img)
                     .await
                     .map_err(|_| anyhow::anyhow!("send avatar of {name} to emby failed"))?;
+
                 bar.info(&format!("{name}({id})"));
                 return Ok(());
             }
         }
-        bar.warn(&format!("avatar not found, {name}({id})"));
 
+        bar.warn(&format!("avatar not found, {name}({id})"));
         Ok(())
     }
 
@@ -89,6 +93,7 @@ impl Avatar {
             "{}/Items/{}/Images/Primary?api_key={}",
             self.host, id, self.api_key
         );
+
         if !self
             .client
             .post(url)
@@ -143,6 +148,7 @@ impl Avatar {
             #[serde(rename = "Primary")]
             primary: Option<String>,
         }
+
         let url = format!("{}/Persons?api_key={}", self.host, self.api_key);
         let res = self
             .client
@@ -178,6 +184,7 @@ impl Avatar {
             #[serde(rename = "Timestamp")]
             timestamp: f64,
         }
+
         let url = format!("{}/Filetree.json", Avatar::HOST);
         let res = self
             .client
@@ -197,6 +204,7 @@ impl Task for Avatar {
         if !self.enabled {
             return Ok(());
         }
+
         self.refresh().await
     }
 }
