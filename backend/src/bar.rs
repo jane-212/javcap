@@ -30,9 +30,9 @@ impl Bar {
         process.enable_steady_tick(Duration::from_secs(1));
         process.set_style(
             ProgressStyle::with_template(
-                "{prefix:>10.blue.bold} [{elapsed_precise}][{wide_bar}] ",
+                "{prefix:>10.blue.bold} [{elapsed_precise}]|{wide_bar}| ",
             )?
-            .progress_chars("=> "),
+            .progress_chars("━●─"),
         );
         process.set_prefix("Process");
 
