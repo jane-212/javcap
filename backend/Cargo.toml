@@ -22,4 +22,6 @@ base64.workspace = true
 anyhow.workspace = true
 config.workspace = true
 walkdir.workspace = true
+
+[dev-dependencies]
 pretty_assertions.workspace = true
