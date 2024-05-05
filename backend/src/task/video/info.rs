@@ -225,16 +225,16 @@ impl Info {
 
     fn fix_normal(&mut self) {
         if self.plot.is_empty() {
-            self.plot = self.title.clone();
+            self.plot.clone_from(&self.title);
         }
         if self.director.is_empty() {
-            self.director = self.studio.clone();
+            self.director.clone_from(&self.studio);
         }
     }
 
     fn fix_fc2(&mut self) {
         if self.plot.is_empty() {
-            self.plot = self.title.clone();
+            self.plot.clone_from(&self.title);
         }
         if self.actors.is_empty() {
             self.actors.push(self.director.clone());
