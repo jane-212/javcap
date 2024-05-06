@@ -112,7 +112,7 @@ impl Engine for Javlib {
         let mut info = Info::default();
 
         let Some(res) = self.find_item(video).await? else {
-            return Ok(info);
+            anyhow::bail!("not found in homepage");
         };
 
         if let Some(fanart) = Javlib::load_info(res, &mut info)? {

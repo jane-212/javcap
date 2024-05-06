@@ -129,7 +129,7 @@ impl Engine for Avsox {
         let mut info = Info::default();
 
         let Some(href) = self.find_item(video).await? else {
-            return Ok(info);
+            anyhow::bail!("not found in homepage");
         };
 
         if let Some(fanart) = self.load_info(&href, &mut info).await? {
