@@ -15,3 +15,6 @@ changelog:
     - title: "🐛 Bug Fixes"
       labels:
         - "bug"
+    - title: 🛠 Breaking Changes
+      labels:
+        - "breaking change"
