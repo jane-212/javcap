@@ -17,4 +17,4 @@ run: clean
 
 clean:
 	@rm -rf dev
-	@rm -rf logs
+	@rm -f javcap.log

@@ -21,8 +21,7 @@ pub struct App {
 }
 
 impl App {
-    const CONFIG_NAME: &'static str = "config.toml";
-    const LOG_NAME: &'static str = "logs";
+    const CONFIG_NAME: &'static str = "javcap.toml";
 
     pub async fn new() -> anyhow::Result<Self> {
         let pwd = {
@@ -123,14 +122,14 @@ impl App {
     }
 
     fn init_tracing(path: &Path) {
-        let daily = rolling::daily(path.join(Self::LOG_NAME), "log");
+        let never = rolling::never(path, "javcap.log");
         let timer = OffsetTime::new(
             UtcOffset::from_hms(8, 0, 0).expect("set timezone error"),
             format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),
         );
 
         tracing_subscriber::fmt()
-            .with_writer(daily)
+            .with_writer(never)
             .with_max_level(Level::INFO)
             .with_ansi(false)
             .with_target(false)
