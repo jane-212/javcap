@@ -49,6 +49,8 @@ pub enum Translate {
     Disable,
     #[serde(rename = "app_world")]
     AppWorld,
+    #[serde(rename = "you_dao")]
+    Youdao { key: String, secret: String },
 }
 
 #[derive(Deserialize, Validate)]

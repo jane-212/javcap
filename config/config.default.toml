@@ -22,6 +22,7 @@ remove_empty = false
 # 可选择项
 # disable
 # app_world 一个免费的接口
+# { you_dao = { key = "", secret = "" } } 有道翻译接口
 translate = "disable"
 # 视频该以哪种规则分类，默认为 厂商/号码，可选择的值为["title", "id", "director", "studio", "actor"]
 rules = ["studio", "id"]

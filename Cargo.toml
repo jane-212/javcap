@@ -32,6 +32,8 @@ base64 = "0.22.0"
 anyhow = "1.0.82"
 validator = { version = "0.18.1", features = ["derive"] }
 pretty_assertions = "1.4.0"
+uuid = { version = "1.8.0", features = ["v4"] }
+sha256 = "1.5.0"
 
 [profile.release]
 lto = true
