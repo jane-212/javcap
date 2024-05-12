@@ -13,7 +13,7 @@ use std::{
 use subtitle::Subtitle;
 use tokio::fs;
 use tracing::{info, warn};
-use translate::{AppWorld, Translator};
+use translate::{AppWorld, Translator, Youdao};
 use walkdir::WalkDir;
 
 mod engine;
@@ -49,6 +49,10 @@ impl Video {
         let translate: Option<Box<dyn Translator>> = match config.video.translate {
             config::Translate::Disable => None,
             config::Translate::AppWorld => Some(Box::new(AppWorld::new(client.clone()))),
+            config::Translate::Youdao {
+                ref key,
+                ref secret,
+            } => Some(Box::new(Youdao::new(client.clone(), key, secret))),
         };
 
         let subtitle = Subtitle::new(client.clone());
