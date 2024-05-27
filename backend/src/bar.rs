@@ -32,7 +32,7 @@ impl Bar {
             ProgressStyle::with_template(
                 "{prefix:>10.blue.bold} [{elapsed_precise}]|{wide_bar}| ",
             )?
-            .progress_chars("━●─"),
+            .progress_chars("█▓▒░  "),
         );
         process.set_prefix("Process");
 
@@ -75,7 +75,7 @@ impl Bar {
 
         info!("{msg}");
         self.process
-            .println(format!("{:>10} ✔️️ {}", style("Handle").green().bold(), msg));
+            .println(format!("{:>10} ✔ {}", style("Handle").green().bold(), msg));
     }
 
     pub fn println(&self, msg: impl AsRef<str>) {
@@ -95,7 +95,7 @@ impl Bar {
 
         warn!("{msg}");
         self.process
-            .println(format!("{:>10} ✖️ {}", style("Handle").yellow().bold(), msg));
+            .println(format!("{:>10} ✘ {}", style("Handle").yellow().bold(), msg));
     }
 }
 
