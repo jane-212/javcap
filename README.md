@@ -7,7 +7,7 @@
 
   <p align="center">
     <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Bubbles.png" alt="Bubbles" width="25" height="25" />
-    如果你也和我一样喜欢刮，那我觉得这件事情，泰酷辣
+    电影刮削器
   </p>
 </div>
 
