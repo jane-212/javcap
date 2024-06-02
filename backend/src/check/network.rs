@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use console::style;
 use reqwest::Client;
 use std::sync::Arc;
-use tracing::info;
 
 pub struct Network {
     client: Arc<Client>,
@@ -29,7 +28,7 @@ impl Checker for Network {
         }
 
         bar.finish_and_clear();
-        info!("network check passed");
+        log::info!("network check passed");
         println!(
             "{:>10} ✔ network check passed",
             style("Check").green().bold()

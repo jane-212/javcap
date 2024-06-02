@@ -6,7 +6,6 @@ use config::Config;
 use reqwest::Client;
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
-use tracing::info;
 
 pub struct Avatar {
     enabled: bool,
@@ -32,7 +31,7 @@ impl Avatar {
             .get_actors()
             .await
             .map_err(|err| anyhow::anyhow!("get actors from emby failed, caused by {err}"))?;
-        info!("total {} actors", actors.len());
+        log::info!("total {} actors", actors.len());
 
         let mut bar = Bar::new(actors.len() as u64)?;
         bar.println("AVATAR");
@@ -41,7 +40,7 @@ impl Avatar {
         let actor_map = self.load_file_tree().await.map_err(|err| {
             anyhow::anyhow!("load file tree from gfriends repo failed, caused by {err}")
         })?;
-        info!("actor map loaded");
+        log::info!("actor map loaded");
 
         for actor in actors {
             if let Err(err) = self.handle(actor, &actor_map, &mut bar).await {

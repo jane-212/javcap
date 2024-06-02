@@ -1,7 +1,6 @@
 use app::App;
 use console::style;
 use std::io::{self, Read, Write};
-use tracing::{error, info};
 
 mod app;
 
@@ -12,7 +11,7 @@ async fn main() {
             finish_and_quit(should_quit);
         }
         Err(err) => {
-            error!("{err}");
+            log::error!("{err}");
             println!("{:>10} {}", style("Error").red().bold(), err);
             finish_and_quit(false);
         }
@@ -20,7 +19,7 @@ async fn main() {
 }
 
 fn finish_and_quit(should_quit: bool) {
-    info!("{:-^30}", " Finish ");
+    log::info!("{:-^30}", " Finish ");
     if !should_quit {
         wait_for_quit();
     }

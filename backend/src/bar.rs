@@ -2,7 +2,6 @@ use console::style;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use std::time::Duration;
 use tokio::time::Instant;
-use tracing::{info, warn};
 
 pub struct Bar {
     timer: Instant,
@@ -62,7 +61,7 @@ impl Bar {
     pub fn message(&self, msg: impl AsRef<str>) {
         let msg = msg.as_ref();
 
-        info!("{msg}");
+        log::info!("{msg}");
         self.info.set_message(msg.to_string());
     }
 
@@ -73,7 +72,7 @@ impl Bar {
         self.info.inc(1);
         self.process.inc(1);
 
-        info!("{msg}");
+        log::info!("{msg}");
         self.process
             .println(format!("{:>10} ✔ {}", style("Handle").green().bold(), msg));
     }
@@ -81,7 +80,7 @@ impl Bar {
     pub fn println(&self, msg: impl AsRef<str>) {
         let msg = msg.as_ref();
 
-        info!("{msg}");
+        log::info!("{msg}");
         self.process
             .println(format!("{:>10}️️ {}", style("Now").green().bold(), msg));
     }
@@ -93,7 +92,7 @@ impl Bar {
         self.info.inc(1);
         self.process.inc(1);
 
-        warn!("{msg}");
+        log::warn!("{msg}");
         self.process
             .println(format!("{:>10} ✘ {}", style("Handle").yellow().bold(), msg));
     }
@@ -101,7 +100,7 @@ impl Bar {
 
 impl Drop for Bar {
     fn drop(&mut self) {
-        info!(
+        log::info!(
             "Success({}) Failed({}) took {}",
             self.success,
             self.failed,

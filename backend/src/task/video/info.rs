@@ -6,7 +6,6 @@ use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
 };
-use tracing::info;
 
 #[derive(Default, Serialize)]
 pub struct Info {
@@ -152,7 +151,7 @@ impl Info {
         }
 
         fs::create_dir_all(&path).await?;
-        info!("create {}", path.display());
+        log::info!("create {}", path.display());
 
         if !self.poster.is_empty() {
             let file_name = "poster.jpg";
@@ -166,7 +165,7 @@ impl Info {
                 .await?
                 .write_all(&self.poster)
                 .await?;
-            info!("write {} to {}", file_name, path.display());
+            log::info!("write {} to {}", file_name, path.display());
         }
 
         if !self.fanart.is_empty() {
@@ -181,7 +180,7 @@ impl Info {
                 .await?
                 .write_all(&self.fanart)
                 .await?;
-            info!("write {} to {}", file_name, path.display());
+            log::info!("write {} to {}", file_name, path.display());
         }
 
         if !self.subtitle.is_empty() {
@@ -196,7 +195,7 @@ impl Info {
                 .await?
                 .write_all(&self.subtitle)
                 .await?;
-            info!("write {} to {}", file_name, path.display());
+            log::info!("write {} to {}", file_name, path.display());
         }
 
         {
@@ -211,13 +210,13 @@ impl Info {
                 .await?
                 .write_all(self.to_nfo().as_bytes())
                 .await?;
-            info!("write {} to {}", file_name, path.display());
+            log::info!("write {} to {}", file_name, path.display());
         }
 
         {
             let path = path.join(&to_file);
             fs::rename(file, &path).await?;
-            info!("move {} to {}", file.display(), path.display());
+            log::info!("move {} to {}", file.display(), path.display());
         }
 
         Ok(())
@@ -351,20 +350,20 @@ impl Info {
     fn show_info(&self, id: &str) {
         let empty_print = Info::empty_print;
 
-        info!("{:-^25}", format!(" {} BEGIN ", id));
-        info!("title: {}", empty_print(&self.title));
-        info!("rating: {}", self.rating);
-        info!("plot: {}", empty_print(&self.plot));
-        info!("runtime: {}", self.runtime);
-        info!("genres: {:#?}", self.genres);
-        info!("director: {}", empty_print(&self.director));
-        info!("premiered: {}", empty_print(&self.premiered));
-        info!("studio: {}", empty_print(&self.studio));
-        info!("actors: {:#?}", self.actors);
-        info!("poster: {}", self.poster.len());
-        info!("fanart: {}", self.fanart.len());
-        info!("subtitle: {}", self.subtitle.len());
-        info!("{:-^25}", format!(" {} END ", id));
+        log::info!("{:-^25}", format!(" {} BEGIN ", id));
+        log::info!("title: {}", empty_print(&self.title));
+        log::info!("rating: {}", self.rating);
+        log::info!("plot: {}", empty_print(&self.plot));
+        log::info!("runtime: {}", self.runtime);
+        log::info!("genres: {:#?}", self.genres);
+        log::info!("director: {}", empty_print(&self.director));
+        log::info!("premiered: {}", empty_print(&self.premiered));
+        log::info!("studio: {}", empty_print(&self.studio));
+        log::info!("actors: {:#?}", self.actors);
+        log::info!("poster: {}", self.poster.len());
+        log::info!("fanart: {}", self.fanart.len());
+        log::info!("subtitle: {}", self.subtitle.len());
+        log::info!("{:-^25}", format!(" {} END ", id));
     }
 
     pub fn merge(&mut self, other: Info) {

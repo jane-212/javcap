@@ -90,7 +90,8 @@ impl Avsox {
                 ),
                 "制作商" => info.studio(v.to_string()),
                 "系列" => info.director(v.to_string()),
-                _ => {}
+                _ => {
+                }
             }
         }
 

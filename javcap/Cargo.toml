@@ -17,3 +17,4 @@ console.workspace = true
 indicatif.workspace = true
 reqwest.workspace = true
 anyhow.workspace = true
+log.workspace = true
