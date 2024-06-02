@@ -12,7 +12,6 @@ use std::{
 };
 use subtitle::Subtitle;
 use tokio::fs;
-use tracing::{info, warn};
 use translate::{AppWorld, Translator, Youdao};
 use walkdir::WalkDir;
 
@@ -61,7 +60,7 @@ impl Video {
         if root.is_relative() {
             root = pwd.join(&root).canonicalize().unwrap_or(root);
         }
-        info!("root path {}", root.display());
+        log::info!("root path {}", root.display());
 
         Ok(Self {
             engines,
@@ -86,7 +85,7 @@ impl Video {
                 let id = engine.id().to_string();
                 let video = video.clone();
 
-                info!("search {} in {}", video.id(), id);
+                log::info!("search {} in {}", video.id(), id);
                 let handle = tokio::spawn(async move { engine.search(&video).await });
                 handles.push((id, handle));
             }
@@ -96,10 +95,10 @@ impl Video {
             if let Ok(new_info) = handle.await {
                 match new_info {
                     Ok(new_info) => {
-                        info!("found {} in {}", video.id(), id);
+                        log::info!("found {} in {}", video.id(), id);
                         info.merge(new_info);
                     }
-                    Err(err) => warn!("{} not found in {id}, caused by {err}", video.id()),
+                    Err(err) => log::warn!("{} not found in {id}, caused by {err}", video.id()),
                 }
             }
         }
@@ -109,7 +108,7 @@ impl Video {
 
     pub async fn translate(&mut self, info: &mut Info) -> anyhow::Result<()> {
         if let Some(translate) = &mut self.translate {
-            info!("translate {}", info.get_id());
+            log::info!("translate {}", info.get_id());
             translate.translate(info).await?;
         }
 
@@ -166,7 +165,7 @@ impl Video {
                 let mut info = self.search(&video).await;
 
                 if let Err(err) = self.translate(&mut info).await {
-                    warn!("translate {} failed, caused by {err}", video.id());
+                    log::warn!("translate {} failed, caused by {err}", video.id());
                 }
 
                 self.subtitle.find_subtitle(&mut info).await?;
@@ -213,7 +212,7 @@ impl Video {
 
                 if Self::is_empty(&entry.path()).await? {
                     fs::remove_dir_all(entry.path()).await?;
-                    info!("remove {}", entry.path().display());
+                    log::info!("remove {}", entry.path().display());
                 }
             }
         }
@@ -256,10 +255,10 @@ impl Video {
             }
 
             fs::create_dir_all(&out).await?;
-            info!("create {}", out.display());
+            log::info!("create {}", out.display());
 
             fs::rename(path, &out_file).await?;
-            info!("move {} to {}", path.display(), out_file.display());
+            log::info!("move {} to {}", path.display(), out_file.display());
         }
 
         Ok(())
@@ -270,7 +269,7 @@ impl Video {
 impl Task for Video {
     async fn run(&mut self) -> anyhow::Result<()> {
         let paths = self.walk();
-        info!("total {} videos found", paths.len());
+        log::info!("total {} videos found", paths.len());
 
         let mut bar = Bar::new(paths.len() as u64)?;
         bar.println("MOVIE");

@@ -10,7 +10,7 @@ use reqwest::{
 };
 use std::{env, path::Path, sync::Arc, time::Duration};
 use time::{macros::format_description, UtcOffset};
-use tracing::{info, Level};
+use tracing::Level;
 use tracing_appender::rolling;
 use tracing_subscriber::fmt::time::OffsetTime;
 
@@ -40,7 +40,7 @@ impl App {
         };
 
         Self::init_tracing(&pwd);
-        info!(
+        log::info!(
             "{:-^30}",
             format!(
                 " {} - {} ",
@@ -50,7 +50,7 @@ impl App {
         );
 
         let config = Config::load(&pwd.join(Self::CONFIG_NAME)).await?;
-        info!("config loaded");
+        log::info!("config loaded");
 
         let client = Self::default_client(&config)?;
 
