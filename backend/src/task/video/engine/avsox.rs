@@ -53,7 +53,8 @@ impl Avsox {
         select!(
             title: "body > div.container > h3",
             fanart: "body > div.container > div.row.movie > div.col-md-9.screencap > a > img",
-            tag: "body > div.container > div.row.movie > div.col-md-3.info > p"
+            tag: "body > div.container > div.row.movie > div.col-md-3.info > p",
+            genre: "body > div.container > div.row.movie > div.col-md-3.info > p > span.genre > a"
         );
 
         let res = self.client.get(href).send().await?.text().await?;
@@ -71,6 +72,12 @@ impl Avsox {
             .select(&selectors().fanart)
             .next()
             .and_then(|img| img.attr("src").map(|src| src.to_string()));
+
+        let genres = doc
+            .select(&selectors().genre)
+            .map(|a| a.inner_html().trim().to_string())
+            .collect::<Vec<String>>();
+        info.genres(genres);
 
         let tags = doc
             .select(&selectors().tag)
@@ -90,8 +97,7 @@ impl Avsox {
                 ),
                 "制作商" => info.studio(v.to_string()),
                 "系列" => info.director(v.to_string()),
-                _ => {
-                }
+                _ => {}
             }
         }
 
