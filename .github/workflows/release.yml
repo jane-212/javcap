@@ -84,6 +84,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Set target variables
         shell: bash
         run: |
@@ -107,8 +109,6 @@ jobs:
             bin="target/${{ matrix.target }}/release/javcap"
           fi
           echo "BIN=$bin" >> $GITHUB_ENV
-        env:
-          VERSION: ${{ needs.create-release.outputs.version }}
 
       - name: Determine archive name
         shell: bash

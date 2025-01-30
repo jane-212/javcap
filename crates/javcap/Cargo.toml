@@ -1,0 +1,11 @@
+[package]
+name = "javcap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+app.workspace = true
+config.workspace = true
+
+tokio.workspace = true
+anyhow.workspace = true
