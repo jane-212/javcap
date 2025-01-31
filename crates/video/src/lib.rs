@@ -9,7 +9,7 @@ use nom::{
     IResult, Parser,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Video {
     ty: VideoType,
     files: Vec<VideoFile>,
@@ -36,7 +36,7 @@ impl Video {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VideoFile {
     location: PathBuf,
     ext: String,
