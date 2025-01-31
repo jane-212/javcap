@@ -18,12 +18,13 @@ async fn main() {
 }
 
 async fn run() -> Result<()> {
-    println!("当前版本: {}", app::VERSION);
+    println!("当前版本: {}({})", app::VERSION, app::HASH);
 
     let config = Config::load().await?;
     config.validate()?;
 
-    let videos = load_all_videos(&config).await?;
+    let mut videos = load_all_videos(&config).await?;
+    videos.sort_by_key(|v| v.ty().name());
     println!(
         "共找到视频: {}({})",
         videos.len(),
@@ -78,7 +79,8 @@ async fn load_all_videos(config: &Config) -> Result<Vec<Video>> {
 
 async fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    while let Some(entry) = fs::read_dir(path).await?.next_entry().await? {
+    let mut entrys = fs::read_dir(path).await?;
+    while let Some(entry) = entrys.next_entry().await? {
         let file = entry.path();
 
         let name = match file.file_name().and_then(|name| name.to_str()) {
