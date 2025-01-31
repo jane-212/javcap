@@ -1,1 +1,7 @@
-hello = "world"
+[input]
+path = ""
+exts = ["mp4", "avi", "mov", "m4v", "mkv", "flv", "rmvb", "wmv"]
+excludes = ["output"]
+
+[output]
+path = ""

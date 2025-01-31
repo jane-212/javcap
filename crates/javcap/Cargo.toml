@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 app.workspace = true
 config.workspace = true
+video.workspace = true
 
 tokio.workspace = true
 anyhow.workspace = true
+validator.workspace = true

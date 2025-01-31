@@ -1,10 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/app", "crates/config", "crates/javcap"]
+members = ["crates/app", "crates/config", "crates/javcap", "crates/video"]
 
 [workspace.dependencies]
 config = { path = "crates/config" }
 app = { path = "crates/app" }
+video = { path = "crates/video" }
 
 anyhow = "1.0.95"
 tokio = { version = "1.43.0", features = [
@@ -16,6 +17,8 @@ tokio = { version = "1.43.0", features = [
 whoami = "1.5.2"
 toml = "0.8.19"
 serde = { version = "1.0.217", features = ["derive"] }
+validator = { version = "0.20.0", features = ["derive"] }
+nom = "8.0.0"
 
 [profile.release]
 lto = true
