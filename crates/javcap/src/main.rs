@@ -31,15 +31,16 @@ async fn run() -> Result<()> {
             .iter()
             .map(|video| video.ty().name())
             .collect::<Vec<_>>()
-            .join(",")
+            .join(", ")
     );
 
     for video in videos {
         println!(
-            "{:#^width$}",
+            "{:=^width$}",
             format!(" {} ", video.ty().name()),
             width = app::LINE_LENGTH
         );
+        
         println!("{:#?}", video);
     }
 

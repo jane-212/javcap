@@ -74,13 +74,13 @@ impl VideoType {
     }
 
     pub fn parse(name: impl AsRef<str>) -> Result<(VideoType, u32)> {
-        let name = name.as_ref();
+        let name = name.as_ref().to_uppercase();
 
-        let (_, (id, key, idx)) = Self::_parse(name).map_err(|err| anyhow!("{err}"))?;
+        let (_, (id, key, idx)) = Self::_parse(&name).map_err(|err| anyhow!("{err}"))?;
 
         let ty = match id {
             "FC2-PPV" => Self::fc2(key),
-            _ => Self::jav(id.to_uppercase(), key),
+            _ => Self::jav(id, key),
         };
 
         Ok((ty, idx))
