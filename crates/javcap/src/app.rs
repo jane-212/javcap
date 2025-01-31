@@ -75,16 +75,16 @@ impl App {
 
     async fn handle_succeed(&mut self, video: Box<Video>) -> Result<()> {
         let name = video.ty().name();
+        self.succeed.push(name.clone());
         self.print_progress(&name);
-        self.succeed.push(name);
         println!("{:#?}", video);
 
         Ok(())
     }
 
     fn handle_failed(&mut self, name: String, err: String) {
+        self.failed.push(name.clone());
         self.print_progress(&name);
-        self.failed.push(name);
         println!("失败了");
         println!("{err}")
     }
