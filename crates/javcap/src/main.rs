@@ -68,7 +68,7 @@ async fn load_all_videos(config: &Config) -> Result<Vec<Video>> {
             };
 
             let video = map.entry(video_ty.clone()).or_insert(Video::new(video_ty));
-            video.add_file(VideoFile::new(&file, idx));
+            video.add_file(VideoFile::new(&file, ext, idx));
         }
     }
 

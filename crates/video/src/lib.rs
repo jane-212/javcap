@@ -39,13 +39,15 @@ impl Video {
 #[derive(Debug)]
 pub struct VideoFile {
     location: PathBuf,
+    ext: String,
     idx: u32,
 }
 
 impl VideoFile {
-    pub fn new(location: &Path, idx: u32) -> VideoFile {
+    pub fn new(location: &Path, ext: impl Into<String>, idx: u32) -> VideoFile {
         VideoFile {
             location: location.to_path_buf(),
+            ext: ext.into(),
             idx,
         }
     }
@@ -56,6 +58,10 @@ impl VideoFile {
 
     pub fn idx(&self) -> u32 {
         self.idx
+    }
+
+    pub fn ext(&self) -> &str {
+        &self.ext
     }
 }
 
