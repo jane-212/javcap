@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use config::Config;
+use tokio::fs;
 use validator::Validate;
 use video::{Video, VideoFile, VideoType};
 
@@ -40,7 +40,7 @@ async fn run() -> Result<()> {
             format!(" {} ", video.ty().name()),
             width = app::LINE_LENGTH
         );
-        
+
         println!("{:#?}", video);
     }
 
@@ -50,7 +50,7 @@ async fn run() -> Result<()> {
 async fn load_all_videos(config: &Config) -> Result<Vec<Video>> {
     let mut map = HashMap::new();
 
-    for file in walk_dir(&config.input.path, &config.input.excludes)? {
+    for file in walk_dir(&config.input.path, &config.input.excludes).await? {
         let name = match file.file_name().and_then(|name| name.to_str()) {
             Some(name) => name,
             None => continue,
@@ -76,10 +76,9 @@ async fn load_all_videos(config: &Config) -> Result<Vec<Video>> {
     Ok(videos)
 }
 
-fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
+async fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
+    while let Some(entry) = fs::read_dir(path).await?.next_entry().await? {
         let file = entry.path();
 
         let name = match file.file_name().and_then(|name| name.to_str()) {
@@ -93,7 +92,7 @@ fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
         }
 
         if file.is_dir() {
-            let child_files = walk_dir(&file, excludes)?;
+            let child_files = Box::pin(walk_dir(&file, excludes)).await?;
             files.extend(child_files);
             continue;
         }
