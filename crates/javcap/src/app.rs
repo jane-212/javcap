@@ -65,28 +65,32 @@ impl App {
         Ok(())
     }
 
-    fn print_progress(&self, name: &str) {
+    fn print_bar(&self, name: &str) {
         println!(
             "{:=^width$}",
-            format!(" {}({}/{}) ", name, self.has_finished(), self.videos.len()),
+            format!(" {} ", name),
             width = app::LINE_LENGTH
         );
     }
 
     async fn handle_succeed(&mut self, video: Box<Video>) -> Result<()> {
         let name = video.ty().name();
-        self.succeed.push(name.clone());
-        self.print_progress(&name);
+
+        self.print_bar(&name);
         println!("{:#?}", video);
+
+        self.succeed.push(name);
+        println!("进度: {}/{}", self.has_finished(), self.videos.len());
 
         Ok(())
     }
 
     fn handle_failed(&mut self, name: String, err: String) {
+        self.print_bar(&name);
+        println!("失败了 > {err}");
+
         self.failed.push(name.clone());
-        self.print_progress(&name);
-        println!("失败了");
-        println!("{err}")
+        println!("进度: {}/{}", self.has_finished(), self.videos.len());
     }
 
     async fn handle_message(&mut self, msg: Message) -> Result<()> {
