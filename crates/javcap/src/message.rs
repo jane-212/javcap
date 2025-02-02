@@ -1,6 +1,6 @@
 use video::Video;
 
 pub enum Message {
-    Load(Box<Video>),
+    Loaded(Box<Video>),
     Failed(String, String),
 }

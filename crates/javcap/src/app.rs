@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::Result;
 use config::Config;
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
+use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use video::{Video, VideoFile, VideoType};
 
@@ -35,13 +37,16 @@ impl App {
     }
 
     async fn start_all_tasks(&mut self) -> Result<Receiver<Message>> {
+        const TASK_LIMIT: usize = 5;
+        let sema = Arc::new(Semaphore::new(TASK_LIMIT));
         let (tx, rx) = mpsc::channel(10);
         for video in self.videos.clone().into_values() {
             let tx = tx.clone();
+            let sema = sema.clone();
             self.tasks.spawn(async move {
                 let name = video.ty().name();
-                let msg = match Self::process_video(video).await {
-                    Ok(video) => Message::Load(Box::new(video)),
+                let msg = match Self::process_video(sema, video).await {
+                    Ok(video) => Message::Loaded(Box::new(video)),
                     Err(e) => Message::Failed(name, e.to_string()),
                 };
                 tx.send(msg).await
@@ -95,7 +100,7 @@ impl App {
 
     async fn handle_message(&mut self, msg: Message) -> Result<()> {
         match msg {
-            Message::Load(video) => {
+            Message::Loaded(video) => {
                 self.handle_succeed(video).await?;
             }
             Message::Failed(name, err) => {
@@ -160,7 +165,8 @@ impl App {
         Ok(())
     }
 
-    async fn process_video(video: Video) -> Result<Video> {
+    async fn process_video(sema: Arc<Semaphore>, video: Video) -> Result<Video> {
+        let _permit = sema.acquire().await?;
         match video.ty() {
             VideoType::Jav(_, _) => {}
             VideoType::Fc2(_) => anyhow::bail!("fc2 error"),
