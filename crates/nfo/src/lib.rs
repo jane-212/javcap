@@ -52,7 +52,7 @@ pub struct Nfo {
     #[getset(get_mut = "pub")]
     actors: HashSet<String>,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     poster: Vec<u8>,
 
@@ -60,7 +60,7 @@ pub struct Nfo {
     #[validate(length(min = 1, message = "空"))]
     fanart: Vec<u8>,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     subtitle: Vec<u8>,
 }

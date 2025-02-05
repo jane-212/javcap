@@ -83,7 +83,7 @@ impl App {
         println!(
             "{:=^width$}",
             format!(
-                " {}({}/{}) ",
+                " {} ({}/{}) ",
                 name,
                 self.has_finished() + 1,
                 self.videos.len(),
@@ -108,8 +108,7 @@ impl App {
 
     async fn handle_succeed(&mut self, payload: &Payload) -> Result<()> {
         let out = self.get_out_path(payload).await?;
-        payload.write_fanart_to(&out).await?;
-        payload.write_nfo_to(&out).await?;
+        payload.write_all_to(&out).await?;
 
         let name = payload.video().ty().name();
         self.succeed.push(name);

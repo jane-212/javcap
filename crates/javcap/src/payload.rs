@@ -20,37 +20,65 @@ impl Payload {
         Payload { video, nfo }
     }
 
-    pub async fn write_fanart_to(&self, path: &Path) -> Result<()> {
+    async fn write_fanart_to(&self, path: &Path) -> Result<()> {
         let name = self.video().ty().name();
         let filename = format!("{name}-fanart.jpg");
         let file = path.join(filename);
-        OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(file)
-            .await?
-            .write_all(self.nfo().fanart())
-            .await?;
+        Self::write_to_file(self.nfo().fanart(), &file).await?;
         println!("fanart已写入");
 
         Ok(())
     }
 
-    pub async fn write_nfo_to(&self, path: &Path) -> Result<()> {
+    async fn write_poster_to(&self, path: &Path) -> Result<()> {
         let name = self.video().ty().name();
-        let filename = format!("{name}.nfo");
+        let filename = format!("{name}-poster.jpg");
         let file = path.join(filename);
-        let nfo = self.nfo().to_string();
+        Self::write_to_file(self.nfo().poster(), &file).await?;
+        println!("poster已写入");
+
+        Ok(())
+    }
+
+    async fn write_to_file(bytes: &[u8], file: &Path) -> Result<()> {
         OpenOptions::new()
             .create(true)
             .truncate(true)
             .write(true)
             .open(file)
             .await?
-            .write_all(nfo.as_bytes())
+            .write_all(bytes)
             .await?;
+
+        Ok(())
+    }
+
+    async fn write_nfo_to(&self, path: &Path) -> Result<()> {
+        let name = self.video().ty().name();
+        let filename = format!("{name}.nfo");
+        let file = path.join(filename);
+        let nfo = self.nfo().to_string();
+        Self::write_to_file(nfo.as_bytes(), &file).await?;
         println!("nfo已写入");
+
+        Ok(())
+    }
+
+    async fn write_subtitle_to(&self, path: &Path) -> Result<()> {
+        let name = self.video().ty().name();
+        let filename = format!("{name}.srt");
+        let file = path.join(filename);
+        Self::write_to_file(self.nfo().subtitle(), &file).await?;
+        println!("字幕已写入");
+
+        Ok(())
+    }
+
+    pub async fn write_all_to(&self, path: &Path) -> Result<()> {
+        self.write_fanart_to(path).await?;
+        self.write_poster_to(path).await?;
+        self.write_subtitle_to(path).await?;
+        self.write_nfo_to(path).await?;
 
         Ok(())
     }
