@@ -4,10 +4,8 @@ use std::sync::Arc;
 
 use anyhow::{bail, Result};
 use config::Config;
-use nfo::Nfo;
 use spider::Spider;
-use tokio::fs::{self, OpenOptions};
-use tokio::io::AsyncWriteExt;
+use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
 use tokio::sync::Semaphore;
@@ -16,6 +14,7 @@ use tokio::task::JoinSet;
 use video::{Video, VideoFile, VideoType};
 
 use super::message::Message;
+use super::payload::Payload;
 
 pub struct App {
     config: Config,
@@ -56,7 +55,7 @@ impl App {
             self.tasks.spawn(async move {
                 let name = video.ty().name();
                 let msg = match Self::process_video(sema, spider, video).await {
-                    Ok((video, nfo)) => Message::Loaded(Box::new(video), Box::new(nfo)),
+                    Ok(payload) => Message::Loaded(Box::new(payload)),
                     Err(e) => Message::Failed(name, e.to_string()),
                 };
                 tx.send(msg).await
@@ -83,8 +82,13 @@ impl App {
     fn print_bar(&self, name: &str) {
         println!(
             "{:=^width$}",
-            format!(" {} ", name),
-            width = app::LINE_LENGTH
+            format!(
+                " {}({}/{}) ",
+                name,
+                self.has_finished() + 1,
+                self.videos.len(),
+            ),
+            width = app::LINE_LENGTH,
         );
     }
 
@@ -92,33 +96,32 @@ impl App {
         sema: Arc<Semaphore>,
         spider: Arc<Spider>,
         video: Video,
-    ) -> Result<(Video, Nfo)> {
+    ) -> Result<Payload> {
         let _permit = sema.acquire().await?;
 
         let name = video.ty().name();
         let nfo = spider.find(&name).await?;
         // nfo.validate()?;
 
-        Ok((video, nfo))
+        Ok(Payload::new(video, nfo))
     }
 
-    async fn handle_succeed(&mut self, video: &Video, nfo: &Nfo) -> Result<()> {
-        let name = video.ty().name();
-        self.print_bar(&name);
+    async fn handle_succeed(&mut self, payload: &Payload) -> Result<()> {
+        let out = self.get_out_path(payload).await?;
+        payload.write_fanart_to(&out).await?;
+        payload.write_nfo_to(&out).await?;
 
-        self.write_fanart(video, nfo).await?;
-
+        let name = payload.video().ty().name();
         self.succeed.push(name);
-        println!("进度: {}/{}", self.has_finished(), self.videos.len());
-
         Ok(())
     }
 
-    async fn get_out_path(&self, video: &Video, _nfo: &Nfo) -> Result<PathBuf> {
-        let name = video.ty().name();
+    async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
+        let name = payload.video().ty().name();
         let out = self.config.output.path.join(name);
+        println!("输出路径 > {}", out.display());
         if out.is_file() {
-            bail!("文件已经存在, 无法创建文件夹 > {}", out.display());
+            bail!("输出路径是文件, 无法创建文件夹");
         }
 
         if !out.exists() {
@@ -128,39 +131,20 @@ impl App {
         Ok(out)
     }
 
-    async fn write_fanart(&self, video: &Video, nfo: &Nfo) -> Result<()> {
-        let out = self.get_out_path(video, nfo).await?;
-        let name = video.ty().name();
-        let filename = format!("{name}-fanart.jpg");
-        let file = out.join(filename);
-        OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(&file)
-            .await?
-            .write_all(nfo.fanart())
-            .await?;
-        println!("fanart已写入 > {}", file.display());
-
-        Ok(())
-    }
-
     fn handle_failed(&mut self, name: String, err: String) {
-        self.print_bar(&name);
-
         println!("失败了");
         println!("{err}");
 
         self.failed.push(name);
-        println!("进度: {}/{}", self.has_finished(), self.videos.len());
     }
 
     async fn handle_message(&mut self, msg: Message) -> Result<()> {
+        self.print_bar(&msg.name());
         match msg {
-            Message::Loaded(video, nfo) => {
-                if let Err(err) = self.handle_succeed(&video, &nfo).await {
-                    self.handle_failed(video.ty().name(), err.to_string());
+            Message::Loaded(payload) => {
+                if let Err(err) = self.handle_succeed(&payload).await {
+                    let name = payload.video().ty().name();
+                    self.handle_failed(name, err.to_string());
                 }
             }
             Message::Failed(name, err) => {

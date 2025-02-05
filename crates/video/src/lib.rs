@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
+use getset::Getters;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -9,9 +10,11 @@ use nom::{
     IResult, Parser,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Getters, Clone)]
 pub struct Video {
+    #[getset(get = "pub")]
     ty: VideoType,
+    #[getset(get = "pub")]
     files: Vec<VideoFile>,
 }
 
@@ -26,20 +29,15 @@ impl Video {
     pub fn add_file(&mut self, file: VideoFile) {
         self.files.push(file);
     }
-
-    pub fn ty(&self) -> &VideoType {
-        &self.ty
-    }
-
-    pub fn files(&self) -> &[VideoFile] {
-        &self.files
-    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Getters, Clone)]
 pub struct VideoFile {
+    #[getset(get = "pub")]
     location: PathBuf,
+    #[getset(get = "pub")]
     ext: String,
+    #[getset(get = "pub")]
     idx: u32,
 }
 
@@ -50,18 +48,6 @@ impl VideoFile {
             ext: ext.into(),
             idx,
         }
-    }
-
-    pub fn location(&self) -> &Path {
-        &self.location
-    }
-
-    pub fn idx(&self) -> u32 {
-        self.idx
-    }
-
-    pub fn ext(&self) -> &str {
-        &self.ext
     }
 }
 

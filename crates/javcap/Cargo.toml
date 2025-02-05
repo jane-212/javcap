@@ -13,3 +13,4 @@ spider.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 validator.workspace = true
+getset.workspace = true
