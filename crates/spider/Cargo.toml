@@ -1,0 +1,13 @@
+[package]
+name = "spider"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nfo.workspace = true
+
+tokio.workspace = true
+anyhow.workspace = true
+ratelimit.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true

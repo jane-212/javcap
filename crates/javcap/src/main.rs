@@ -19,7 +19,7 @@ async fn run() -> Result<()> {
     let config = Config::load().await?;
     config.validate()?;
 
-    let app = App::new(config);
+    let app = App::new(config)?;
 
     app.run().await
 }

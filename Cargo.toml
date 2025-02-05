@@ -1,11 +1,20 @@
 [workspace]
 resolver = "2"
-members = ["crates/app", "crates/config", "crates/javcap", "crates/video"]
+members = [
+    "crates/app",
+    "crates/config",
+    "crates/javcap",
+    "crates/nfo",
+    "crates/spider",
+    "crates/video",
+]
 
 [workspace.dependencies]
 config = { path = "crates/config" }
 app = { path = "crates/app" }
 video = { path = "crates/video" }
+nfo = { path = "crates/nfo" }
+spider = { path = "crates/spider" }
 
 anyhow = "1.0.95"
 tokio = { version = "1.43.0", features = [
@@ -14,12 +23,18 @@ tokio = { version = "1.43.0", features = [
     "fs",
     "io-util",
     "sync",
+    "time",
 ] }
 whoami = "1.5.2"
 toml = "0.8.19"
 serde = { version = "1.0.217", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
 nom = "8.0.0"
+indoc = "2.0.5"
+getset = "0.1.4"
+ratelimit = "0.10.0"
+async-trait = "0.1.86"
+reqwest = "0.12.12"
 
 [profile.release]
 lto = true

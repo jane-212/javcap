@@ -2,13 +2,17 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use config::Config;
-use tokio::fs;
+use nfo::Nfo;
+use spider::Spider;
+use tokio::fs::{self, OpenOptions};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
+// use validator::Validate;
 use video::{Video, VideoFile, VideoType};
 
 use super::message::Message;
@@ -19,17 +23,22 @@ pub struct App {
     tasks: JoinSet<std::result::Result<(), SendError<Message>>>,
     succeed: Vec<String>,
     failed: Vec<String>,
+    spider: Arc<Spider>,
 }
 
 impl App {
-    pub fn new(config: Config) -> App {
-        App {
+    pub fn new(config: Config) -> Result<App> {
+        let spider = Arc::new(Spider::new()?);
+        let app = App {
             tasks: JoinSet::new(),
             config,
             succeed: Vec::new(),
             failed: Vec::new(),
             videos: HashMap::new(),
-        }
+            spider,
+        };
+
+        Ok(app)
     }
 
     fn has_finished(&self) -> usize {
@@ -43,10 +52,11 @@ impl App {
         for video in self.videos.clone().into_values() {
             let tx = tx.clone();
             let sema = sema.clone();
+            let spider = self.spider.clone();
             self.tasks.spawn(async move {
                 let name = video.ty().name();
-                let msg = match Self::process_video(sema, video).await {
-                    Ok(video) => Message::Loaded(Box::new(video)),
+                let msg = match Self::process_video(sema, spider, video).await {
+                    Ok((video, nfo)) => Message::Loaded(Box::new(video), Box::new(nfo)),
                     Err(e) => Message::Failed(name, e.to_string()),
                 };
                 tx.send(msg).await
@@ -78,11 +88,25 @@ impl App {
         );
     }
 
-    async fn handle_succeed(&mut self, video: Box<Video>) -> Result<()> {
-        let name = video.ty().name();
+    async fn process_video(
+        sema: Arc<Semaphore>,
+        spider: Arc<Spider>,
+        video: Video,
+    ) -> Result<(Video, Nfo)> {
+        let _permit = sema.acquire().await?;
 
+        let name = video.ty().name();
+        let nfo = spider.find(&name).await?;
+        // nfo.validate()?;
+
+        Ok((video, nfo))
+    }
+
+    async fn handle_succeed(&mut self, video: &Video, nfo: &Nfo) -> Result<()> {
+        let name = video.ty().name();
         self.print_bar(&name);
-        println!("{:#?}", video);
+
+        self.write_fanart(video, nfo).await?;
 
         self.succeed.push(name);
         println!("进度: {}/{}", self.has_finished(), self.videos.len());
@@ -90,18 +114,54 @@ impl App {
         Ok(())
     }
 
+    async fn get_out_path(&self, video: &Video, _nfo: &Nfo) -> Result<PathBuf> {
+        let name = video.ty().name();
+        let out = self.config.output.path.join(name);
+        if out.is_file() {
+            bail!("文件已经存在, 无法创建文件夹 > {}", out.display());
+        }
+
+        if !out.exists() {
+            fs::create_dir_all(&out).await?;
+        }
+
+        Ok(out)
+    }
+
+    async fn write_fanart(&self, video: &Video, nfo: &Nfo) -> Result<()> {
+        let out = self.get_out_path(video, nfo).await?;
+        let name = video.ty().name();
+        let filename = format!("{name}-fanart.jpg");
+        let file = out.join(filename);
+        OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(&file)
+            .await?
+            .write_all(nfo.fanart())
+            .await?;
+        println!("fanart已写入 > {}", file.display());
+
+        Ok(())
+    }
+
     fn handle_failed(&mut self, name: String, err: String) {
         self.print_bar(&name);
-        println!("失败了 > {err}");
 
-        self.failed.push(name.clone());
+        println!("失败了");
+        println!("{err}");
+
+        self.failed.push(name);
         println!("进度: {}/{}", self.has_finished(), self.videos.len());
     }
 
     async fn handle_message(&mut self, msg: Message) -> Result<()> {
         match msg {
-            Message::Loaded(video) => {
-                self.handle_succeed(video).await?;
+            Message::Loaded(video, nfo) => {
+                if let Err(err) = self.handle_succeed(&video, &nfo).await {
+                    self.handle_failed(video.ty().name(), err.to_string());
+                }
             }
             Message::Failed(name, err) => {
                 self.handle_failed(name, err);
@@ -163,16 +223,6 @@ impl App {
         );
 
         Ok(())
-    }
-
-    async fn process_video(sema: Arc<Semaphore>, video: Video) -> Result<Video> {
-        let _permit = sema.acquire().await?;
-        match video.ty() {
-            VideoType::Jav(_, _) => {}
-            VideoType::Fc2(_) => anyhow::bail!("fc2 error"),
-        }
-
-        Ok(video)
     }
 
     async fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {

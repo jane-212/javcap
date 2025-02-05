@@ -7,6 +7,8 @@ edition = "2021"
 app.workspace = true
 config.workspace = true
 video.workspace = true
+nfo.workspace = true
+spider.workspace = true
 
 tokio.workspace = true
 anyhow.workspace = true
