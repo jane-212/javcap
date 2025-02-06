@@ -9,6 +9,7 @@ config.workspace = true
 video.workspace = true
 nfo.workspace = true
 spider.workspace = true
+translator.workspace = true
 
 tokio.workspace = true
 anyhow.workspace = true

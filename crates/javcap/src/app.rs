@@ -4,15 +4,14 @@ use std::sync::Arc;
 
 use anyhow::{bail, Result};
 use config::Config;
-use spider::Spider;
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
-use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 // use validator::Validate;
 use video::{Video, VideoFile, VideoType};
 
+use super::helper::Helper;
 use super::message::Message;
 use super::payload::Payload;
 
@@ -22,20 +21,21 @@ pub struct App {
     tasks: JoinSet<std::result::Result<(), SendError<Message>>>,
     succeed: Vec<String>,
     failed: Vec<String>,
-    spider: Arc<Spider>,
+    helper: Arc<Helper>,
 }
 
 impl App {
     pub fn new(config: Config) -> Result<App> {
-        let spider = Spider::new(config.network.timeout, config.network.proxy.clone())?;
-        let spider = Arc::new(spider);
+        let timeout = config.network.timeout;
+        let proxy = config.network.proxy.clone();
+        let helper = Helper::new(5, timeout, proxy)?;
         let app = App {
             tasks: JoinSet::new(),
             config,
             succeed: Vec::new(),
             failed: Vec::new(),
             videos: HashMap::new(),
-            spider,
+            helper: Arc::new(helper),
         };
 
         Ok(app)
@@ -46,16 +46,13 @@ impl App {
     }
 
     async fn start_all_tasks(&mut self) -> Result<Receiver<Message>> {
-        const TASK_LIMIT: usize = 5;
-        let sema = Arc::new(Semaphore::new(TASK_LIMIT));
         let (tx, rx) = mpsc::channel(10);
         for video in self.videos.clone().into_values() {
             let tx = tx.clone();
-            let sema = sema.clone();
-            let spider = self.spider.clone();
+            let helper = self.helper.clone();
             self.tasks.spawn(async move {
                 let name = video.ty().name();
-                let msg = match Self::process_video(sema, spider, video).await {
+                let msg = match Self::process_video(video, helper).await {
                     Ok(payload) => Message::Loaded(Box::new(payload)),
                     Err(e) => Message::Failed(name, e.to_string()),
                 };
@@ -93,16 +90,14 @@ impl App {
         );
     }
 
-    async fn process_video(
-        sema: Arc<Semaphore>,
-        spider: Arc<Spider>,
-        video: Video,
-    ) -> Result<Payload> {
-        let _permit = sema.acquire().await?;
+    async fn process_video(video: Video, helper: Arc<Helper>) -> Result<Payload> {
+        let _permit = helper.sema.acquire().await?;
 
         let name = video.ty().name();
-        let nfo = spider.find(&name).await?;
+        let nfo = helper.spider.find(&name).await?;
         // nfo.validate()?;
+        
+        
 
         Ok(Payload::new(video, nfo))
     }

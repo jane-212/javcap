@@ -5,14 +5,13 @@ use async_trait::async_trait;
 use nfo::Nfo;
 use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
-use tokio::sync::Mutex;
 use tokio::time;
 
 use super::Finder;
 
 pub struct Missav {
     client: Client,
-    limiter: Mutex<Ratelimiter>,
+    limiter: Ratelimiter,
 }
 
 impl Missav {
@@ -20,7 +19,6 @@ impl Missav {
         let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
             .initial_available(1)
             .build()?;
-        let limiter = Mutex::new(limiter);
         let mut client_builder = Client::builder().timeout(timeout);
         if let Some(url) = proxy {
             let proxy = Proxy::https(url)?;
@@ -33,9 +31,8 @@ impl Missav {
     }
 
     async fn wait_limiter(&self) {
-        let limiter = self.limiter.lock().await;
         loop {
-            match limiter.try_wait() {
+            match self.limiter.try_wait() {
                 Ok(_) => break,
                 Err(sleep) => time::sleep(sleep).await,
             }

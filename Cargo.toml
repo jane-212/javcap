@@ -6,6 +6,7 @@ members = [
     "crates/javcap",
     "crates/nfo",
     "crates/spider",
+    "crates/translator",
     "crates/video",
 ]
 
@@ -15,6 +16,7 @@ app = { path = "crates/app" }
 video = { path = "crates/video" }
 nfo = { path = "crates/nfo" }
 spider = { path = "crates/spider" }
+translator = { path = "crates/translator" }
 
 anyhow = "1.0.95"
 tokio = { version = "1.43.0", features = [
