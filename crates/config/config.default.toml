@@ -19,3 +19,6 @@ timeout = 10
 
 [video]
 rule = ["id", "name"]
+
+[url]
+# avsox = ""

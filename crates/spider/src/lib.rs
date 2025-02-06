@@ -1,3 +1,4 @@
+mod avsox;
 mod missav;
 
 use std::sync::Arc;
@@ -5,6 +6,8 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use avsox::Avsox;
+use config::Config;
 use missav::Missav;
 use nfo::Nfo;
 use video::VideoType;
@@ -19,11 +22,20 @@ pub struct Spider {
 }
 
 impl Spider {
-    pub fn new(timeout: u64, proxy: Option<String>) -> Result<Spider> {
-        let timeout = Duration::from_secs(timeout);
-        let missav = Missav::new(timeout, proxy)?;
-        let missav = Arc::new(missav) as Arc<dyn Finder>;
-        let finders = vec![missav];
+    // TODO:
+    // avsox
+    // jav321
+    // javbus
+    // javdb
+    // javlib
+    // mgstage
+    pub fn new(config: &Config) -> Result<Spider> {
+        let timeout = Duration::from_secs(config.network.timeout);
+        let proxy = &config.network.proxy;
+        let url = &config.url;
+        let missav = Arc::new(Missav::new(timeout, proxy.clone())?);
+        let avsox = Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?);
+        let finders: Vec<Arc<dyn Finder>> = vec![missav, avsox];
 
         let spider = Spider { finders };
         Ok(spider)

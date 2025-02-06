@@ -27,9 +27,7 @@ pub struct App {
 
 impl App {
     pub fn new(config: Config) -> Result<App> {
-        let timeout = config.network.timeout;
-        let proxy = config.network.proxy.clone();
-        let helper = Helper::new(config.task_limit, &config.translators, timeout, proxy)?;
+        let helper = Helper::new(&config)?;
         let app = App {
             tasks: JoinSet::new(),
             config,

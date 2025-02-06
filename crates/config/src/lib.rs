@@ -3,6 +3,7 @@ mod input;
 mod network;
 mod output;
 mod translator;
+mod url;
 mod video;
 
 pub use translator::Translator;
@@ -17,6 +18,7 @@ use output::Output;
 use serde::Deserialize;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use url::Url;
 use validator::Validate;
 use video::Video;
 
@@ -38,6 +40,9 @@ pub struct Config {
 
     #[validate(nested)]
     pub video: Video,
+
+    #[validate(nested)]
+    pub url: Url,
 }
 
 impl Config {

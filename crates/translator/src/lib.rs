@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use config::Config;
 use config::Translator as CfgTranslator;
 use tokio::time;
 use youdao::Youdao;
@@ -14,14 +15,11 @@ pub struct Translator {
 }
 
 impl Translator {
-    pub fn new(
-        translators: &[CfgTranslator],
-        timeout: u64,
-        proxy: Option<String>,
-    ) -> Result<Translator> {
-        let timeout = Duration::from_secs(timeout);
+    pub fn new(config: &Config) -> Result<Translator> {
+        let timeout = Duration::from_secs(config.network.timeout);
+        let proxy = &config.network.proxy;
         let mut handlers = vec![];
-        for translator in translators {
+        for translator in config.translators.iter() {
             let handler = match translator {
                 CfgTranslator::Youdao { key, secret } => {
                     Youdao::new(key, secret, timeout, proxy.clone())?

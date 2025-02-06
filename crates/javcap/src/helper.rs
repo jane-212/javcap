@@ -1,5 +1,5 @@
 use anyhow::Result;
-use config::Translator as CfgTranslator;
+use config::Config;
 use spider::Spider;
 use tokio::sync::Semaphore;
 use translator::Translator;
@@ -11,15 +11,10 @@ pub struct Helper {
 }
 
 impl Helper {
-    pub fn new(
-        task_limit: usize,
-        translators: &[CfgTranslator],
-        timeout: u64,
-        proxy: Option<String>,
-    ) -> Result<Helper> {
-        let sema = Semaphore::new(task_limit);
-        let spider = Spider::new(timeout, proxy.clone())?;
-        let translator = Translator::new(translators, timeout, proxy)?;
+    pub fn new(config: &Config) -> Result<Helper> {
+        let sema = Semaphore::new(config.task_limit);
+        let spider = Spider::new(config)?;
+        let translator = Translator::new(config)?;
         let helper = Helper {
             sema,
             spider,

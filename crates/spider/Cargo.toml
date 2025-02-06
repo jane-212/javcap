@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 nfo.workspace = true
 video.workspace = true
+config.workspace = true
 
 tokio.workspace = true
 anyhow.workspace = true
