@@ -144,11 +144,11 @@ impl Handler for Youdao {
             .await?;
 
         if res.code != "0" {
-            bail!("翻译失败: {}", res.code);
+            bail!("翻译失败, code: {}", res.code);
         }
 
         let Some(translated) = res.translation.map(|trans| trans.join("\n")) else {
-            bail!("翻译失败, 内容为空");
+            bail!("翻译失败, 返回内容为空");
         };
 
         Ok(translated)
