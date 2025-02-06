@@ -10,7 +10,7 @@ pub struct Translator {
 }
 
 impl Translator {
-    pub fn new() -> Result<Translator> {
+    pub fn new(timeout: u64, proxy: Option<String>) -> Result<Translator> {
         let handlers = vec![];
         let translator = Translator { handlers };
 

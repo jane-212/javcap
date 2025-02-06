@@ -1,3 +1,5 @@
+task_limit = 3
+
 [input]
 path = ""
 exts = ["mp4", "avi", "mov", "m4v", "mkv", "flv", "rmvb", "wmv"]
@@ -9,3 +11,6 @@ path = ""
 [network]
 timeout = 10
 # proxy = ""
+
+[video]
+rule = ["id", "name"]

@@ -8,9 +8,10 @@ use validator::Validate;
 
 #[derive(Default, Setters, Getters, Validate)]
 pub struct Nfo {
+    #[getset(get = "pub")]
     id: String,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     title: String,
 
@@ -18,7 +19,7 @@ pub struct Nfo {
     #[validate(range(min = 0.1, message = "无评分"))]
     rating: f64,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     plot: String,
 
@@ -33,11 +34,11 @@ pub struct Nfo {
     #[getset(get_mut = "pub")]
     genres: HashSet<String>,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     country: String,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     director: String,
 
@@ -45,11 +46,11 @@ pub struct Nfo {
     #[validate(length(min = 1, message = "空"))]
     premiered: String,
 
-    #[getset(set = "pub")]
+    #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "空"))]
     studio: String,
 
-    #[getset(get_mut = "pub")]
+    #[getset(get_mut = "pub", get = "pub")]
     actors: HashSet<String>,
 
     #[getset(set = "pub", get = "pub")]

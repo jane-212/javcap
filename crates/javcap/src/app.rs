@@ -28,7 +28,7 @@ impl App {
     pub fn new(config: Config) -> Result<App> {
         let timeout = config.network.timeout;
         let proxy = config.network.proxy.clone();
-        let helper = Helper::new(5, timeout, proxy)?;
+        let helper = Helper::new(config.task_limit, timeout, proxy)?;
         let app = App {
             tasks: JoinSet::new(),
             config,
@@ -94,10 +94,26 @@ impl App {
         let _permit = helper.sema.acquire().await?;
 
         let name = video.ty().name();
-        let nfo = helper.spider.find(&name).await?;
+        let mut nfo = helper.spider.find(&name).await?;
         // nfo.validate()?;
-        
-        
+
+        let title_task = tokio::spawn({
+            let helper = helper.clone();
+            let title = nfo.title().clone();
+            async move { helper.translator.translate(&title).await }
+        });
+        let plot_task = tokio::spawn({
+            let helper = helper.clone();
+            let plot = nfo.plot().clone();
+            async move { helper.translator.translate(&plot).await }
+        });
+
+        if let Some(title) = title_task.await?? {
+            nfo.set_title(title);
+        }
+        if let Some(plot) = plot_task.await?? {
+            nfo.set_plot(plot);
+        }
 
         Ok(Payload::new(video, nfo))
     }
@@ -112,9 +128,18 @@ impl App {
         Ok(())
     }
 
+    fn concat_rule(&self, payload: &Payload) -> PathBuf {
+        let mut out = self.config.output.path.to_path_buf();
+        for tag in self.config.video.rule.iter() {
+            let name = payload.get_by_tag(tag);
+            out = out.join(name);
+        }
+
+        out
+    }
+
     async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
-        let name = payload.video().ty().name();
-        let out = self.config.output.path.join(name);
+        let out = self.concat_rule(payload);
         println!("输出路径 > {}", out.display());
         if out.is_file() {
             bail!("输出路径是文件, 无法创建文件夹");

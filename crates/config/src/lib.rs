@@ -2,6 +2,9 @@ mod helper;
 mod input;
 mod network;
 mod output;
+mod video;
+
+pub use video::Tag;
 
 use std::path::{Path, PathBuf};
 
@@ -13,15 +16,24 @@ use serde::Deserialize;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use validator::Validate;
+use video::Video;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct Config {
+    #[validate(range(min = 1, message = "必须大于0"))]
+    pub task_limit: usize,
+
     #[validate(nested)]
     pub input: Input,
+
     #[validate(nested)]
     pub output: Output,
+
     #[validate(nested)]
     pub network: Network,
+
+    #[validate(nested)]
+    pub video: Video,
 }
 
 impl Config {

@@ -65,6 +65,13 @@ impl VideoType {
         }
     }
 
+    pub fn id(&self) -> &str {
+        match self {
+            VideoType::Jav(id, _) => id,
+            VideoType::Fc2(_) => "FC2-PPV",
+        }
+    }
+
     pub fn parse(name: impl AsRef<str>) -> Result<(VideoType, u32)> {
         let name = name.as_ref().to_uppercase();
 

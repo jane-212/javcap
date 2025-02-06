@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
+use config::Tag;
 use getset::Getters;
 use nfo::Nfo;
 use tokio::fs::{self, OpenOptions};
@@ -92,6 +93,25 @@ impl Payload {
         }
 
         Ok(())
+    }
+
+    pub fn get_by_tag(&self, tag: &Tag) -> String {
+        match tag {
+            Tag::Title => self.nfo.title().to_string(),
+            Tag::Studio => self.nfo.studio().to_string(),
+            Tag::Id => self.video.ty().id().to_string(),
+            Tag::Name => self.video.ty().name(),
+            Tag::Director => self.nfo.director().to_string(),
+            Tag::Country => self.nfo.country().to_string(),
+            Tag::Actor => self
+                .nfo
+                .actors()
+                .iter()
+                .next()
+                .map(|actor| actor.as_str())
+                .unwrap_or("未知")
+                .to_string(),
+        }
     }
 
     pub async fn write_all_to(&self, path: &Path) -> Result<()> {
