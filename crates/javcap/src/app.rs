@@ -8,7 +8,7 @@ use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
 use tokio::task::JoinSet;
-// use validator::Validate;
+use validator::Validate;
 use video::{Video, VideoFile, VideoType};
 
 use super::helper::Helper;
@@ -95,7 +95,7 @@ impl App {
 
         let name = video.ty().name();
         let mut nfo = helper.spider.find(&name).await?;
-        // nfo.validate()?;
+        nfo.validate()?;
 
         let title_task = tokio::spawn({
             let helper = helper.clone();
