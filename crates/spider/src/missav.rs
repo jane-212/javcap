@@ -6,6 +6,7 @@ use nfo::Nfo;
 use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
 use tokio::time;
+use video::VideoType;
 
 use super::Finder;
 
@@ -39,8 +40,8 @@ impl Missav {
         }
     }
 
-    async fn get_fanart(&self, key: &str) -> Result<Vec<u8>> {
-        let url = format!("https://fourhoi.com/{}/cover-n.jpg", key.to_lowercase());
+    async fn get_fanart(&self, name: &str) -> Result<Vec<u8>> {
+        let url = format!("https://fourhoi.com/{}/cover-n.jpg", name.to_lowercase());
         let img = self.client.get(url).send().await?.bytes().await?.to_vec();
 
         Ok(img)
@@ -49,13 +50,13 @@ impl Missav {
 
 #[async_trait]
 impl Finder for Missav {
-    async fn find(&self, key: &str) -> Result<Nfo> {
+    async fn find(&self, key: VideoType) -> Result<Nfo> {
         self.wait_limiter().await;
 
-        let mut nfo = Nfo::new(key);
+        let mut nfo = Nfo::new(key.name());
         nfo.set_country("日本".to_string());
 
-        let fanart = self.get_fanart(key).await?;
+        let fanart = self.get_fanart(&key.name()).await?;
         nfo.set_fanart(fanart);
 
         Ok(nfo)

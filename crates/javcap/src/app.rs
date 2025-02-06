@@ -95,8 +95,7 @@ impl App {
     async fn process_video(video: Video, helper: Arc<Helper>) -> Result<Payload> {
         let _permit = helper.sema.acquire().await?;
 
-        let name = video.ty().name();
-        let mut nfo = helper.spider.find(&name).await?;
+        let mut nfo = helper.spider.find(video.ty().clone()).await?;
         nfo.validate()?;
 
         let title_task = tokio::spawn({

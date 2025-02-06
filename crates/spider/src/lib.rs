@@ -7,10 +7,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use missav::Missav;
 use nfo::Nfo;
+use video::VideoType;
 
 #[async_trait]
 trait Finder: Send + Sync {
-    async fn find(&self, key: &str) -> Result<Nfo>;
+    async fn find(&self, key: VideoType) -> Result<Nfo>;
 }
 
 pub struct Spider {
@@ -28,16 +29,16 @@ impl Spider {
         Ok(spider)
     }
 
-    pub async fn find(&self, key: &str) -> Result<Nfo> {
+    pub async fn find(&self, key: VideoType) -> Result<Nfo> {
         let mut tasks = Vec::new();
         for finder in self.finders.iter() {
             let finder = finder.clone();
-            let key = key.to_string();
-            let task = tokio::spawn(async move { finder.find(&key).await });
+            let key = key.clone();
+            let task = tokio::spawn(async move { finder.find(key).await });
             tasks.push(task);
         }
 
-        let mut nfo = Nfo::new(key);
+        let mut nfo = Nfo::new(key.name());
         nfo.set_mpaa("NC-17".to_string());
         for task in tasks {
             let found_nfo = task.await??;
