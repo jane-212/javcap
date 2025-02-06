@@ -27,7 +27,8 @@ pub struct App {
 
 impl App {
     pub fn new(config: Config) -> Result<App> {
-        let spider = Arc::new(Spider::new()?);
+        let spider = Spider::new(config.network.timeout, config.network.proxy.clone())?;
+        let spider = Arc::new(spider);
         let app = App {
             tasks: JoinSet::new(),
             config,

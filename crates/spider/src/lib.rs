@@ -1,6 +1,7 @@
 mod missav;
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -17,8 +18,10 @@ pub struct Spider {
 }
 
 impl Spider {
-    pub fn new() -> Result<Spider> {
-        let missav = Arc::new(Missav::new()?) as Arc<dyn Finder>;
+    pub fn new(timeout: u64, proxy: Option<String>) -> Result<Spider> {
+        let timeout = Duration::from_secs(timeout);
+        let missav = Missav::new(timeout, proxy)?;
+        let missav = Arc::new(missav) as Arc<dyn Finder>;
         let finders = vec![missav];
 
         let spider = Spider { finders };

@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use nfo::Nfo;
 use ratelimit::Ratelimiter;
-use reqwest::Client;
+use reqwest::{Client, Proxy};
 use tokio::sync::Mutex;
 use tokio::time;
 
@@ -16,12 +16,17 @@ pub struct Missav {
 }
 
 impl Missav {
-    pub fn new() -> Result<Missav> {
+    pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Missav> {
         let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
             .initial_available(1)
             .build()?;
         let limiter = Mutex::new(limiter);
-        let client = Client::new();
+        let mut client_builder = Client::builder().timeout(timeout);
+        if let Some(url) = proxy {
+            let proxy = Proxy::https(url)?;
+            client_builder = client_builder.proxy(proxy);
+        }
+        let client = client_builder.build()?;
 
         let missav = Missav { client, limiter };
         Ok(missav)

@@ -1,10 +1,18 @@
+mod helper;
+mod input;
+mod network;
+mod output;
+
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
+use input::Input;
+use network::Network;
+use output::Output;
 use serde::Deserialize;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use validator::{Validate, ValidationError};
+use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct Config {
@@ -12,6 +20,8 @@ pub struct Config {
     pub input: Input,
     #[validate(nested)]
     pub output: Output,
+    #[validate(nested)]
+    pub network: Network,
 }
 
 impl Config {
@@ -63,28 +73,4 @@ impl Config {
 
         user_dir.join(".config").join(app::NAME)
     }
-}
-
-#[derive(Debug, Deserialize, Validate)]
-pub struct Input {
-    #[validate(custom(function = "absolute_path"))]
-    pub path: PathBuf,
-    pub exts: Vec<String>,
-    pub excludes: Vec<String>,
-}
-
-#[derive(Debug, Deserialize, Validate)]
-pub struct Output {
-    #[validate(custom(function = "absolute_path"))]
-    pub path: PathBuf,
-}
-
-fn absolute_path(path: &Path) -> Result<(), ValidationError> {
-    if !path.is_absolute() {
-        let msg = format!("路径必须是绝对路径 > {}", path.display());
-        let err = ValidationError::new("path").with_message(msg.into());
-        return Err(err);
-    }
-
-    Ok(())
 }

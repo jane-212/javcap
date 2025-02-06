@@ -5,3 +5,7 @@ excludes = ["output"]
 
 [output]
 path = ""
+
+[network]
+timeout = 10
+# proxy = ""
