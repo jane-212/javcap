@@ -109,6 +109,8 @@ jobs:
             bin="target/${{ matrix.target }}/release/javcap"
           fi
           echo "BIN=$bin" >> $GITHUB_ENV
+        env:
+          VERSION: ${{ needs.create-release.outputs.version }}
 
       - name: Determine archive name
         shell: bash
