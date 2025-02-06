@@ -6,7 +6,8 @@ alias t := try
 try: clean
     @mkdir -p dev
     @touch dev/stars-804.mp4
-    @touch dev/ipx-443.mp4
+    @touch dev/ipx-443-1.mp4
+    @touch dev/ipx-443-2.mp4
     @touch dev/fc2-1200809.mkv
     @cargo r
 
