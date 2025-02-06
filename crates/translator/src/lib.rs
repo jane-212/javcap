@@ -1,17 +1,34 @@
+mod youdao;
+
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use config::Translator as CfgTranslator;
 use tokio::time;
+use youdao::Youdao;
 
 pub struct Translator {
     handlers: Vec<Arc<dyn Handler>>,
 }
 
 impl Translator {
-    pub fn new(timeout: u64, proxy: Option<String>) -> Result<Translator> {
-        let handlers = vec![];
+    pub fn new(
+        translators: &[CfgTranslator],
+        timeout: u64,
+        proxy: Option<String>,
+    ) -> Result<Translator> {
+        let timeout = Duration::from_secs(timeout);
+        let mut handlers = vec![];
+        for translator in translators {
+            let handler = match translator {
+                CfgTranslator::Youdao { key, secret } => {
+                    Youdao::new(key, secret, timeout, proxy.clone())?
+                }
+            };
+            handlers.push(Arc::new(handler) as Arc<dyn Handler>);
+        }
         let translator = Translator { handlers };
 
         Ok(translator)

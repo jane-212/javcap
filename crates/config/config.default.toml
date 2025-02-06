@@ -1,5 +1,10 @@
 task_limit = 3
 
+# [[translators]]
+# type = "youdao"
+# key = ""
+# secret = ""
+
 [input]
 path = ""
 exts = ["mp4", "avi", "mov", "m4v", "mkv", "flv", "rmvb", "wmv"]

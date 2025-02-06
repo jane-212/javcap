@@ -36,7 +36,9 @@ indoc = "2.0.5"
 getset = "0.1.4"
 ratelimit = "0.10.0"
 async-trait = "0.1.86"
-reqwest = "0.12.12"
+reqwest = { version = "0.12.12", features = ["json"] }
+uuid = { version = "1.13.1", features = ["v4"] }
+sha256 = "1.5.0"
 
 [profile.release]
 lto = true

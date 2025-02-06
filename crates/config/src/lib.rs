@@ -2,8 +2,10 @@ mod helper;
 mod input;
 mod network;
 mod output;
+mod translator;
 mod video;
 
+pub use translator::Translator;
 pub use video::Tag;
 
 use std::path::{Path, PathBuf};
@@ -22,6 +24,8 @@ use video::Video;
 pub struct Config {
     #[validate(range(min = 1, message = "必须大于0"))]
     pub task_limit: usize,
+
+    pub translators: Vec<Translator>,
 
     #[validate(nested)]
     pub input: Input,
