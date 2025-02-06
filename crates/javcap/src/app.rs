@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{bail, Result};
+use colored::Colorize;
 use config::Config;
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
@@ -85,7 +86,8 @@ impl App {
                 name,
                 self.has_finished() + 1,
                 self.videos.len(),
-            ),
+            )
+            .yellow(),
             width = app::LINE_LENGTH,
         );
     }
@@ -123,6 +125,7 @@ impl App {
         payload.write_all_to(&out).await?;
         payload.move_videos_to(&out).await?;
 
+        println!("{}", "ok".green());
         let name = payload.video().ty().name();
         self.succeed.push(name);
         Ok(())
@@ -153,7 +156,7 @@ impl App {
     }
 
     fn handle_failed(&mut self, name: String, err: String) {
-        println!("失败了");
+        println!("{}", "failed".red());
         println!("{err}");
 
         self.failed.push(name);
@@ -185,9 +188,19 @@ impl App {
     }
 
     fn summary(&self) {
-        println!("{:=^width$}", " Summary ", width = app::LINE_LENGTH);
-        println!("成功: {}({})", self.succeed.len(), self.succeed.join(", "));
-        println!("失败: {}({})", self.failed.len(), self.failed.join(", "));
+        println!(
+            "{:=^width$}",
+            " Summary ".yellow(),
+            width = app::LINE_LENGTH
+        );
+        println!(
+            "{}",
+            format!("成功: {}({})", self.succeed.len(), self.succeed.join(", ")).green()
+        );
+        println!(
+            "{}",
+            format!("失败: {}({})", self.failed.len(), self.failed.join(", ")).red()
+        );
     }
 
     async fn load_all_videos(&mut self) -> Result<()> {

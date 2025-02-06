@@ -1,16 +1,17 @@
 use anyhow::Result;
+use colored::Colorize;
 use config::Config;
 use javcap::App;
 use validator::Validate;
 
 #[tokio::main]
 async fn main() {
-    println!("{}", ">".repeat(app::LINE_LENGTH));
+    println!("{}", ">".repeat(app::LINE_LENGTH).yellow());
     if let Err(e) = run().await {
-        println!("{:#^width$}", " Error ", width = app::LINE_LENGTH);
+        println!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
         eprintln!("{}", e);
     }
-    println!("{}", "<".repeat(app::LINE_LENGTH));
+    println!("{}", "<".repeat(app::LINE_LENGTH).yellow());
 }
 
 async fn run() -> Result<()> {
