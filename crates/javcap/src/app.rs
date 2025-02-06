@@ -109,6 +109,7 @@ impl App {
     async fn handle_succeed(&mut self, payload: &Payload) -> Result<()> {
         let out = self.get_out_path(payload).await?;
         payload.write_all_to(&out).await?;
+        payload.move_videos_to(&out).await?;
 
         let name = payload.video().ty().name();
         self.succeed.push(name);
