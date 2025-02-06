@@ -22,7 +22,7 @@
   怎么下载
 </h2>
 
-在[release](https://github.com/jane-212/javcap/releases)页面下载对应系统的压缩包并解压。
+[点击下载](https://github.com/jane-212/javcap/releases)
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" />
@@ -39,10 +39,10 @@ macos -> /Users/<user>/.config/javcap/config.toml
 linux -> /home/<user>/.config/javcap/config.toml
 ```
 
-编辑修改配置文件后再次运行,程序会自动搜索当前目录下所有视频并刮削数据。
+编辑修改配置文件后再次运行,程序会自动搜索目录下所有视频并刮削数据。
 
 > [!NOTE]
-> 如果对 `toml` 类型文件有疑问可以[点击这里](https://toml.io/cn/)
+> 如果对 `toml` 文件有疑问可以[点击这里](https://toml.io/cn/)
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Comet.png" alt="Comet" width="25" height="25" />
