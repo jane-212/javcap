@@ -19,13 +19,15 @@ impl Translator {
         let timeout = Duration::from_secs(config.network.timeout);
         let proxy = &config.network.proxy;
         let mut handlers = vec![];
-        for translator in config.translators.iter() {
-            let handler = match translator {
-                CfgTranslator::Youdao { key, secret } => {
-                    Youdao::new(key, secret, timeout, proxy.clone())?
-                }
-            };
-            handlers.push(Arc::new(handler) as Arc<dyn Handler>);
+        if let Some(translators) = &config.translators {
+            for translator in translators {
+                let handler = match translator {
+                    CfgTranslator::Youdao { key, secret } => {
+                        Youdao::new(key, secret, timeout, proxy.clone())?
+                    }
+                };
+                handlers.push(Arc::new(handler) as Arc<dyn Handler>);
+            }
         }
         let translator = Translator { handlers };
 

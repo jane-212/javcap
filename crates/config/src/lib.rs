@@ -25,7 +25,7 @@ pub struct Config {
     #[validate(range(min = 1, message = "任务数必须大于0"))]
     pub task_limit: usize,
 
-    pub translators: Vec<Translator>,
+    pub translators: Option<Vec<Translator>>,
 
     #[validate(nested)]
     pub input: Input,

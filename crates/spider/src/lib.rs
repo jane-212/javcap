@@ -1,5 +1,6 @@
 mod avsox;
 mod jav321;
+mod javdb;
 mod missav;
 mod subtitle_cat;
 
@@ -11,6 +12,7 @@ use async_trait::async_trait;
 use avsox::Avsox;
 use config::Config;
 use jav321::Jav321;
+use javdb::Javdb;
 use missav::Missav;
 use nfo::Nfo;
 use subtitle_cat::SubtitleCat;
@@ -35,6 +37,7 @@ impl Spider {
             Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?),
             Arc::new(SubtitleCat::new(timeout, proxy.clone())?),
             Arc::new(Jav321::new(timeout, proxy.clone())?),
+            Arc::new(Javdb::new(url.javdb.clone(), timeout, proxy.clone())?),
         ];
 
         let spider = Spider { finders };
