@@ -1,4 +1,5 @@
 mod avsox;
+mod jav321;
 mod missav;
 mod subtitle_cat;
 
@@ -9,6 +10,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use avsox::Avsox;
 use config::Config;
+use jav321::Jav321;
 use missav::Missav;
 use nfo::Nfo;
 use subtitle_cat::SubtitleCat;
@@ -37,7 +39,8 @@ impl Spider {
         let missav = Arc::new(Missav::new(timeout, proxy.clone())?);
         let avsox = Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?);
         let subtitle_cat = Arc::new(SubtitleCat::new(timeout, proxy.clone())?);
-        let finders: Vec<Arc<dyn Finder>> = vec![missav, avsox, subtitle_cat];
+        let jav321 = Arc::new(Jav321::new(timeout, proxy.clone())?);
+        let finders: Vec<Arc<dyn Finder>> = vec![missav, avsox, subtitle_cat, jav321];
 
         let spider = Spider { finders };
         Ok(spider)

@@ -85,13 +85,12 @@ impl Finder for Avsox {
         let text = self.client.get(url).send().await?.text().await?;
         let (url, poster) = {
             let html = Document::from(text.as_str());
-            let mut poster = None;
-            let mut url = None;
 
             let Some(item) = Self::find_item(&html, &key) else {
                 return Ok(nfo);
             };
 
+            let mut poster = None;
             if let Some(img) = item
                 .find(
                     Name("div")
@@ -123,6 +122,7 @@ impl Finder for Avsox {
                 nfo.set_premiered(date.trim().to_string());
             }
 
+            let mut url = None;
             if let Some(href) = item
                 .find(Name("a").and(Class("movie-box")))
                 .next()
@@ -145,12 +145,12 @@ impl Finder for Avsox {
             let text = self.client.get(url).send().await?.text().await?;
             let fanart = {
                 let html = Document::from(text.as_str());
-                let mut fanart = None;
 
                 let Some(container) = html.find(Name("div").and(Class("container"))).nth(1) else {
                     return Ok(nfo);
                 };
 
+                let mut fanart = None;
                 if let Some(href) = container
                     .find(Name("a").and(Class("bigImage")))
                     .next()

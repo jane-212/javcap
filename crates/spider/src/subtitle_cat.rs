@@ -53,7 +53,7 @@ impl Finder for SubtitleCat {
         let text = self
             .client
             .get(url)
-            .query(&[("search", &key.name())])
+            .query(&[("search", key.name())])
             .send()
             .await?
             .text()
@@ -86,6 +86,7 @@ impl Finder for SubtitleCat {
                 let title = item.text();
                 if possible_names.iter().any(|name| title.contains(name)) {
                     found = Some(url);
+                    break;
                 }
             }
 
@@ -99,8 +100,8 @@ impl Finder for SubtitleCat {
         let text = self.client.get(url).send().await?.text().await?;
         let url = {
             let html = Document::from(text.as_str());
-            let mut url = None;
 
+            let mut url = None;
             for item in html.find(
                 Name("div")
                     .and(Class("container"))
