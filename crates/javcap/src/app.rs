@@ -130,7 +130,7 @@ impl App {
 
     fn concat_rule(&self, payload: &Payload) -> PathBuf {
         let mut out = self.config.output.path.to_path_buf();
-        for tag in self.config.video.rule.iter() {
+        for tag in self.config.output.rule.iter() {
             let name = payload.get_by_tag(tag);
             out = out.join(name);
         }

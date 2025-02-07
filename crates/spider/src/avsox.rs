@@ -32,7 +32,7 @@ impl Avsox {
         }
         let client = client_builder.build()?;
         let avsox = Avsox {
-            base_url: base_url.unwrap_or("".to_string()),
+            base_url: base_url.unwrap_or("https://avsox.click".to_string()),
             client,
             limiter,
         };
@@ -57,6 +57,14 @@ impl Finder for Avsox {
 
         let mut nfo = Nfo::new(key.name());
         nfo.set_country("日本".to_string());
+
+        let name = match key {
+            VideoType::Jav(id, key) => format!("{id}-{key}"),
+            VideoType::Fc2(key) => format!("FC2-{key}"),
+        }
+        .to_lowercase();
+        let url = format!("{}/cn/search/{name}", self.base_url);
+        let doc = self.client.get(url).send().await?.text().await?;
 
         Ok(nfo)
     }

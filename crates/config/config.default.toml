@@ -12,13 +12,11 @@ excludes = ["output"]
 
 [output]
 path = ""
+rule = ["id", "name"]
 
 [network]
-timeout = 10
+timeout = 5
 # proxy = ""
-
-[video]
-rule = ["id", "name"]
 
 [url]
 # avsox = ""

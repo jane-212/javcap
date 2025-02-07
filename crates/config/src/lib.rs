@@ -4,10 +4,9 @@ mod network;
 mod output;
 mod translator;
 mod url;
-mod video;
 
+pub use output::Tag;
 pub use translator::Translator;
-pub use video::Tag;
 
 use std::path::{Path, PathBuf};
 
@@ -20,7 +19,6 @@ use tokio::fs::{self, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use url::Url;
 use validator::Validate;
-use video::Video;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct Config {
@@ -37,9 +35,6 @@ pub struct Config {
 
     #[validate(nested)]
     pub network: Network,
-
-    #[validate(nested)]
-    pub video: Video,
 
     #[validate(nested)]
     pub url: Url,
