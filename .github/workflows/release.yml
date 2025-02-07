@@ -42,20 +42,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - build: stable-x86-musl
+          - build: linux-x86-musl
             os: ubuntu-latest
             rust: stable
             target: x86_64-unknown-linux-musl
-          - build: stable-x86-gnu
+          - build: linux-x86-gnu
             os: ubuntu-latest
             rust: stable
             target: x86_64-unknown-linux-gnu
 
-          - build: stable-aarch64-musl
+          - build: linux-aarch64-musl
             os: ubuntu-latest
             rust: stable
             target: aarch64-unknown-linux-musl
-          - build: stable-aarch64-gnu
+          - build: linux-aarch64-gnu
             os: ubuntu-latest
             rust: stable
             target: aarch64-unknown-linux-gnu
@@ -69,7 +69,7 @@ jobs:
             rust: stable
             target: x86_64-apple-darwin
 
-          - build: win-msvc
+          - build: windows-x86
             os: windows-latest
             rust: stable
             target: x86_64-pc-windows-msvc
