@@ -78,7 +78,7 @@ impl App {
 
     fn print_bar(&self, name: &str) {
         println!(
-            "{:=^width$}",
+            "\r{:=^width$}",
             format!(
                 " {} ({}/{}) ",
                 name,
@@ -122,7 +122,6 @@ impl App {
         payload.write_all_to(&out).await?;
         payload.move_videos_to(&out).await?;
 
-        println!("{}", "ok".green());
         let name = payload.video().ty().name();
         self.succeed.push(name);
         Ok(())
@@ -140,7 +139,7 @@ impl App {
 
     async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
         let out = self.concat_rule(payload);
-        println!("输出路径 > {}", out.display());
+        println!("\r> {}", out.display());
         if out.is_file() {
             bail!("输出路径是文件, 无法创建文件夹");
         }
@@ -153,8 +152,8 @@ impl App {
     }
 
     fn handle_failed(&mut self, name: String, err: String) {
-        println!("{}", "failed".red());
-        println!("{err}");
+        println!("\r{}", "failed".red());
+        println!("\r{err}");
 
         self.failed.push(name);
     }
@@ -186,16 +185,16 @@ impl App {
 
     fn summary(&self) {
         println!(
-            "{:=^width$}",
+            "\r{:=^width$}",
             " Summary ".yellow(),
             width = app::LINE_LENGTH
         );
         println!(
-            "{}",
+            "\r{}",
             format!("成功: {}({})", self.succeed.len(), self.succeed.join(", ")).green()
         );
         println!(
-            "{}",
+            "\r{}",
             format!("失败: {}({})", self.failed.len(), self.failed.join(", ")).red()
         );
     }
@@ -228,7 +227,7 @@ impl App {
         }
 
         println!(
-            "共找到视频: {}({})",
+            "\r共找到视频: {}({})",
             self.videos.len(),
             self.videos
                 .values()

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
+use colored::Colorize;
 use config::Tag;
 use getset::Getters;
 use nfo::Nfo;
@@ -25,7 +26,7 @@ impl Payload {
         let filename = format!("{name}-fanart.jpg");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.fanart(), &file).await?;
-        println!("fanart已写入");
+        println!("\r背景...{}", "ok".green());
 
         Ok(())
     }
@@ -35,7 +36,7 @@ impl Payload {
         let filename = format!("{name}-poster.jpg");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.poster(), &file).await?;
-        println!("poster已写入");
+        println!("\r封面...{}", "ok".green());
 
         Ok(())
     }
@@ -59,7 +60,7 @@ impl Payload {
         let file = path.join(filename);
         let nfo = self.nfo.to_string();
         Self::write_to_file(nfo.as_bytes(), &file).await?;
-        println!("nfo已写入");
+        println!("\rnfo...{}", "ok".green());
 
         Ok(())
     }
@@ -73,7 +74,7 @@ impl Payload {
         let filename = format!("{name}.srt");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.subtitle(), &file).await?;
-        println!("字幕已写入");
+        println!("\r字幕...{}", "ok".green());
 
         Ok(())
     }
@@ -88,12 +89,12 @@ impl Payload {
             };
             let out = path.join(&filename);
             if out.exists() {
-                println!("文件已存在 > {}", out.display());
+                println!("\r文件已存在 > {}", out.display());
                 continue;
             }
             let src = video.location();
             fs::rename(src, &out).await?;
-            println!("移动 {} > {}", src.display(), out.display());
+            println!("\r视频...{}", "ok".green());
         }
 
         Ok(())
