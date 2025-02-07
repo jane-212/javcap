@@ -26,12 +26,6 @@ pub struct Spider {
 }
 
 impl Spider {
-    // TODO:
-    // jav321
-    // javbus
-    // javdb
-    // javlib
-    // mgstage
     pub fn new(config: &Config) -> Result<Spider> {
         let timeout = Duration::from_secs(config.network.timeout);
         let proxy = &config.network.proxy;
