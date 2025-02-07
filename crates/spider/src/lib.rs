@@ -30,11 +30,12 @@ impl Spider {
         let timeout = Duration::from_secs(config.network.timeout);
         let proxy = &config.network.proxy;
         let url = &config.url;
-        let missav = Arc::new(Missav::new(timeout, proxy.clone())?);
-        let avsox = Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?);
-        let subtitle_cat = Arc::new(SubtitleCat::new(timeout, proxy.clone())?);
-        let jav321 = Arc::new(Jav321::new(timeout, proxy.clone())?);
-        let finders: Vec<Arc<dyn Finder>> = vec![missav, avsox, subtitle_cat, jav321];
+        let finders: Vec<Arc<dyn Finder>> = vec![
+            Arc::new(Missav::new(timeout, proxy.clone())?),
+            Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?),
+            Arc::new(SubtitleCat::new(timeout, proxy.clone())?),
+            Arc::new(Jav321::new(timeout, proxy.clone())?),
+        ];
 
         let spider = Spider { finders };
         Ok(spider)
