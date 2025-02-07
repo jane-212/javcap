@@ -1,5 +1,6 @@
 mod avsox;
 mod missav;
+mod subtitle_cat;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -10,6 +11,7 @@ use avsox::Avsox;
 use config::Config;
 use missav::Missav;
 use nfo::Nfo;
+use subtitle_cat::SubtitleCat;
 use video::VideoType;
 
 #[async_trait]
@@ -23,7 +25,6 @@ pub struct Spider {
 
 impl Spider {
     // TODO:
-    // avsox
     // jav321
     // javbus
     // javdb
@@ -35,7 +36,8 @@ impl Spider {
         let url = &config.url;
         let missav = Arc::new(Missav::new(timeout, proxy.clone())?);
         let avsox = Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?);
-        let finders: Vec<Arc<dyn Finder>> = vec![missav, avsox];
+        let subtitle_cat = Arc::new(SubtitleCat::new(timeout, proxy.clone())?);
+        let finders: Vec<Arc<dyn Finder>> = vec![missav, avsox, subtitle_cat];
 
         let spider = Spider { finders };
         Ok(spider)
