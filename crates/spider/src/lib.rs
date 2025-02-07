@@ -53,7 +53,9 @@ impl Spider {
         let mut nfo = Nfo::new(key.name());
         nfo.set_mpaa("NC-17".to_string());
         for task in tasks {
-            let found_nfo = task.await??;
+            let Ok(found_nfo) = task.await? else {
+                continue;
+            };
             nfo.merge(found_nfo);
         }
 

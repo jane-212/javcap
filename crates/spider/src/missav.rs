@@ -42,6 +42,7 @@ impl Missav {
 
     async fn get_fanart(&self, name: &str) -> Result<Vec<u8>> {
         let url = format!("https://fourhoi.com/{}/cover-n.jpg", name.to_lowercase());
+        self.wait_limiter().await;
         let img = self.client.get(url).send().await?.bytes().await?.to_vec();
 
         Ok(img)
@@ -51,10 +52,9 @@ impl Missav {
 #[async_trait]
 impl Finder for Missav {
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        self.wait_limiter().await;
-
         let mut nfo = Nfo::new(key.name());
         nfo.set_country("日本".to_string());
+        nfo.set_mpaa("NC-17".to_string());
 
         let fanart = self.get_fanart(&key.name()).await?;
         nfo.set_fanart(fanart);

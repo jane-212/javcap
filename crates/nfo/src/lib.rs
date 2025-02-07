@@ -2,17 +2,17 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::hash::Hash;
 
-use getset::{Getters, Setters};
+use getset::{Getters, MutGetters, Setters};
 use indoc::writedoc;
 use validator::Validate;
 
-#[derive(Default, Setters, Getters, Validate)]
+#[derive(Default, Setters, Getters, MutGetters, Validate)]
 pub struct Nfo {
     #[getset(get = "pub")]
     id: String,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "标题为空"))]
     title: String,
 
     #[getset(set = "pub")]
@@ -20,7 +20,7 @@ pub struct Nfo {
     rating: f64,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "简介为空"))]
     plot: String,
 
     #[getset(set = "pub")]
@@ -28,41 +28,43 @@ pub struct Nfo {
     runtime: u32,
 
     #[getset(set = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "评级为空"))]
     mpaa: String,
 
     #[getset(get_mut = "pub")]
+    #[validate(length(min = 1, message = "类别为空"))]
     genres: HashSet<String>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "国家为空"))]
     country: String,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "导演为空"))]
     director: String,
 
     #[getset(set = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "日期为空"))]
     premiered: String,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "工作室为空"))]
     studio: String,
 
     #[getset(get_mut = "pub", get = "pub")]
+    #[validate(length(min = 1, message = "演员为空"))]
     actors: HashSet<String>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "封面为空"))]
     poster: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "背景为空"))]
     fanart: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "空"))]
+    #[validate(length(min = 1, message = "字幕为空"))]
     subtitle: Vec<u8>,
 }
 
@@ -96,14 +98,6 @@ trait Merge {
     fn merge(&mut self, other: Self);
 }
 
-impl Merge for f64 {
-    fn merge(&mut self, other: Self) {
-        if *self == 0.0 {
-            *self = other;
-        }
-    }
-}
-
 impl Merge for Vec<u8> {
     fn merge(&mut self, other: Self) {
         if self.len() < other.len() {
@@ -114,7 +108,15 @@ impl Merge for Vec<u8> {
 
 impl Merge for u32 {
     fn merge(&mut self, other: Self) {
-        if *self == 0 {
+        if *self < other {
+            *self = other;
+        }
+    }
+}
+
+impl Merge for f64 {
+    fn merge(&mut self, other: Self) {
+        if *self < other {
             *self = other;
         }
     }
@@ -143,7 +145,7 @@ impl Display for Nfo {
             <movie>
                 <title>{title}</title>
                 <originaltitle>{title}</originaltitle>
-                <rating>{rating}</rating>
+                <rating>{rating:.1}</rating>
                 <plot>{plot}</plot>
                 <runtime>{runtime}</runtime>
                 <mpaa>{mpaa}</mpaa>
