@@ -1,0 +1,16 @@
+[package]
+name = "translator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+config.workspace = true
+
+async-trait.workspace = true
+anyhow.workspace = true
+ratelimit.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+serde.workspace = true
+reqwest.workspace = true
+sha256.workspace = true

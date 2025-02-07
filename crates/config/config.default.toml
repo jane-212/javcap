@@ -1,0 +1,44 @@
+# 同时进行的任务数量
+task_limit = 3
+
+# 用来翻译的组件, 可以同时提供多个来加快速度, 若无组件, 则不翻译
+#
+# 有道翻译
+# [[translators]]
+# type = "youdao"
+# key = ""
+# secret = ""
+
+[input]
+# 输入路径, 必须是绝对路径
+path = ""
+# 哪些文件后缀会被处理
+exts = ["mp4", "avi", "mov", "m4v", "mkv", "flv", "rmvb", "wmv"]
+# 不包括的文件夹, 如果输出文件夹是输入文件夹的子文件夹, 则需要包括输出文件夹
+excludes = ["output"]
+
+[output]
+# 输出路径, 必须是绝对路径
+path = ""
+# 用来组建输出路径的规则
+# title -> 标题
+# studio -> 工作室/发行商
+# name -> xxx-123
+#         ^^^^^^^
+# id -> xxx-123
+#       ^^^
+# director -> 导演
+# country -> 属地
+# actor -> 演员
+rule = ["id", "name"]
+
+[network]
+# 网络连接超时时间
+timeout = 5
+# 网络代理地址
+# proxy = ""
+
+# 可以换用可直连地址
+[url]
+# avsox = ""
+# javdb = ""

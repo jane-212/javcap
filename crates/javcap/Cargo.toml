@@ -1,0 +1,18 @@
+[package]
+name = "javcap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+app.workspace = true
+config.workspace = true
+video.workspace = true
+nfo.workspace = true
+spider.workspace = true
+translator.workspace = true
+
+tokio.workspace = true
+anyhow.workspace = true
+validator.workspace = true
+getset.workspace = true
+colored.workspace = true

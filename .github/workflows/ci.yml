@@ -20,6 +20,8 @@ jobs:
         with:
           toolchain: stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Run test
         run: |
-          cargo test --workspace
+          cargo test --workspace --all-features --color always

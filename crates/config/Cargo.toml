@@ -1,0 +1,14 @@
+[package]
+name = "config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+app.workspace = true
+
+anyhow.workspace = true
+tokio.workspace = true
+whoami.workspace = true
+toml.workspace = true
+serde.workspace = true
+validator.workspace = true
