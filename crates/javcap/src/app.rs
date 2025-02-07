@@ -241,8 +241,8 @@ impl App {
 
     async fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
         let mut files = Vec::new();
-        let mut entrys = fs::read_dir(path).await?;
-        while let Some(entry) = entrys.next_entry().await? {
+        let mut entries = fs::read_dir(path).await?;
+        while let Some(entry) = entries.next_entry().await? {
             let file = entry.path();
 
             let name = match file.file_name().and_then(|name| name.to_str()) {

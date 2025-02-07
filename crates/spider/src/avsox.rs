@@ -195,8 +195,8 @@ impl Finder for Avsox {
                         "长度" => {
                             let number: String =
                                 pair.1.chars().take_while(|c| c.is_ascii_digit()).collect();
-                            let rumtime: u32 = number.parse().unwrap_or_default();
-                            nfo.set_runtime(rumtime);
+                            let runtime: u32 = number.parse().unwrap_or_default();
+                            nfo.set_runtime(runtime);
                         }
                         _ => {}
                     }
