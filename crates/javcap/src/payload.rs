@@ -65,6 +65,10 @@ impl Payload {
     }
 
     async fn write_subtitle_to(&self, path: &Path) -> Result<()> {
+        if self.nfo.subtitle().is_empty() {
+            return Ok(());
+        }
+
         let name = self.video.ty().name();
         let filename = format!("{name}.srt");
         let file = path.join(filename);

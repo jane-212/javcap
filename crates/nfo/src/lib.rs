@@ -64,7 +64,6 @@ pub struct Nfo {
     fanart: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "字幕为空"))]
     subtitle: Vec<u8>,
 }
 
