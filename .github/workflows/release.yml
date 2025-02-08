@@ -49,6 +49,7 @@ jobs:
         uses: houseabsolute/actions-rust-cross@v1
         with:
           target: ${{ matrix.target }}
+          args: --release
 
       - name: Publish artifacts and release
         uses: houseabsolute/actions-rust-release@v0
@@ -56,4 +57,3 @@ jobs:
           executable-name: javcap
           target: ${{ matrix.target }}
           extra-files: README.md LICENSE
-          args: --release
