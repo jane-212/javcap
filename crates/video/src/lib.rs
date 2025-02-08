@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
+use bon::bon;
 use getset::Getters;
 use log::info;
 use nom::{
@@ -42,7 +43,9 @@ pub struct VideoFile {
     idx: u32,
 }
 
+#[bon]
 impl VideoFile {
+    #[builder]
     pub fn new(location: &Path, ext: impl Into<String>, idx: u32) -> VideoFile {
         VideoFile {
             location: location.to_path_buf(),

@@ -11,6 +11,20 @@ task_limit = 3
 # type = "youdao"
 # key = ""
 # secret = ""
+# 
+# deepseek
+# [[translators]]
+# type = "deepseek"
+# base = "https://api.deepseek.com"
+# model = "deepseek-chat"
+# key = ""
+# 
+# openai
+# [[translators]]
+# type = "openai"
+# base = "https://models.inference.ai.azure.com"
+# model = "gpt-4o"
+# key = ""
 
 [input]
 # 输入路径, 必须是绝对路径

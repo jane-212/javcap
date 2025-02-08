@@ -114,7 +114,8 @@ impl App {
             nfo.set_plot(plot);
         }
 
-        Ok(Payload::new(video, nfo, bar))
+        let payload = Payload::builder().video(video).nfo(nfo).bar(bar).build();
+        Ok(payload)
     }
 
     async fn handle_succeed(&mut self, payload: &Payload) -> Result<()> {
@@ -229,7 +230,13 @@ impl App {
                     .videos
                     .entry(video_ty.clone())
                     .or_insert(Video::new(video_ty));
-                video.add_file(VideoFile::new(&file, ext, idx));
+                video.add_file(
+                    VideoFile::builder()
+                        .location(&file)
+                        .ext(ext)
+                        .idx(idx)
+                        .build(),
+                );
             }
         }
 

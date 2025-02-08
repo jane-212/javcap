@@ -1,3 +1,4 @@
+mod openai;
 mod youdao;
 
 use std::sync::Arc;
@@ -8,6 +9,7 @@ use async_trait::async_trait;
 use config::Config;
 use config::Translator as CfgTranslator;
 use log::info;
+use openai::Openai;
 use tokio::time;
 use youdao::Youdao;
 
@@ -24,10 +26,39 @@ impl Translator {
             for translator in translators {
                 let handler = match translator {
                     CfgTranslator::Youdao { key, secret } => {
-                        Youdao::new(key, secret, timeout, proxy.clone())?
+                        let handler = Youdao::builder()
+                            .key(key)
+                            .secret(secret)
+                            .timeout(timeout)
+                            .maybe_proxy(proxy.clone())
+                            .build()?;
+
+                        Arc::new(handler) as Arc<dyn Handler>
+                    }
+                    CfgTranslator::DeepSeek { base, model, key } => {
+                        let handler = Openai::builder()
+                            .base(base)
+                            .model(model)
+                            .key(key)
+                            .timeout(timeout)
+                            .maybe_proxy(proxy.clone())
+                            .build()?;
+
+                        Arc::new(handler)
+                    }
+                    CfgTranslator::Openai { base, model, key } => {
+                        let handler = Openai::builder()
+                            .base(base)
+                            .model(model)
+                            .key(key)
+                            .timeout(timeout)
+                            .maybe_proxy(proxy.clone())
+                            .build()?;
+
+                        Arc::new(handler)
                     }
                 };
-                handlers.push(Arc::new(handler) as Arc<dyn Handler>);
+                handlers.push(handler);
             }
         }
         let translator = Translator { handlers };

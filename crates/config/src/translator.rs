@@ -5,4 +5,16 @@ use serde::{Deserialize, Serialize};
 pub enum Translator {
     #[serde(rename = "youdao")]
     Youdao { key: String, secret: String },
+    #[serde(rename = "deepseek")]
+    DeepSeek {
+        base: String,
+        model: String,
+        key: String,
+    },
+    #[serde(rename = "openai")]
+    Openai {
+        base: String,
+        model: String,
+        key: String,
+    },
 }

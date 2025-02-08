@@ -15,3 +15,6 @@ serde.workspace = true
 reqwest.workspace = true
 sha256.workspace = true
 log.workspace = true
+bon.workspace = true
+async-openai.workspace = true
+indoc.workspace = true
