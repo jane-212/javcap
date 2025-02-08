@@ -35,15 +35,14 @@ async fn run() -> Result<()> {
         info!("正在检查更新...");
         println!("正在检查更新...");
         let status = tokio::task::spawn_blocking(check_for_update).await??;
-        if status.uptodate() {
-            info!("已是最新版本");
-            println!("已是最新版本");
-        }
         if status.updated() {
             info!("已更新为版本: v{}", status.version());
             println!("已更新为版本: v{}", status.version());
             return Ok(());
         }
+
+        info!("已是最新版本");
+        println!("已是最新版本");
     }
 
     let app = App::new(config).await?;
