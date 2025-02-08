@@ -36,7 +36,7 @@ pub struct Nfo {
     genres: HashSet<String>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "国家为空"))]
+    #[validate(length(min = 1, message = "属地为空"))]
     country: String,
 
     #[getset(set = "pub", get = "pub")]

@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
+use log::info;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -76,6 +77,7 @@ impl VideoType {
         let name = name.as_ref().to_uppercase();
 
         let (_, (id, key, idx)) = Self::_parse(&name).map_err(|err| anyhow!("{err}"))?;
+        info!("解析视频名称({name}) > id({id})-key({key})-idx({idx})");
 
         let ty = match id {
             "FC2-PPV" => Self::fc2(key),

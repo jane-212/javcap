@@ -1,4 +1,5 @@
 mod app;
+mod bar;
 mod helper;
 mod message;
 mod payload;

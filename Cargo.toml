@@ -50,6 +50,8 @@ uuid = { version = "1.13.1", features = ["v4"] }
 sha256 = "1.5.0"
 colored = "3.0.0"
 select = "0.6.0"
+log = "0.4.25"
+env_logger = "0.11.6"
 
 [profile.release]
 lto = true

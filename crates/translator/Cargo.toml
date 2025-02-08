@@ -14,3 +14,4 @@ uuid.workspace = true
 serde.workspace = true
 reqwest.workspace = true
 sha256.workspace = true
+log.workspace = true

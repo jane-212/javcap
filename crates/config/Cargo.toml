@@ -12,3 +12,4 @@ whoami.workspace = true
 toml.workspace = true
 serde.workspace = true
 validator.workspace = true
+log.workspace = true

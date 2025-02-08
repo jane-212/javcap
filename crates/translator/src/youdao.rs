@@ -2,6 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Result};
 use async_trait::async_trait;
+use log::info;
 use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
 use serde::Deserialize;
@@ -144,10 +145,12 @@ impl Handler for Youdao {
             .await?;
 
         if res.code != "0" {
+            info!("翻译失败, code: {}", res.code);
             bail!("翻译失败, code: {}", res.code);
         }
 
         let Some(translated) = res.translation.map(|trans| trans.join("\n")) else {
+            info!("翻译失败, 返回内容为空");
             bail!("翻译失败, 返回内容为空");
         };
 

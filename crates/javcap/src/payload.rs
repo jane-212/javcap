@@ -1,24 +1,29 @@
 use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Result;
 use colored::Colorize;
 use config::Tag;
 use getset::Getters;
+use log::info;
 use nfo::Nfo;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use video::Video;
+
+use super::bar::Bar;
 
 #[derive(Getters)]
 pub struct Payload {
     #[getset(get = "pub")]
     video: Video,
     nfo: Nfo,
+    bar: Arc<Bar>,
 }
 
 impl Payload {
-    pub fn new(video: Video, nfo: Nfo) -> Payload {
-        Payload { video, nfo }
+    pub fn new(video: Video, nfo: Nfo, bar: Arc<Bar>) -> Payload {
+        Payload { video, nfo, bar }
     }
 
     async fn write_fanart_to(&self, path: &Path) -> Result<()> {
@@ -26,7 +31,8 @@ impl Payload {
         let filename = format!("{name}-fanart.jpg");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.fanart(), &file).await?;
-        println!("\r背景...{}", "ok".green());
+        info!("背景({}) > {}", name, file.display());
+        self.bar.message(format!("背景...{}", "ok".green()));
 
         Ok(())
     }
@@ -36,7 +42,8 @@ impl Payload {
         let filename = format!("{name}-poster.jpg");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.poster(), &file).await?;
-        println!("\r封面...{}", "ok".green());
+        info!("封面({}) > {}", name, file.display());
+        self.bar.message(format!("封面...{}", "ok".green()));
 
         Ok(())
     }
@@ -60,7 +67,8 @@ impl Payload {
         let file = path.join(filename);
         let nfo = self.nfo.to_string();
         Self::write_to_file(nfo.as_bytes(), &file).await?;
-        println!("\rnfo...{}", "ok".green());
+        info!("nfo({}) > {}", name, file.display());
+        self.bar.message(format!("nfo...{}", "ok".green()));
 
         Ok(())
     }
@@ -74,27 +82,31 @@ impl Payload {
         let filename = format!("{name}.srt");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.subtitle(), &file).await?;
-        println!("\r字幕...{}", "ok".green());
+        info!("字幕({}) > {}", name, file.display());
+        self.bar.message(format!("字幕...{}", "ok".green()));
 
         Ok(())
     }
 
     pub async fn move_videos_to(&self, path: &Path) -> Result<()> {
+        let name = self.video.ty().name();
         for video in self.video.files() {
             let idx = video.idx();
             let filename = if *idx == 0 {
-                format!("{}.{}", self.video.ty().name(), video.ext())
+                format!("{}.{}", name, video.ext())
             } else {
-                format!("{}-{}.{}", self.video.ty().name(), idx, video.ext())
+                format!("{}-{}.{}", name, idx, video.ext())
             };
             let out = path.join(&filename);
             if out.exists() {
-                println!("\r文件已存在 > {}", out.display());
+                info!("文件已存在 > {}", out.display());
+                self.bar.message(format!("文件已存在 > {}", out.display()));
                 continue;
             }
             let src = video.location();
             fs::rename(src, &out).await?;
-            println!("\r视频...{}", "ok".green());
+            info!("{}({}) > {}", src.display(), name, out.display());
+            self.bar.message(format!("\r视频...{}", "ok".green()));
         }
 
         Ok(())

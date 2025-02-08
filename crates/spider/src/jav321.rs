@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use log::info;
 use nfo::Nfo;
 use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
@@ -191,6 +192,7 @@ impl Finder for Jav321 {
             nfo.set_poster(poster.to_vec());
         }
 
+        info!("从jav321找到nfo > {nfo}");
         Ok(nfo)
     }
 }
