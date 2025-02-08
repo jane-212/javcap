@@ -42,7 +42,7 @@ async fn run() -> Result<()> {
         }
 
         info!("已是最新版本");
-        println!("已是最新版本");
+        println!("\r已是最新版本");
     }
 
     let app = App::new(config).await?;
@@ -56,6 +56,8 @@ fn check_for_update() -> Result<Status> {
         .repo_name("javcap")
         .bin_name("javcap")
         .bin_path_in_archive("javcap-{{version}}-{{target}}/{{bin}}")
+        .no_confirm(true)
+        .show_output(false)
         .show_download_progress(true)
         .current_version(app::VERSION)
         .build()?
