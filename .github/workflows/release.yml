@@ -41,8 +41,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get the release version from the tag
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Show the version
+        run: |
+          echo "version is: $VERSION"
+
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v1
+        env:
+          VERSION: ${{ env.VERSION }}
         with:
           target: ${{ matrix.target }}
           args: --release
