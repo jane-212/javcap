@@ -56,6 +56,7 @@ self_update = { version = "0.42.0", default-features = false, features = [
     "archive-tar",
     "archive-zip",
     "rustls",
+    "compression-flate2",
 ] }
 
 [profile.release]
