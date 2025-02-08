@@ -47,3 +47,4 @@ jobs:
           ARCHIVE_TYPES: ${{ matrix.archive }}
           EXTRA_FILES: "README.md LICENSE"
           SRC_DIR: "crates/javcap"
+          STATIC_LINKING: false
