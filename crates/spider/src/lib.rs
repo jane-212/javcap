@@ -35,10 +35,22 @@ impl Spider {
         let url = &config.url;
         let finders: Vec<Arc<dyn Finder>> = vec![
             Arc::new(Missav::new(timeout, proxy.clone())?),
-            Arc::new(Avsox::new(url.avsox.clone(), timeout, proxy.clone())?),
+            Arc::new(
+                Avsox::builder()
+                    .maybe_base_url(url.avsox.clone())
+                    .timeout(timeout)
+                    .maybe_proxy(proxy.clone())
+                    .build()?,
+            ),
             Arc::new(SubtitleCat::new(timeout, proxy.clone())?),
             Arc::new(Jav321::new(timeout, proxy.clone())?),
-            Arc::new(Javdb::new(url.javdb.clone(), timeout, proxy.clone())?),
+            Arc::new(
+                Javdb::builder()
+                    .maybe_base_url(url.javdb.clone())
+                    .timeout(timeout)
+                    .maybe_proxy(proxy.clone())
+                    .build()?,
+            ),
         ];
 
         let spider = Spider { finders };

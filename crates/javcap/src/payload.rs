@@ -2,6 +2,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
+use bon::bon;
 use colored::Colorize;
 use config::Tag;
 use getset::Getters;
@@ -21,7 +22,9 @@ pub struct Payload {
     bar: Arc<Bar>,
 }
 
+#[bon]
 impl Payload {
+    #[builder]
     pub fn new(video: Video, nfo: Nfo, bar: Arc<Bar>) -> Payload {
         Payload { video, nfo, bar }
     }

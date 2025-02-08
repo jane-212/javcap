@@ -2,6 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Result};
 use async_trait::async_trait;
+use bon::bon;
 use log::info;
 use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
@@ -18,7 +19,9 @@ pub struct Youdao {
     limiter: Ratelimiter,
 }
 
+#[bon]
 impl Youdao {
+    #[builder]
     pub fn new(
         key: impl Into<String>,
         secret: impl Into<String>,

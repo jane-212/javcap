@@ -20,3 +20,4 @@ log.workspace = true
 env_logger.workspace = true
 whoami.workspace = true
 self_update.workspace = true
+bon.workspace = true

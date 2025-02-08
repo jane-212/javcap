@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use bon::bon;
 use log::info;
 use nfo::Nfo;
 use ratelimit::Ratelimiter;
@@ -19,7 +20,9 @@ pub struct Javdb {
     limiter: Ratelimiter,
 }
 
+#[bon]
 impl Javdb {
+    #[builder]
     pub fn new(
         base_url: Option<String>,
         timeout: Duration,

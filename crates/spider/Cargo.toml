@@ -16,3 +16,4 @@ async-trait.workspace = true
 reqwest.workspace = true
 select.workspace = true
 log.workspace = true
+bon.workspace = true
