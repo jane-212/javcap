@@ -11,41 +11,40 @@ permissions:
 jobs:
   release:
     name: release ${{ matrix.target }}
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-gnu
-            archive: zip
-          - target: x86_64-pc-windows-msvc
-            archive: zip
-
           - target: x86_64-unknown-linux-musl
-            archive: tar.gz
+            os: ubuntu-latest
           - target: x86_64-unknown-linux-gnu
-            archive: tar.gz
+            os: ubuntu-latest
           - target: aarch64-unknown-linux-musl
-            archive: tar.gz
+            os: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
-            archive: tar.gz
+            os: ubuntu-latest
+
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
 
           - target: x86_64-apple-darwin
-            archive: tar.gz
-          - target: aarch64-apple-darwin
-            archive: tar.gz
+            os: macos-latest
 
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@master
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v1
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
-          EXTRA_FILES: README.md LICENSE
-          SRC_DIR: crates/javcap
-          STATIC_LINKING: false
-          TOOLCHAIN_VERSION: stable
+          target: ${{ matrix.target }}
+
+      - name: Publish artifacts and release
+        uses: houseabsolute/actions-rust-release@v0
+        with:
+          executable-name: javcap
+          target: ${{ matrix.target }}
+          extra-files: README.md LICENSE

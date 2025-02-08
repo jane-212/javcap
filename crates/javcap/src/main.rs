@@ -25,8 +25,8 @@ async fn main() {
 async fn run() -> Result<()> {
     init_logger().await?;
 
-    info!("版本: {}({})", app::VERSION, app::HASH);
-    println!("当前版本: {}({})", app::VERSION, app::HASH);
+    info!("版本: v{}({})", app::VERSION, app::HASH);
+    println!("当前版本: v{}({})", app::VERSION, app::HASH);
 
     let config = Config::load().await?;
     config.validate()?;
@@ -36,8 +36,8 @@ async fn run() -> Result<()> {
         println!("正在检查更新...");
         let status = tokio::task::spawn_blocking(check_for_update).await??;
         if status.updated() {
-            info!("已更新为版本: {}", status.version());
-            println!("已更新为版本: {}", status.version());
+            info!("已更新为版本: v{}", status.version());
+            println!("已更新为版本: v{}", status.version());
             return Ok(());
         }
 
