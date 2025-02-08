@@ -36,8 +36,8 @@ async fn run() -> Result<()> {
         println!("正在检查更新...");
         let status = tokio::task::spawn_blocking(check_for_update).await??;
         if status.updated() {
-            info!("已更新为版本: v{}", status.version());
-            println!("已更新为版本: v{}", status.version());
+            info!("已更新为版本: {}", status.version());
+            println!("已更新为版本: {}", status.version());
             return Ok(());
         }
 
