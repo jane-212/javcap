@@ -2,7 +2,7 @@ use std::process::Command;
 
 fn main() {
     #[cfg(debug_assertions)]
-    println!("cargo:rustc-env=VERSION=DEBUG");
+    println!("cargo:rustc-env=VERSION=0.0.0");
 
     let git_hash = Command::new("git")
         .arg("rev-parse")

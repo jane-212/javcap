@@ -10,7 +10,7 @@ jobs:
     name: run-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@master
 
       - name: Check spelling
         uses: crate-ci/typos@master

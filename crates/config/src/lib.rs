@@ -23,6 +23,8 @@ use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct Config {
+    pub check_for_update: bool,
+
     #[validate(range(min = 1, message = "任务数必须大于0"))]
     pub task_limit: usize,
 

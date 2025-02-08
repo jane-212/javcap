@@ -7,6 +7,8 @@ use config::Config;
 use env_logger::{Builder, Target};
 use javcap::App;
 use log::{info, LevelFilter};
+use self_update::backends::github::Update;
+use self_update::Status;
 use tokio::fs;
 use validator::Validate;
 
@@ -29,9 +31,36 @@ async fn run() -> Result<()> {
     let config = Config::load().await?;
     config.validate()?;
 
+    if config.check_for_update {
+        info!("正在检查更新...");
+        println!("正在检查更新...");
+        let status = tokio::task::spawn_blocking(check_for_update).await??;
+        if status.updated() {
+            info!("已更新为版本: {}", status.version());
+            println!("已更新为版本: {}", status.version());
+            return Ok(());
+        }
+
+        info!("已是最新版本");
+        println!("已是最新版本");
+    }
+
     let app = App::new(config).await?;
 
     app.run().await
+}
+
+fn check_for_update() -> Result<Status> {
+    let status = Update::configure()
+        .repo_owner("jane-212")
+        .repo_name("javcap")
+        .bin_name("javcap")
+        .show_download_progress(true)
+        .current_version(app::VERSION)
+        .build()?
+        .update()?;
+
+    Ok(status)
 }
 
 async fn init_logger() -> Result<()> {
