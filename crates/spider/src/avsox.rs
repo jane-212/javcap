@@ -33,7 +33,7 @@ impl Avsox {
             .timeout(timeout)
             .user_agent(app::USER_AGENT);
         if let Some(url) = proxy {
-            let proxy = Proxy::https(url)?;
+            let proxy = Proxy::all(url)?;
             client_builder = client_builder.proxy(proxy);
         }
         let client = client_builder.build()?;
