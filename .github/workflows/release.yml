@@ -61,4 +61,6 @@ jobs:
         with:
           executable-name: javcap
           target: ${{ matrix.target }}
-          extra-files: README.md LICENSE
+          extra-files: |
+            README.md \
+            LICENSE
