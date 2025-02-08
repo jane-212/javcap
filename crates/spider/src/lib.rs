@@ -13,6 +13,7 @@ use avsox::Avsox;
 use config::Config;
 use jav321::Jav321;
 use javdb::Javdb;
+use log::error;
 use missav::Missav;
 use nfo::Nfo;
 use subtitle_cat::SubtitleCat;
@@ -56,10 +57,10 @@ impl Spider {
         let mut nfo = Nfo::new(key.name());
         nfo.set_mpaa("NC-17".to_string());
         for task in tasks {
-            let Ok(found_nfo) = task.await? else {
-                continue;
-            };
-            nfo.merge(found_nfo);
+            match task.await? {
+                Ok(found_nfo) => nfo.merge(found_nfo),
+                Err(err) => error!("{err}"),
+            }
         }
 
         Ok(nfo)

@@ -16,3 +16,6 @@ anyhow.workspace = true
 validator.workspace = true
 getset.workspace = true
 colored.workspace = true
+log.workspace = true
+env_logger.workspace = true
+whoami.workspace = true

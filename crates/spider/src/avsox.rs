@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use log::info;
 use nfo::Nfo;
 use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
@@ -213,6 +214,7 @@ impl Finder for Avsox {
 
         nfo.set_rating(0.1);
 
+        info!("从avsox找到nfo > {nfo}");
         Ok(nfo)
     }
 }

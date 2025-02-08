@@ -5,6 +5,7 @@ use std::sync::Arc;
 use anyhow::{bail, Result};
 use colored::Colorize;
 use config::Config;
+use log::info;
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
@@ -12,6 +13,7 @@ use tokio::task::JoinSet;
 use validator::Validate;
 use video::{Video, VideoFile, VideoType};
 
+use super::bar::Bar;
 use super::helper::Helper;
 use super::message::Message;
 use super::payload::Payload;
@@ -23,11 +25,13 @@ pub struct App {
     succeed: Vec<String>,
     failed: Vec<String>,
     helper: Arc<Helper>,
+    bar: Arc<Bar>,
 }
 
 impl App {
-    pub fn new(config: Config) -> Result<App> {
+    pub async fn new(config: Config) -> Result<App> {
         let helper = Helper::new(&config)?;
+        let bar = Bar::new().await;
         let app = App {
             tasks: JoinSet::new(),
             config,
@@ -35,13 +39,10 @@ impl App {
             failed: Vec::new(),
             videos: HashMap::new(),
             helper: Arc::new(helper),
+            bar: Arc::new(bar),
         };
 
         Ok(app)
-    }
-
-    fn has_finished(&self) -> usize {
-        self.succeed.len() + self.failed.len()
     }
 
     async fn start_all_tasks(&mut self) -> Result<Receiver<Message>> {
@@ -49,9 +50,11 @@ impl App {
         for video in self.videos.clone().into_values() {
             let tx = tx.clone();
             let helper = self.helper.clone();
+            let bar = self.bar.clone();
             self.tasks.spawn(async move {
                 let name = video.ty().name();
-                let msg = match Self::process_video(video, helper).await {
+                info!("已加入队列 > {name}");
+                let msg = match Self::process_video(video, helper, bar).await {
                     Ok(payload) => Message::Loaded(Box::new(payload)),
                     Err(e) => Message::Failed(name, e.to_string()),
                 };
@@ -71,29 +74,24 @@ impl App {
         }
 
         self.wait_for_all_tasks().await?;
-        self.summary();
+        self.summary().await;
 
         Ok(())
     }
 
     fn print_bar(&self, name: &str) {
-        println!(
-            "\r{:=^width$}",
-            format!(
-                " {} ({}/{}) ",
-                name,
-                self.has_finished() + 1,
-                self.videos.len(),
-            )
-            .yellow(),
+        self.bar.message(format!(
+            "{:=^width$}",
+            format!(" {} ", name).yellow(),
             width = app::LINE_LENGTH,
-        );
+        ));
     }
 
-    async fn process_video(video: Video, helper: Arc<Helper>) -> Result<Payload> {
+    async fn process_video(video: Video, helper: Arc<Helper>, bar: Arc<Bar>) -> Result<Payload> {
         let _permit = helper.sema.acquire().await?;
 
         let mut nfo = helper.spider.find(video.ty().clone()).await?;
+        info!("找到nfo > {nfo}");
         nfo.validate()?;
 
         let title_task = tokio::spawn({
@@ -108,13 +106,15 @@ impl App {
         });
 
         if let Some(title) = title_task.await?? {
+            info!("已翻译 > {title}");
             nfo.set_title(title);
         }
         if let Some(plot) = plot_task.await?? {
+            info!("已翻译 > {plot}");
             nfo.set_plot(plot);
         }
 
-        Ok(Payload::new(video, nfo))
+        Ok(Payload::new(video, nfo, bar))
     }
 
     async fn handle_succeed(&mut self, payload: &Payload) -> Result<()> {
@@ -122,7 +122,9 @@ impl App {
         payload.write_all_to(&out).await?;
         payload.move_videos_to(&out).await?;
 
+        self.bar.add().await;
         let name = payload.video().ty().name();
+        info!("完成 > {name}");
         self.succeed.push(name);
         Ok(())
     }
@@ -139,7 +141,7 @@ impl App {
 
     async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
         let out = self.concat_rule(payload);
-        println!("\r> {}", out.display());
+        self.bar.message(format!("> {}", out.display()));
         if out.is_file() {
             bail!("输出路径是文件, 无法创建文件夹");
         }
@@ -151,10 +153,12 @@ impl App {
         Ok(out)
     }
 
-    fn handle_failed(&mut self, name: String, err: String) {
-        println!("\r{}", "failed".red());
-        println!("\r{err}");
+    async fn handle_failed(&mut self, name: String, err: String) {
+        self.bar.message(format!("{}", "failed".red()));
+        self.bar.message(err);
 
+        self.bar.add().await;
+        info!("失败 > {name}");
         self.failed.push(name);
     }
 
@@ -164,11 +168,11 @@ impl App {
             Message::Loaded(payload) => {
                 if let Err(err) = self.handle_succeed(&payload).await {
                     let name = payload.video().ty().name();
-                    self.handle_failed(name, err.to_string());
+                    self.handle_failed(name, err.to_string()).await;
                 }
             }
             Message::Failed(name, err) => {
-                self.handle_failed(name, err);
+                self.handle_failed(name, err).await;
             }
         }
 
@@ -183,18 +187,21 @@ impl App {
         Ok(())
     }
 
-    fn summary(&self) {
+    async fn summary(&self) {
+        self.bar.finish().await;
         println!(
-            "\r{:=^width$}",
+            "{:=^width$}",
             " Summary ".yellow(),
             width = app::LINE_LENGTH
         );
+        info!("成功: {}({})", self.succeed.len(), self.succeed.join(", "));
         println!(
-            "\r{}",
+            "{}",
             format!("成功: {}({})", self.succeed.len(), self.succeed.join(", ")).green()
         );
+        info!("失败: {}({})", self.failed.len(), self.failed.join(", "));
         println!(
-            "\r{}",
+            "{}",
             format!("失败: {}({})", self.failed.len(), self.failed.join(", ")).red()
         );
     }
@@ -226,15 +233,16 @@ impl App {
             }
         }
 
-        println!(
-            "\r共找到视频: {}({})",
-            self.videos.len(),
-            self.videos
-                .values()
-                .map(|video| video.ty().name())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        self.bar.set_total(self.videos.len()).await;
+        let videos = self
+            .videos
+            .values()
+            .map(|video| video.ty().name())
+            .collect::<Vec<_>>()
+            .join(", ");
+        info!("共找到视频: {}({})", self.videos.len(), videos);
+        self.bar
+            .message(format!("共找到视频: {}({})", self.videos.len(), videos));
 
         Ok(())
     }
@@ -252,6 +260,7 @@ impl App {
 
             let should_pass = excludes.iter().any(|e| e == name);
             if should_pass {
+                info!("跳过 > {}", file.display());
                 continue;
             }
 
@@ -261,6 +270,7 @@ impl App {
                 continue;
             }
 
+            info!("找到视频 > {}", file.display());
             files.push(file);
         }
 

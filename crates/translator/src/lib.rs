@@ -7,6 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use config::Config;
 use config::Translator as CfgTranslator;
+use log::info;
 use tokio::time;
 use youdao::Youdao;
 
@@ -30,6 +31,9 @@ impl Translator {
             }
         }
         let translator = Translator { handlers };
+        if translator.handlers.is_empty() {
+            info!("未启用翻译");
+        }
 
         Ok(translator)
     }
