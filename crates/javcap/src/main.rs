@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 
@@ -6,7 +7,7 @@ use colored::Colorize;
 use config::Config;
 use env_logger::{Builder, Target};
 use javcap::App;
-use log::{info, LevelFilter};
+use log::info;
 use self_update::backends::github::Update;
 use self_update::Status;
 use tokio::fs;
@@ -91,8 +92,14 @@ async fn init_logger() -> Result<()> {
         .write(true)
         .open(log_file)?;
 
-    Builder::new()
-        .filter_level(LevelFilter::Info)
+    if env::var("LOG")
+        .ok()
+        .map(|log| log.is_empty())
+        .unwrap_or(true)
+    {
+        env::set_var("LOG", "info");
+    }
+    Builder::from_env("LOG")
         .target(Target::Pipe(Box::new(log_file)))
         .init();
 
