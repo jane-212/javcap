@@ -174,7 +174,7 @@ impl Finder for Javdb {
                         "演員" => {
                             let actors = value
                                 .lines()
-                                .map(|line| line.trim().trim_end_matches("♂♀"))
+                                .map(|line| line.trim().trim_end_matches(['♂', '♀']))
                                 .collect::<Vec<_>>();
                             for actor in actors {
                                 nfo.actors_mut().insert(actor.to_string());

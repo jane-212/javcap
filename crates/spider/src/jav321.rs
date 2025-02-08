@@ -75,6 +75,7 @@ impl Finder for Jav321 {
                 nfo.set_title(title.trim().to_string());
             }
 
+            let mut poster = None;
             if let Some(body) = panel.find(Name("div").and(Class("panel-body"))).next() {
                 if let Some(plot) = body
                     .last_child()
@@ -84,6 +85,13 @@ impl Finder for Jav321 {
                 {
                     nfo.set_plot(plot);
                 }
+
+                poster = body
+                    .first_child()
+                    .and_then(|node| node.first_child())
+                    .and_then(|node| node.first_child())
+                    .and_then(|node| node.attr("src"))
+                    .map(|src| src.to_string());
 
                 if let Some(info) = body.first_child().and_then(|child| child.last_child()) {
                     let mut s = Vec::new();
@@ -155,7 +163,6 @@ impl Finder for Jav321 {
             }
 
             let mut fanart = None;
-            let mut poster = None;
             if let Some(items) = html.find(Name("div").and(Class("col-md-3"))).last() {
                 if let Some(src) = items
                     .first_child()
@@ -165,17 +172,6 @@ impl Finder for Jav321 {
                     .and_then(|node| node.attr("src"))
                 {
                     fanart = Some(src.to_string());
-                }
-
-                if let Some(src) = items
-                    .children()
-                    .nth(1)
-                    .and_then(|child| child.first_child())
-                    .and_then(|child| child.first_child())
-                    .and_then(|child| child.first_child())
-                    .and_then(|node| node.attr("src"))
-                {
-                    poster = Some(src.to_string());
                 }
             }
 
