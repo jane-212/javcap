@@ -52,6 +52,11 @@ colored = "3.0.0"
 select = "0.6.0"
 log = "0.4.25"
 env_logger = "0.11.6"
+self_update = { version = "0.42.0", features = [
+    "archive-tar",
+    "archive-zip",
+    "rustls",
+] }
 
 [profile.release]
 lto = true

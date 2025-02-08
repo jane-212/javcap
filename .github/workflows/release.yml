@@ -1,148 +1,47 @@
 name: release
 
-# Only do the release on x.y.z tags.
 on:
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
 
-# We need this to be able to create releases.
 permissions:
   contents: write
 
 jobs:
-  # The create-release job runs purely to initialize the GitHub release itself,
-  # and names the release after the `x.y.z` tag that was pushed. It's separate
-  # from building the release so that we only create the release once.
-  create-release:
-    name: create-release
+  release:
+    name: release ${{ matrix.target }}
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Get the release version from the tag
-        if: env.VERSION == ''
-        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
-      - name: Show the version
-        run: |
-          echo "version is: $VERSION"
-      - name: Create GitHub release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create $VERSION --draft --generate-notes --verify-tag --title $VERSION
-    outputs:
-      version: ${{ env.VERSION }}
-
-  build-release:
-    name: build-release
-    needs: ["create-release"]
-    runs-on: ${{ matrix.os }}
-    env:
-      RUST_BACKTRACE: 1
     strategy:
       fail-fast: false
       matrix:
         include:
-          - build: linux-x86-musl
-            os: ubuntu-latest
-            rust: stable
-            target: x86_64-unknown-linux-musl
-          - build: linux-x86-gnu
-            os: ubuntu-latest
-            rust: stable
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-pc-windows-gnu
+            archive: zip
+          - target: x86_64-pc-windows-msvc
+            archive: zip
 
-          - build: linux-aarch64-musl
-            os: ubuntu-latest
-            rust: stable
-            target: aarch64-unknown-linux-musl
-          - build: linux-aarch64-gnu
-            os: ubuntu-latest
-            rust: stable
-            target: aarch64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz
+          - target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+          - target: aarch64-unknown-linux-musl
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            archive: tar.gz
 
-          - build: macos-aarch64
-            os: macos-latest
-            rust: stable
-            target: aarch64-apple-darwin
-          - build: macos-x86
-            os: macos-latest
-            rust: stable
-            target: x86_64-apple-darwin
-
-          - build: windows-x86
-            os: windows-latest
-            rust: stable
-            target: x86_64-pc-windows-msvc
+          - target: x86_64-apple-darwin
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            archive: tar.gz
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@master
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Set target variables
-        shell: bash
-        run: |
-          echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
-          echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
-
-      - name: Show command used for Cargo
-        shell: bash
-        run: |
-          echo "target flag is: ${{ env.TARGET_FLAGS }}"
-          echo "target dir is: ${{ env.TARGET_DIR }}"
-
-      - name: Build release binary
-        shell: bash
-        run: |
-          cargo install cross
-          cross build --verbose --release ${{ env.TARGET_FLAGS }}
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            bin="target/${{ matrix.target }}/release/javcap.exe"
-          else
-            bin="target/${{ matrix.target }}/release/javcap"
-          fi
-          echo "BIN=$bin" >> $GITHUB_ENV
-        env:
-          VERSION: ${{ needs.create-release.outputs.version }}
-
-      - name: Determine archive name
-        shell: bash
-        run: |
-          version="${{ needs.create-release.outputs.version }}"
-          echo "ARCHIVE=javcap-$version-${{ matrix.target }}" >> $GITHUB_ENV
-
-      - name: Creating directory for archive
-        shell: bash
-        run: |
-          mkdir -p "$ARCHIVE"
-          cp "$BIN" "$ARCHIVE"/
-          cp LICENSE "$ARCHIVE"/
-
-      - name: Build archive (Windows)
-        shell: bash
-        if: matrix.os == 'windows-latest'
-        run: |
-          7z a "$ARCHIVE.zip" "$ARCHIVE"
-          echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
-
-      - name: Build archive (Unix)
-        shell: bash
-        if: matrix.os != 'windows-latest'
-        run: |
-          tar czf "$ARCHIVE.tar.gz" "$ARCHIVE"
-          echo "ASSET=$ARCHIVE.tar.gz" >> $GITHUB_ENV
-
-      - name: Upload release archive
+      - name: Compile and release
+        uses: rust-build/rust-build.action@v1.4.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          version="${{ needs.create-release.outputs.version }}"
-          gh release upload "$version" ${{ env.ASSET }}
+        with:
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}

@@ -1,3 +1,6 @@
+# 是否检查更新
+check_for_update = false
+
 # 同时进行的任务数量
 task_limit = 3
 
