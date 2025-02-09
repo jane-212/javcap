@@ -89,7 +89,7 @@ impl VideoType {
         let name = name.as_ref().to_uppercase();
 
         let (_, (id, key, idx)) = Self::_parse(&name).map_err(|err| anyhow!("{err}"))?;
-        info!("parse video({name}) > id({id})-key({key})-idx({idx})");
+        info!("parse {name} to {id}-{key}-{idx}");
 
         let ty = match id {
             "FC2-PPV" => Self::fc2(key),

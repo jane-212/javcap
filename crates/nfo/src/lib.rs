@@ -75,6 +75,24 @@ impl Nfo {
         }
     }
 
+    pub fn auto_fix(&mut self) {
+        self.rating = self.rating.max(0.1);
+        if self.plot.is_empty() {
+            self.plot = self.title.clone();
+        }
+        if self.director.is_empty() {
+            self.director = self.studio.clone();
+        }
+        if self.genres.is_empty() {
+            let director = self.director.clone();
+            self.genres_mut().insert(director);
+        }
+        if self.actors.is_empty() {
+            let director = self.director.clone();
+            self.actors_mut().insert(director);
+        }
+    }
+
     pub fn summary(&self) -> String {
         formatdoc!(
             "

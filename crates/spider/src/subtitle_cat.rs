@@ -134,6 +134,8 @@ impl Finder for SubtitleCat {
                 .send()
                 .await
                 .with_context(|| format!("send to {url}"))?
+                .error_for_status()
+                .with_context(|| "error status")?
                 .text()
                 .await
                 .with_context(|| format!("decode to text from {url}"))?;

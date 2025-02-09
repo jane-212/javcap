@@ -4,7 +4,7 @@ use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
-use log::{info, warn};
+use log::info;
 use nfo::Nfo;
 use select::document::Document;
 use select::node::Node;
@@ -69,14 +69,6 @@ impl Finder for Avsox {
         let name = key.name();
         let mut nfo = Nfo::new(&name);
 
-        match key {
-            VideoType::Jav(_, _) => {
-                warn!("jav type video not supported, skip({name})");
-                return Ok(nfo);
-            }
-            VideoType::Fc2(_) => {}
-        }
-
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
@@ -110,8 +102,7 @@ impl Finder for Avsox {
             {
                 if let Some(title) = img.attr("title") {
                     let title = title.trim().to_string();
-                    nfo.set_title(title.clone());
-                    nfo.set_plot(title);
+                    nfo.set_title(title);
                 }
 
                 if let Some(src) = img.attr("src") {
@@ -189,6 +180,16 @@ impl Finder for Avsox {
                 let mut pairs = Vec::new();
                 let mut prefix = "".to_string();
                 for item in container.find(Name("div").and(Class("col-md-3")).child(Name("p"))) {
+                    let mut skip = false;
+                    for genre in item.find(Name("span").and(Class("genre")).child(Name("a"))) {
+                        let genre = genre.text();
+                        nfo.genres_mut().insert(genre);
+                        skip = true;
+                    }
+                    if skip {
+                        continue;
+                    }
+
                     let text = item.text();
                     let text = text.trim();
 
@@ -213,11 +214,7 @@ impl Finder for Avsox {
                             nfo.set_studio(pair.1);
                         }
                         "系列" => {
-                            if nfo.director().is_empty() {
-                                nfo.set_director(pair.1.clone());
-                            }
-                            nfo.actors_mut().insert(pair.1.clone());
-                            nfo.genres_mut().insert(pair.1);
+                            nfo.set_director(pair.1);
                         }
                         "长度" => {
                             let number: String =
@@ -246,8 +243,6 @@ impl Finder for Avsox {
                 nfo.set_fanart(fanart.to_vec());
             }
         }
-
-        nfo.set_rating(0.1);
 
         info!("{}", nfo.summary());
         Ok(nfo)

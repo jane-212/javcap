@@ -73,7 +73,7 @@ impl Finder for Hbox {
         let content = self
             .find_name(&name)
             .await
-            .with_context(|| "find name for {name}")?;
+            .with_context(|| format!("find name for {name}"))?;
         nfo.set_title(content.title);
         nfo.set_plot(content.description);
         nfo.set_premiered(content.release_date);

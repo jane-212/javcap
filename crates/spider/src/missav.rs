@@ -36,6 +36,8 @@ impl Missav {
             .send()
             .await
             .with_context(|| format!("send to {url}"))?
+            .error_for_status()
+            .with_context(|| "error status")?
             .bytes()
             .await
             .with_context(|| format!("decode to bytes from {url}"))?
