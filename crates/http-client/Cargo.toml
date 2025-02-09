@@ -1,0 +1,13 @@
+[package]
+name = "http-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+app.workspace = true
+
+reqwest.workspace = true
+bon.workspace = true
+anyhow.workspace = true
+ratelimit.workspace = true
+tokio.workspace = true

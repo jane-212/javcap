@@ -2,45 +2,29 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use http_client::Client;
 use log::info;
 use nfo::Nfo;
-use ratelimit::Ratelimiter;
-use reqwest::{Client, Proxy};
 use select::document::Document;
 use select::predicate::{Attr, Class, Name, Predicate};
-use tokio::time;
 use video::VideoType;
 
 use super::Finder;
 
 pub struct SubtitleCat {
-    limiter: Ratelimiter,
     client: Client,
 }
 
 impl SubtitleCat {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<SubtitleCat> {
-        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
-            .initial_available(1)
+        let client = Client::builder()
+            .timeout(timeout)
+            .interval(2)
+            .maybe_proxy(proxy)
             .build()?;
-        let mut client_builder = Client::builder().timeout(timeout);
-        if let Some(url) = proxy {
-            let proxy = Proxy::all(url)?;
-            client_builder = client_builder.proxy(proxy);
-        }
-        let client = client_builder.build()?;
-        let subtitle_cat = SubtitleCat { client, limiter };
 
+        let subtitle_cat = SubtitleCat { client };
         Ok(subtitle_cat)
-    }
-
-    async fn wait_limiter(&self) {
-        loop {
-            match self.limiter.try_wait() {
-                Ok(_) => break,
-                Err(sleep) => time::sleep(sleep).await,
-            }
-        }
     }
 }
 
@@ -50,9 +34,10 @@ impl Finder for SubtitleCat {
         let mut nfo = Nfo::new(key.name());
 
         let url = "https://www.subtitlecat.com/index.php";
-        self.wait_limiter().await;
         let text = self
             .client
+            .wait()
+            .await
             .get(url)
             .query(&[("search", key.name())])
             .send()
@@ -97,8 +82,15 @@ impl Finder for SubtitleCat {
             return Ok(nfo);
         };
 
-        self.wait_limiter().await;
-        let text = self.client.get(url).send().await?.text().await?;
+        let text = self
+            .client
+            .wait()
+            .await
+            .get(url)
+            .send()
+            .await?
+            .text()
+            .await?;
         let url = {
             let html = Document::from(text.as_str());
 
@@ -124,19 +116,22 @@ impl Finder for SubtitleCat {
             url
         };
         if let Some(url) = url {
-            self.wait_limiter().await;
-            let subtitle = self.client.get(url).send().await?.text().await?;
+            let subtitle = self
+                .client
+                .wait()
+                .await
+                .get(url)
+                .send()
+                .await?
+                .text()
+                .await?;
             if subtitle.contains("html") && subtitle.contains("404") {
                 return Ok(nfo);
             }
             nfo.set_subtitle(subtitle.into_bytes());
         }
 
-        info!(
-            "从subtitle找到字幕({}) > {}",
-            key.name(),
-            nfo.subtitle().len()
-        );
+        info!("{}", nfo.summary());
         Ok(nfo)
     }
 }

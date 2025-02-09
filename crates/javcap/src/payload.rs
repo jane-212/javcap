@@ -109,7 +109,12 @@ impl Payload {
             let src = video.location();
             fs::rename(src, &out).await?;
             info!("{}({}) > {}", src.display(), name, out.display());
-            self.bar.message(format!("\r视频...{}", "ok".green()));
+            let msg = if *idx == 0 {
+                format!("视频...{}", "ok".green())
+            } else {
+                format!("视频({idx})...{}", "ok".green())
+            };
+            self.bar.message(msg);
         }
 
         Ok(())

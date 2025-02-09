@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::{bail, Result};
 use colored::Colorize;
 use config::Config;
-use log::info;
+use log::{info, warn};
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
@@ -91,7 +91,7 @@ impl App {
         let _permit = helper.sema.acquire().await?;
 
         let mut nfo = helper.spider.find(video.ty().clone()).await?;
-        info!("找到nfo > {nfo}");
+        info!("{}", nfo.summary());
         nfo.validate()?;
 
         let title_task = tokio::spawn({
@@ -156,10 +156,10 @@ impl App {
 
     async fn handle_failed(&mut self, name: String, err: String) {
         self.bar.message(format!("{}", "failed".red()));
-        self.bar.message(err);
+        self.bar.message(&err);
 
         self.bar.add().await;
-        info!("失败 > {name}");
+        warn!("失败({name}) > {err}");
         self.failed.push(name);
     }
 

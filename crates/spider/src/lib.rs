@@ -1,4 +1,5 @@
 mod avsox;
+mod hbox;
 mod jav321;
 mod javdb;
 mod missav;
@@ -11,6 +12,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use avsox::Avsox;
 use config::Config;
+use hbox::Hbox;
 use jav321::Jav321;
 use javdb::Javdb;
 use log::error;
@@ -51,6 +53,7 @@ impl Spider {
                     .maybe_proxy(proxy.clone())
                     .build()?,
             ),
+            Arc::new(Hbox::new(timeout, proxy.clone())?),
         ];
 
         let spider = Spider { finders };

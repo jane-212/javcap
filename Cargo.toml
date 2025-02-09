@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/app",
     "crates/config",
+    "crates/http-client",
     "crates/javcap",
     "crates/nfo",
     "crates/spider",
@@ -17,6 +18,7 @@ video = { path = "crates/video" }
 nfo = { path = "crates/nfo" }
 spider = { path = "crates/spider" }
 translator = { path = "crates/translator" }
+http-client = { path = "crates/http-client" }
 
 anyhow = "1.0.95"
 tokio = { version = "1.43.0", features = [

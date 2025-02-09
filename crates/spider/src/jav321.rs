@@ -2,45 +2,29 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use http_client::Client;
 use log::info;
 use nfo::Nfo;
-use ratelimit::Ratelimiter;
-use reqwest::{Client, Proxy};
 use select::document::Document;
 use select::predicate::{Class, Name, Predicate};
-use tokio::time;
 use video::VideoType;
 
 use super::Finder;
 
 pub struct Jav321 {
     client: Client,
-    limiter: Ratelimiter,
 }
 
 impl Jav321 {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Jav321> {
-        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
-            .initial_available(1)
+        let client = Client::builder()
+            .timeout(timeout)
+            .interval(2)
+            .maybe_proxy(proxy)
             .build()?;
-        let mut client_builder = Client::builder().timeout(timeout);
-        if let Some(url) = proxy {
-            let proxy = Proxy::all(url)?;
-            client_builder = client_builder.proxy(proxy);
-        }
-        let client = client_builder.build()?;
 
-        let jav321 = Jav321 { client, limiter };
+        let jav321 = Jav321 { client };
         Ok(jav321)
-    }
-
-    async fn wait_limiter(&self) {
-        loop {
-            match self.limiter.try_wait() {
-                Ok(_) => break,
-                Err(sleep) => time::sleep(sleep).await,
-            }
-        }
     }
 }
 
@@ -52,9 +36,10 @@ impl Finder for Jav321 {
         nfo.set_mpaa("NC-17".to_string());
 
         let url = "https://www.jav321.com/search";
-        self.wait_limiter().await;
         let text = self
             .client
+            .wait()
+            .await
             .post(url)
             .form(&[("sn", key.name())])
             .send()
@@ -178,17 +163,31 @@ impl Finder for Jav321 {
             (fanart, poster)
         };
         if let Some(fanart) = fanart {
-            self.wait_limiter().await;
-            let fanart = self.client.get(fanart).send().await?.bytes().await?;
+            let fanart = self
+                .client
+                .wait()
+                .await
+                .get(fanart)
+                .send()
+                .await?
+                .bytes()
+                .await?;
             nfo.set_fanart(fanart.to_vec());
         }
         if let Some(poster) = poster {
-            self.wait_limiter().await;
-            let poster = self.client.get(poster).send().await?.bytes().await?;
+            let poster = self
+                .client
+                .wait()
+                .await
+                .get(poster)
+                .send()
+                .await?
+                .bytes()
+                .await?;
             nfo.set_poster(poster.to_vec());
         }
 
-        info!("从jav321找到nfo({}) > {nfo}", key.name());
+        info!("{}", nfo.summary());
         Ok(nfo)
     }
 }

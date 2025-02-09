@@ -3,21 +3,18 @@ use std::time::Duration;
 use anyhow::Result;
 use async_trait::async_trait;
 use bon::bon;
+use http_client::Client;
 use log::info;
 use nfo::Nfo;
-use ratelimit::Ratelimiter;
-use reqwest::{Client, Proxy};
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Attr, Class, Name, Predicate};
-use tokio::time;
 use video::VideoType;
 
 use super::Finder;
 
 pub struct Avsox {
     base_url: String,
-    limiter: Ratelimiter,
     client: Client,
 }
 
@@ -29,33 +26,17 @@ impl Avsox {
         timeout: Duration,
         proxy: Option<String>,
     ) -> Result<Avsox> {
-        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
-            .initial_available(1)
-            .build()?;
-        let mut client_builder = Client::builder()
+        let client = Client::builder()
             .timeout(timeout)
-            .user_agent(app::USER_AGENT);
-        if let Some(url) = proxy {
-            let proxy = Proxy::all(url)?;
-            client_builder = client_builder.proxy(proxy);
-        }
-        let client = client_builder.build()?;
+            .interval(2)
+            .maybe_proxy(proxy)
+            .build()?;
         let avsox = Avsox {
             base_url: base_url.unwrap_or("https://avsox.click".to_string()),
             client,
-            limiter,
         };
 
         Ok(avsox)
-    }
-
-    async fn wait_limiter(&self) {
-        loop {
-            match self.limiter.try_wait() {
-                Ok(_) => break,
-                Err(sleep) => time::sleep(sleep).await,
-            }
-        }
     }
 
     fn find_item<'a>(html: &'a Document, key: &VideoType) -> Option<Node<'a>> {
@@ -85,8 +66,15 @@ impl Finder for Avsox {
         nfo.set_mpaa("NC-17".to_string());
 
         let url = format!("{}/cn/search/{}", self.base_url, key.name());
-        self.wait_limiter().await;
-        let text = self.client.get(url).send().await?.text().await?;
+        let text = self
+            .client
+            .wait()
+            .await
+            .get(url)
+            .send()
+            .await?
+            .text()
+            .await?;
         let (url, poster) = {
             let html = Document::from(text.as_str());
 
@@ -138,15 +126,29 @@ impl Finder for Avsox {
             (url, poster)
         };
         if let Some(poster) = poster {
-            self.wait_limiter().await;
-            let poster = self.client.get(poster).send().await?.bytes().await?;
+            let poster = self
+                .client
+                .wait()
+                .await
+                .get(poster)
+                .send()
+                .await?
+                .bytes()
+                .await?;
             nfo.set_poster(poster.to_vec());
         }
 
         if let Some(url) = url {
             let url = format!("https:{url}");
-            self.wait_limiter().await;
-            let text = self.client.get(url).send().await?.text().await?;
+            let text = self
+                .client
+                .wait()
+                .await
+                .get(url)
+                .send()
+                .await?
+                .text()
+                .await?;
             let fanart = {
                 let html = Document::from(text.as_str());
 
@@ -209,15 +211,22 @@ impl Finder for Avsox {
                 fanart
             };
             if let Some(fanart) = fanart {
-                self.wait_limiter().await;
-                let fanart = self.client.get(fanart).send().await?.bytes().await?;
+                let fanart = self
+                    .client
+                    .wait()
+                    .await
+                    .get(fanart)
+                    .send()
+                    .await?
+                    .bytes()
+                    .await?;
                 nfo.set_fanart(fanart.to_vec());
             }
         }
 
         nfo.set_rating(0.1);
 
-        info!("从avsox找到nfo({}) > {nfo}", key.name());
+        info!("{}", nfo.summary());
         Ok(nfo)
     }
 }
