@@ -156,8 +156,8 @@ impl Handler for Youdao {
         }
 
         let Some(translated) = res.translation.map(|trans| trans.join("\n")) else {
-            info!("translate failed, no reponse");
-            bail!("translate failed, no reponse");
+            info!("translate failed, no response");
+            bail!("translate failed, no response");
         };
 
         Ok(translated)
