@@ -3,13 +3,11 @@ use std::time::Duration;
 use anyhow::Result;
 use async_trait::async_trait;
 use bon::bon;
+use http_client::Client;
 use log::info;
 use nfo::Nfo;
-use ratelimit::Ratelimiter;
-use reqwest::{Client, Proxy};
 use select::document::Document;
 use select::predicate::{Class, Name, Predicate};
-use tokio::time;
 use video::VideoType;
 
 use super::Finder;
@@ -17,7 +15,6 @@ use super::Finder;
 pub struct Javdb {
     base_url: String,
     client: Client,
-    limiter: Ratelimiter,
 }
 
 #[bon]
@@ -28,31 +25,17 @@ impl Javdb {
         timeout: Duration,
         proxy: Option<String>,
     ) -> Result<Javdb> {
-        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
-            .initial_available(1)
+        let client = Client::builder()
+            .timeout(timeout)
+            .interval(2)
+            .maybe_proxy(proxy)
             .build()?;
-        let mut client_builder = Client::builder().timeout(timeout);
-        if let Some(url) = proxy {
-            let proxy = Proxy::all(url)?;
-            client_builder = client_builder.proxy(proxy);
-        }
-        let client = client_builder.build()?;
 
         let javdb = Javdb {
             base_url: base_url.unwrap_or("https://javdb.com".to_string()),
             client,
-            limiter,
         };
         Ok(javdb)
-    }
-
-    async fn wait_limiter(&self) {
-        loop {
-            match self.limiter.try_wait() {
-                Ok(_) => break,
-                Err(sleep) => time::sleep(sleep).await,
-            }
-        }
     }
 }
 
@@ -64,9 +47,10 @@ impl Finder for Javdb {
         nfo.set_mpaa("NC-17".to_string());
 
         let url = format!("{}/search", self.base_url);
-        self.wait_limiter().await;
         let text = self
             .client
+            .wait()
+            .await
             .get(url)
             .query(&[("q", key.name().as_str()), ("f", "all")])
             .send()
@@ -132,8 +116,15 @@ impl Finder for Javdb {
         };
 
         if let Some(url) = url {
-            self.wait_limiter().await;
-            let text = self.client.get(url).send().await?.text().await?;
+            let text = self
+                .client
+                .wait()
+                .await
+                .get(url)
+                .send()
+                .await?
+                .text()
+                .await?;
             {
                 let html = Document::from(text.as_str());
 
@@ -189,7 +180,7 @@ impl Finder for Javdb {
             }
         }
 
-        info!("从javdb找到nfo({}) > {nfo}", key.name());
+        info!("{}", nfo.summary());
         Ok(nfo)
     }
 }

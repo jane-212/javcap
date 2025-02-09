@@ -1,9 +1,9 @@
 use std::collections::HashSet;
-use std::fmt::Display;
+use std::fmt::{self, Display};
 use std::hash::Hash;
 
 use getset::{Getters, MutGetters, Setters};
-use indoc::writedoc;
+use indoc::{formatdoc, writedoc};
 use validator::Validate;
 
 #[derive(Default, Setters, Getters, MutGetters, Validate)]
@@ -75,6 +75,19 @@ impl Nfo {
         }
     }
 
+    pub fn summary(&self) -> String {
+        formatdoc!(
+            "
+            {self}
+            fanart: {}
+            poster: {}
+            subtitle: {}",
+            self.fanart.len(),
+            self.poster.len(),
+            self.subtitle.len(),
+        )
+    }
+
     pub fn merge(&mut self, other: Nfo) {
         self.title.merge(other.title);
         self.rating.merge(other.rating);
@@ -136,7 +149,7 @@ impl Merge for String {
 }
 
 impl Display for Nfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writedoc!(
             f,
             "
@@ -156,8 +169,7 @@ impl Display for Nfo {
                 <premiered>{premiered}</premiered>
                 <studio>{studio}</studio>
             {actors}
-            </movie>
-            ",
+            </movie>",
             title = self.title,
             rating = self.rating,
             plot = self.plot,

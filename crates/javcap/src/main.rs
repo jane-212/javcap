@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
+use std::process::ExitCode;
 
 use anyhow::Result;
 use colored::Colorize;
@@ -14,13 +15,18 @@ use tokio::fs;
 use validator::Validate;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> ExitCode {
     println!("{}", ">".repeat(app::LINE_LENGTH).yellow());
-    if let Err(e) = run().await {
-        println!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
-        eprintln!("{}", e);
-    }
+    let code = match run().await {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
+            eprintln!("{}", e);
+            ExitCode::FAILURE
+        }
+    };
     println!("{}", "<".repeat(app::LINE_LENGTH).yellow());
+    code
 }
 
 async fn run() -> Result<()> {
@@ -43,7 +49,7 @@ async fn run() -> Result<()> {
         }
 
         info!("已是最新版本");
-        println!("\r已是最新版本");
+        println!("\n已是最新版本");
     }
 
     let app = App::new(config).await?;

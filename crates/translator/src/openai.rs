@@ -10,7 +10,6 @@ use async_openai::Client;
 use async_trait::async_trait;
 use bon::bon;
 use indoc::formatdoc;
-use ratelimit::Ratelimiter;
 use reqwest::Proxy;
 
 use super::Handler;
@@ -18,7 +17,6 @@ use super::Handler;
 pub struct Openai {
     client: Client<OpenAIConfig>,
     model: String,
-    limiter: Ratelimiter,
 }
 
 #[bon]
@@ -31,9 +29,6 @@ impl Openai {
         timeout: Duration,
         proxy: Option<String>,
     ) -> Result<Openai> {
-        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
-            .initial_available(1)
-            .build()?;
         let mut client_builder = reqwest::Client::builder().timeout(timeout);
         if let Some(url) = proxy {
             let proxy = Proxy::all(url)?;
@@ -45,7 +40,6 @@ impl Openai {
         let openai = Openai {
             client,
             model: model.into(),
-            limiter,
         };
 
         Ok(openai)
@@ -94,12 +88,5 @@ impl Handler for Openai {
             .await?;
 
         Ok(translated)
-    }
-
-    fn wait(&self) -> Option<Duration> {
-        match self.limiter.try_wait() {
-            Ok(_) => None,
-            Err(sleep) => Some(sleep),
-        }
     }
 }

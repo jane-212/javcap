@@ -4,7 +4,6 @@ use anyhow::{bail, Result};
 use async_trait::async_trait;
 use bon::bon;
 use log::info;
-use ratelimit::Ratelimiter;
 use reqwest::{Client, Proxy};
 use serde::Deserialize;
 use sha256::digest;
@@ -16,7 +15,6 @@ pub struct Youdao {
     client: Client,
     key: String,
     secret: String,
-    limiter: Ratelimiter,
 }
 
 #[bon]
@@ -28,9 +26,6 @@ impl Youdao {
         timeout: Duration,
         proxy: Option<String>,
     ) -> Result<Youdao> {
-        let limiter = Ratelimiter::builder(1, Duration::from_secs(1))
-            .initial_available(1)
-            .build()?;
         let mut client_builder = Client::builder().timeout(timeout);
         if let Some(url) = proxy {
             let proxy = Proxy::all(url)?;
@@ -41,7 +36,6 @@ impl Youdao {
             client,
             key: key.into(),
             secret: secret.into(),
-            limiter,
         };
 
         Ok(youdao)
@@ -158,12 +152,5 @@ impl Handler for Youdao {
         };
 
         Ok(translated)
-    }
-
-    fn wait(&self) -> Option<Duration> {
-        match self.limiter.try_wait() {
-            Ok(_) => None,
-            Err(sleep) => Some(sleep),
-        }
     }
 }

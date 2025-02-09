@@ -10,11 +10,12 @@ use config::Config;
 use config::Translator as CfgTranslator;
 use log::info;
 use openai::Openai;
+use ratelimit::Ratelimiter;
 use tokio::time;
 use youdao::Youdao;
 
 pub struct Translator {
-    handlers: Vec<Arc<dyn Handler>>,
+    handlers: Vec<(Ratelimiter, Arc<dyn Handler>)>,
 }
 
 impl Translator {
@@ -32,8 +33,11 @@ impl Translator {
                             .timeout(timeout)
                             .maybe_proxy(proxy.clone())
                             .build()?;
+                        let limiter = Ratelimiter::builder(1, Duration::from_secs(1))
+                            .initial_available(1)
+                            .build()?;
 
-                        Arc::new(handler) as Arc<dyn Handler>
+                        (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
                     CfgTranslator::DeepSeek { base, model, key } => {
                         let handler = Openai::builder()
@@ -43,8 +47,11 @@ impl Translator {
                             .timeout(timeout)
                             .maybe_proxy(proxy.clone())
                             .build()?;
+                        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
+                            .initial_available(1)
+                            .build()?;
 
-                        Arc::new(handler)
+                        (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
                     CfgTranslator::Openai { base, model, key } => {
                         let handler = Openai::builder()
@@ -54,8 +61,11 @@ impl Translator {
                             .timeout(timeout)
                             .maybe_proxy(proxy.clone())
                             .build()?;
+                        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
+                            .initial_available(1)
+                            .build()?;
 
-                        Arc::new(handler)
+                        (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
                 };
                 handlers.push(handler);
@@ -73,9 +83,9 @@ impl Translator {
         let handler = 'outer: loop {
             let mut times = Vec::with_capacity(self.handlers.len());
             for handler in self.handlers.iter() {
-                match handler.wait() {
-                    Some(time) => times.push(time),
-                    None => break 'outer Some(handler.clone()),
+                match handler.0.try_wait() {
+                    Ok(_) => break 'outer Some(handler.1.clone()),
+                    Err(time) => times.push(time),
                 }
             }
 
@@ -102,5 +112,4 @@ impl Translator {
 #[async_trait]
 trait Handler: Send + Sync {
     async fn translate(&self, content: &str) -> Result<String>;
-    fn wait(&self) -> Option<Duration>;
 }
