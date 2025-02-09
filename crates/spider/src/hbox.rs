@@ -124,7 +124,8 @@ struct Payload {
     #[serde(rename = "openRefine")]
     open_refine: String,
     tag_name: Option<String>,
-    auther_names: String,
+    #[serde(rename = "auther_names")]
+    author_names: String,
     cast_names: String,
     director_name: String,
     label_name: String,
