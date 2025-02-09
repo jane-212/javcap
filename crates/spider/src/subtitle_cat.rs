@@ -132,7 +132,11 @@ impl Finder for SubtitleCat {
             nfo.set_subtitle(subtitle.into_bytes());
         }
 
-        info!("从subtitle找到字幕 > {}", nfo.subtitle().len());
+        info!(
+            "从subtitle找到字幕({}) > {}",
+            key.name(),
+            nfo.subtitle().len()
+        );
         Ok(nfo)
     }
 }

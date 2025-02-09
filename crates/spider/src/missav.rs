@@ -60,7 +60,11 @@ impl Finder for Missav {
         let fanart = self.get_fanart(&key.name()).await?;
         nfo.set_fanart(fanart);
 
-        info!("从missav找到fanart > {}", nfo.fanart().len());
+        info!(
+            "从missav找到fanart({}) > {}",
+            key.name(),
+            nfo.fanart().len(),
+        );
         Ok(nfo)
     }
 }
