@@ -4,7 +4,7 @@ mod youdao;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use config::Config;
 use config::Translator as CfgTranslator;
@@ -32,10 +32,12 @@ impl Translator {
                             .secret(secret)
                             .timeout(timeout)
                             .maybe_proxy(proxy.clone())
-                            .build()?;
+                            .build()
+                            .with_context(|| "build youdao client")?;
                         let limiter = Ratelimiter::builder(1, Duration::from_secs(1))
                             .initial_available(1)
-                            .build()?;
+                            .build()
+                            .with_context(|| "build limiter")?;
 
                         (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
@@ -46,10 +48,12 @@ impl Translator {
                             .key(key)
                             .timeout(timeout)
                             .maybe_proxy(proxy.clone())
-                            .build()?;
+                            .build()
+                            .with_context(|| "build deepseek client")?;
                         let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
                             .initial_available(1)
-                            .build()?;
+                            .build()
+                            .with_context(|| "build limiter")?;
 
                         (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
@@ -60,10 +64,12 @@ impl Translator {
                             .key(key)
                             .timeout(timeout)
                             .maybe_proxy(proxy.clone())
-                            .build()?;
+                            .build()
+                            .with_context(|| "build openai client")?;
                         let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
                             .initial_available(1)
-                            .build()?;
+                            .build()
+                            .with_context(|| "build limiter")?;
 
                         (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
@@ -73,7 +79,7 @@ impl Translator {
         }
         let translator = Translator { handlers };
         if translator.handlers.is_empty() {
-            info!("未启用翻译");
+            info!("translate disabled");
         }
 
         Ok(translator)
@@ -103,7 +109,10 @@ impl Translator {
         let Some(handler) = self.wait().await else {
             return Ok(None);
         };
-        let translated = handler.translate(content).await?;
+        let translated = handler
+            .translate(content)
+            .await
+            .with_context(|| format!("in translator {}", handler.name()))?;
 
         Ok(Some(translated))
     }
@@ -111,5 +120,6 @@ impl Translator {
 
 #[async_trait]
 trait Handler: Send + Sync {
+    fn name(&self) -> &'static str;
     async fn translate(&self, content: &str) -> Result<String>;
 }

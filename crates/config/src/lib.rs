@@ -25,7 +25,7 @@ use validator::Validate;
 pub struct Config {
     pub check_for_update: bool,
 
-    #[validate(range(min = 1, message = "任务数必须大于0"))]
+    #[validate(range(min = 1, message = "should be larger than 0"))]
     pub task_limit: usize,
 
     pub translators: Option<Vec<Translator>>,
@@ -48,12 +48,15 @@ impl Config {
         let config_path = Config::config_path();
         let config_file = config_path.join("config.toml");
         if !config_file.exists() {
-            info!("配置文件不存在 > {}", config_file.display());
+            info!("config not found in {}", config_file.display());
             fs::create_dir_all(config_path).await?;
             Config::generate_default_config_file(&config_file).await?;
-            bail!("配置文件不存在, 已生成 > {}", config_file.display());
+            bail!(
+                "config not found, default config generated to {}",
+                config_file.display()
+            );
         }
-        info!("配置文件已加载 < {}", config_file.display());
+        info!("load config from {}", config_file.display());
 
         let mut config = String::new();
         OpenOptions::new()
@@ -76,7 +79,7 @@ impl Config {
             .await?
             .write_all(include_bytes!("../config.default.toml"))
             .await?;
-        info!("生成默认配置文件 > {}", path.display());
+        info!("generate default config to {}", path.display());
 
         Ok(())
     }

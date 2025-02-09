@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bon::bon;
 use colored::Colorize;
 use config::Tag;
@@ -33,9 +33,11 @@ impl Payload {
         let name = self.video.ty().name();
         let filename = format!("{name}-fanart.jpg");
         let file = path.join(filename);
-        Self::write_to_file(self.nfo.fanart(), &file).await?;
-        info!("背景({}) > {}", name, file.display());
-        self.bar.message(format!("背景...{}", "ok".green()));
+        Self::write_to_file(self.nfo.fanart(), &file)
+            .await
+            .with_context(|| format!("write to file {}", file.display()))?;
+        info!("write fanart of {} to {}", name, file.display());
+        self.bar.message(format!("fanart...{}", "ok".green()));
 
         Ok(())
     }
@@ -44,9 +46,11 @@ impl Payload {
         let name = self.video.ty().name();
         let filename = format!("{name}-poster.jpg");
         let file = path.join(filename);
-        Self::write_to_file(self.nfo.poster(), &file).await?;
-        info!("封面({}) > {}", name, file.display());
-        self.bar.message(format!("封面...{}", "ok".green()));
+        Self::write_to_file(self.nfo.poster(), &file)
+            .await
+            .with_context(|| format!("write to file {}", file.display()))?;
+        info!("write poster of {} to {}", name, file.display());
+        self.bar.message(format!("poster...{}", "ok".green()));
 
         Ok(())
     }
@@ -57,9 +61,11 @@ impl Payload {
             .truncate(true)
             .write(true)
             .open(file)
-            .await?
+            .await
+            .with_context(|| format!("open {}", file.display()))?
             .write_all(bytes)
-            .await?;
+            .await
+            .with_context(|| "write content")?;
 
         Ok(())
     }
@@ -69,8 +75,10 @@ impl Payload {
         let filename = format!("{name}.nfo");
         let file = path.join(filename);
         let nfo = self.nfo.to_string();
-        Self::write_to_file(nfo.as_bytes(), &file).await?;
-        info!("nfo({}) > {}", name, file.display());
+        Self::write_to_file(nfo.as_bytes(), &file)
+            .await
+            .with_context(|| format!("write to file {}", file.display()))?;
+        info!("write nfo of {} to {}", name, file.display());
         self.bar.message(format!("nfo...{}", "ok".green()));
 
         Ok(())
@@ -84,9 +92,11 @@ impl Payload {
         let name = self.video.ty().name();
         let filename = format!("{name}.srt");
         let file = path.join(filename);
-        Self::write_to_file(self.nfo.subtitle(), &file).await?;
-        info!("字幕({}) > {}", name, file.display());
-        self.bar.message(format!("字幕...{}", "ok".green()));
+        Self::write_to_file(self.nfo.subtitle(), &file)
+            .await
+            .with_context(|| format!("write to file {}", file.display()))?;
+        info!("write subtitle of {} to {}", name, file.display());
+        self.bar.message(format!("subtitle...{}", "ok".green()));
 
         Ok(())
     }
@@ -102,17 +112,23 @@ impl Payload {
             };
             let out = path.join(&filename);
             if out.exists() {
-                info!("文件已存在 > {}", out.display());
-                self.bar.message(format!("文件已存在 > {}", out.display()));
+                info!("video already exists {}", out.display());
+                self.bar
+                    .message(format!("video already exists {}", out.display()));
                 continue;
             }
             let src = video.location();
             fs::rename(src, &out).await?;
-            info!("{}({}) > {}", src.display(), name, out.display());
+            info!(
+                "move video of {} from {} to {}",
+                name,
+                src.display(),
+                out.display()
+            );
             let msg = if *idx == 0 {
-                format!("视频...{}", "ok".green())
+                format!("video...{}", "ok".green())
             } else {
-                format!("视频({idx})...{}", "ok".green())
+                format!("video({idx})...{}", "ok".green())
             };
             self.bar.message(msg);
         }
@@ -140,10 +156,16 @@ impl Payload {
     }
 
     pub async fn write_all_to(&self, path: &Path) -> Result<()> {
-        self.write_fanart_to(path).await?;
-        self.write_poster_to(path).await?;
-        self.write_subtitle_to(path).await?;
-        self.write_nfo_to(path).await?;
+        self.write_fanart_to(path)
+            .await
+            .with_context(|| "write fanart")?;
+        self.write_poster_to(path)
+            .await
+            .with_context(|| "write poster")?;
+        self.write_subtitle_to(path)
+            .await
+            .with_context(|| "write subtitle")?;
+        self.write_nfo_to(path).await.with_context(|| "write nfo")?;
 
         Ok(())
     }

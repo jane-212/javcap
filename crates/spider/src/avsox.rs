@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -30,7 +30,8 @@ impl Avsox {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
         let avsox = Avsox {
             base_url: base_url.unwrap_or("https://avsox.click".to_string()),
             client,
@@ -39,7 +40,7 @@ impl Avsox {
         Ok(avsox)
     }
 
-    fn find_item<'a>(html: &'a Document, key: &VideoType) -> Option<Node<'a>> {
+    fn find_item<'a>(html: &'a Document, name: &str) -> Option<Node<'a>> {
         html.find(
             Name("div")
                 .and(Attr("id", "waterfall"))
@@ -52,7 +53,7 @@ impl Avsox {
                     .descendant(Name("date")),
             )
             .next()
-            .map(|date| date.text() == key.name())
+            .map(|date| date.text() == name)
             .unwrap_or(false)
         })
     }
@@ -60,26 +61,34 @@ impl Avsox {
 
 #[async_trait]
 impl Finder for Avsox {
+    fn name(&self) -> &'static str {
+        "avsox"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
+
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
-        let url = format!("{}/cn/search/{}", self.base_url, key.name());
+        let url = format!("{}/cn/search/{name}", self.base_url);
         let text = self
             .client
             .wait()
             .await
-            .get(url)
+            .get(&url)
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .text()
-            .await?;
+            .await
+            .with_context(|| format!("decode to text from {url}"))?;
         let (url, poster) = {
             let html = Document::from(text.as_str());
 
-            let Some(item) = Self::find_item(&html, &key) else {
-                return Ok(nfo);
+            let Some(item) = Self::find_item(&html, &name) else {
+                bail!("{name} not found");
             };
 
             let mut poster = None;
@@ -93,8 +102,7 @@ impl Finder for Avsox {
             {
                 if let Some(title) = img.attr("title") {
                     let title = title.trim().to_string();
-                    nfo.set_title(title.clone());
-                    nfo.set_plot(title);
+                    nfo.set_title(title);
                 }
 
                 if let Some(src) = img.attr("src") {
@@ -130,11 +138,13 @@ impl Finder for Avsox {
                 .client
                 .wait()
                 .await
-                .get(poster)
+                .get(&poster)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {poster}"))?
                 .bytes()
-                .await?;
+                .await
+                .with_context(|| format!("decode to bytes from {poster}"))?;
             nfo.set_poster(poster.to_vec());
         }
 
@@ -144,16 +154,18 @@ impl Finder for Avsox {
                 .client
                 .wait()
                 .await
-                .get(url)
+                .get(&url)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {url}"))?
                 .text()
-                .await?;
+                .await
+                .with_context(|| format!("decode to text from {url}"))?;
             let fanart = {
                 let html = Document::from(text.as_str());
 
                 let Some(container) = html.find(Name("div").and(Class("container"))).nth(1) else {
-                    return Ok(nfo);
+                    bail!("container not found when find {name}");
                 };
 
                 let mut fanart = None;
@@ -168,6 +180,16 @@ impl Finder for Avsox {
                 let mut pairs = Vec::new();
                 let mut prefix = "".to_string();
                 for item in container.find(Name("div").and(Class("col-md-3")).child(Name("p"))) {
+                    let mut skip = false;
+                    for genre in item.find(Name("span").and(Class("genre")).child(Name("a"))) {
+                        let genre = genre.text();
+                        nfo.genres_mut().insert(genre);
+                        skip = true;
+                    }
+                    if skip {
+                        continue;
+                    }
+
                     let text = item.text();
                     let text = text.trim();
 
@@ -192,11 +214,7 @@ impl Finder for Avsox {
                             nfo.set_studio(pair.1);
                         }
                         "系列" => {
-                            if nfo.director().is_empty() {
-                                nfo.set_director(pair.1.clone());
-                            }
-                            nfo.actors_mut().insert(pair.1.clone());
-                            nfo.genres_mut().insert(pair.1);
+                            nfo.set_director(pair.1);
                         }
                         "长度" => {
                             let number: String =
@@ -215,16 +233,16 @@ impl Finder for Avsox {
                     .client
                     .wait()
                     .await
-                    .get(fanart)
+                    .get(&fanart)
                     .send()
-                    .await?
+                    .await
+                    .with_context(|| format!("send to {fanart}"))?
                     .bytes()
-                    .await?;
+                    .await
+                    .with_context(|| format!("decode to bytes from {fanart}"))?;
                 nfo.set_fanart(fanart.to_vec());
             }
         }
-
-        nfo.set_rating(0.1);
 
         info!("{}", nfo.summary());
         Ok(nfo)

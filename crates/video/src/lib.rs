@@ -62,6 +62,9 @@ pub enum VideoType {
 }
 
 impl VideoType {
+    /// jav -> xxx-123
+    ///
+    /// fc2 -> FC2-PPV-123
     pub fn name(&self) -> String {
         match self {
             VideoType::Jav(id, key) => format!("{id}-{key}"),
@@ -69,6 +72,9 @@ impl VideoType {
         }
     }
 
+    /// jav -> xxx
+    ///
+    /// fc2 -> FC2-PPV
     pub fn id(&self) -> &str {
         match self {
             VideoType::Jav(id, _) => id,
@@ -76,11 +82,14 @@ impl VideoType {
         }
     }
 
+    /// jav -> xxx-123 | xxx 123 | xxx123 | xxx-123-1
+    ///
+    /// fc2 -> fc2-123 | fc2ppv-123 | fc2-ppv-123 | fc2ppv123 | fc2-ppv-123-1
     pub fn parse(name: impl AsRef<str>) -> Result<(VideoType, u32)> {
         let name = name.as_ref().to_uppercase();
 
         let (_, (id, key, idx)) = Self::_parse(&name).map_err(|err| anyhow!("{err}"))?;
-        info!("解析视频名称({name}) > id({id})-key({key})-idx({idx})");
+        info!("parse {name} to {id}-{key}-{idx}");
 
         let ty = match id {
             "FC2-PPV" => Self::fc2(key),

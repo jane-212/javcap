@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
 use log::info;
@@ -19,7 +19,8 @@ impl Missav {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
 
         let missav = Missav { client };
         Ok(missav)
@@ -31,11 +32,15 @@ impl Missav {
             .client
             .wait()
             .await
-            .get(url)
+            .get(&url)
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
+            .error_for_status()
+            .with_context(|| "error status")?
             .bytes()
-            .await?
+            .await
+            .with_context(|| format!("decode to bytes from {url}"))?
             .to_vec();
 
         Ok(img)
@@ -44,12 +49,20 @@ impl Missav {
 
 #[async_trait]
 impl Finder for Missav {
+    fn name(&self) -> &'static str {
+        "missav"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
-        let fanart = self.get_fanart(&key.name()).await?;
+        let fanart = self
+            .get_fanart(&name)
+            .await
+            .with_context(|| format!("get fanart for {name}"))?;
         nfo.set_fanart(fanart);
 
         info!("{}", nfo.summary());

@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use log::info;
@@ -28,10 +28,12 @@ impl Youdao {
     ) -> Result<Youdao> {
         let mut client_builder = Client::builder().timeout(timeout);
         if let Some(url) = proxy {
-            let proxy = Proxy::all(url)?;
+            let proxy = Proxy::all(&url).with_context(|| format!("set proxy to {url}"))?;
             client_builder = client_builder.proxy(proxy);
         }
-        let client = client_builder.build()?;
+        let client = client_builder
+            .build()
+            .with_context(|| "build reqwest client")?;
         let youdao = Youdao {
             client,
             key: key.into(),
@@ -82,6 +84,10 @@ impl Youdao {
 
 #[async_trait]
 impl Handler for Youdao {
+    fn name(&self) -> &'static str {
+        "youdao"
+    }
+
     async fn translate(&self, content: &str) -> Result<String> {
         #[derive(Deserialize)]
         #[allow(dead_code)]
@@ -118,7 +124,8 @@ impl Handler for Youdao {
         let to = "zh-CHS";
         let salt = Uuid::new_v4().to_string();
         let cur_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)?
+            .duration_since(UNIX_EPOCH)
+            .with_context(|| "get current time stamp")?
             .as_secs()
             .to_string();
         let sign = self.concat_sign(content, &salt, &cur_time);
@@ -137,18 +144,20 @@ impl Handler for Youdao {
                 ("curtime", &cur_time),
             ])
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .json::<Response>()
-            .await?;
+            .await
+            .with_context(|| format!("decode to json from {url}"))?;
 
         if res.code != "0" {
-            info!("翻译失败, code: {}", res.code);
-            bail!("翻译失败, code: {}", res.code);
+            info!("translate failed, code: {}", res.code);
+            bail!("translate failed, code: {}", res.code);
         }
 
         let Some(translated) = res.translation.map(|trans| trans.join("\n")) else {
-            info!("翻译失败, 返回内容为空");
-            bail!("翻译失败, 返回内容为空");
+            info!("translate failed, no response");
+            bail!("translate failed, no response");
         };
 
         Ok(translated)

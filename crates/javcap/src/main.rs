@@ -3,7 +3,7 @@ use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use config::Config;
 use env_logger::{Builder, Target};
@@ -21,7 +21,7 @@ async fn main() -> ExitCode {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
-            eprintln!("{}", e);
+            eprintln!("{:?}", e);
             ExitCode::FAILURE
         }
     };
@@ -30,31 +30,31 @@ async fn main() -> ExitCode {
 }
 
 async fn run() -> Result<()> {
-    init_logger().await?;
+    init_logger().await.with_context(|| "init logger")?;
 
-    info!("版本: v{}({})", app::VERSION, app::HASH);
-    println!("当前版本: v{}({})", app::VERSION, app::HASH);
+    info!("app version: v{}({})", app::VERSION, app::HASH);
+    println!("app version: v{}({})", app::VERSION, app::HASH);
 
-    let config = Config::load().await?;
-    config.validate()?;
+    let config = Config::load().await.with_context(|| "load config")?;
+    config.validate().with_context(|| "validate config")?;
 
     if config.check_for_update {
-        info!("正在检查更新...");
-        println!("正在检查更新...");
+        info!("check for update...");
+        println!("check for update...");
         let status = tokio::task::spawn_blocking(check_for_update).await??;
         if status.updated() {
-            info!("已更新为版本: v{}", status.version());
-            println!("已更新为版本: v{}", status.version());
+            info!("updated to version v{}", status.version());
+            println!("updated to version v{}", status.version());
             return Ok(());
         }
 
-        info!("已是最新版本");
-        println!("\n已是最新版本");
+        info!("latest version, skip");
+        println!("\nlatest version, skip");
     }
 
-    let app = App::new(config).await?;
+    let app = App::new(config).await.with_context(|| "init app")?;
 
-    app.run().await
+    app.run().await.with_context(|| "run app")
 }
 
 fn check_for_update() -> Result<Status> {
@@ -67,8 +67,10 @@ fn check_for_update() -> Result<Status> {
         .show_output(false)
         .show_download_progress(true)
         .current_version(app::VERSION)
-        .build()?
-        .update()?;
+        .build()
+        .with_context(|| "build update config")?
+        .update()
+        .with_context(|| "self update")?;
 
     Ok(status)
 }
@@ -86,17 +88,23 @@ async fn init_logger() -> Result<()> {
         user_dir.join(".cache").join(app::NAME)
     };
     if !log_dir.exists() {
-        fs::create_dir_all(&log_dir).await?;
+        fs::create_dir_all(&log_dir)
+            .await
+            .with_context(|| format!("create dir {}", log_dir.display()))?;
     }
     let log_file = log_dir.join("log");
     if log_file.exists() {
-        fs::rename(&log_file, log_dir.join("old.log")).await?;
+        let to = log_dir.join("old.log");
+        fs::rename(&log_file, &to)
+            .await
+            .with_context(|| format!("rename {} to {}", log_file.display(), to.display()))?;
     }
     let log_file = OpenOptions::new()
         .create(true)
         .truncate(true)
         .write(true)
-        .open(log_file)?;
+        .open(&log_file)
+        .with_context(|| format!("open {}", log_file.display()))?;
 
     if env::var("LOG")
         .ok()

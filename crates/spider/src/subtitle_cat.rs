@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
 use log::info;
@@ -21,7 +21,8 @@ impl SubtitleCat {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
 
         let subtitle_cat = SubtitleCat { client };
         Ok(subtitle_cat)
@@ -30,8 +31,13 @@ impl SubtitleCat {
 
 #[async_trait]
 impl Finder for SubtitleCat {
+    fn name(&self) -> &'static str {
+        "subtitle cat"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
 
         let url = "https://www.subtitlecat.com/index.php";
         let text = self
@@ -39,11 +45,13 @@ impl Finder for SubtitleCat {
             .wait()
             .await
             .get(url)
-            .query(&[("search", key.name())])
+            .query(&[("search", &name)])
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .text()
-            .await?;
+            .await
+            .with_context(|| format!("decode to text from {url}"))?;
         let url = {
             let html = Document::from(text.as_str());
             let mut found = None;
@@ -86,11 +94,13 @@ impl Finder for SubtitleCat {
             .client
             .wait()
             .await
-            .get(url)
+            .get(&url)
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .text()
-            .await?;
+            .await
+            .with_context(|| format!("decode to text from {url}"))?;
         let url = {
             let html = Document::from(text.as_str());
 
@@ -120,13 +130,17 @@ impl Finder for SubtitleCat {
                 .client
                 .wait()
                 .await
-                .get(url)
+                .get(&url)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {url}"))?
+                .error_for_status()
+                .with_context(|| "error status")?
                 .text()
-                .await?;
+                .await
+                .with_context(|| format!("decode to text from {url}"))?;
             if subtitle.contains("html") && subtitle.contains("404") {
-                return Ok(nfo);
+                bail!("download subtitle for {name}, but found 404 html in srt file");
             }
             nfo.set_subtitle(subtitle.into_bytes());
         }

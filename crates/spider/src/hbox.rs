@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
-use log::info;
+use log::{info, warn};
 use nfo::Nfo;
 use serde::Deserialize;
 use video::VideoType;
@@ -20,7 +20,8 @@ impl Hbox {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
 
         let hbox = Hbox { client };
         Ok(hbox)
@@ -35,25 +36,44 @@ impl Hbox {
             .get(url)
             .query(&[("q_array[]", name)])
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .json::<Payload>()
-            .await?;
+            .await
+            .with_context(|| format!("decode to json from {url}"))?;
         if payload.count == 0 {
-            bail!("找不到{name}");
+            bail!("{name} not found");
         }
 
-        payload.contents.pop().ok_or(anyhow!("找不到{name}"))
+        payload.contents.pop().ok_or(anyhow!("{name} not found"))
     }
 }
 
 #[async_trait]
 impl Finder for Hbox {
+    fn name(&self) -> &'static str {
+        "hbox"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
+
+        match key {
+            VideoType::Fc2(_) => {
+                warn!("fc2 type video not supported, skip({name})");
+                return Ok(nfo);
+            }
+            VideoType::Jav(_, _) => {}
+        }
+
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
-        let content = self.find_name(&key.name()).await?;
+        let content = self
+            .find_name(&name)
+            .await
+            .with_context(|| format!("find name for {name}"))?;
         nfo.set_title(content.title);
         nfo.set_plot(content.description);
         nfo.set_premiered(content.release_date);
@@ -73,11 +93,13 @@ impl Finder for Hbox {
             .client
             .wait()
             .await
-            .get(poster)
+            .get(&poster)
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {poster}"))?
             .bytes()
-            .await?;
+            .await
+            .with_context(|| format!("decode to bytes from {poster}"))?;
         nfo.set_poster(poster.to_vec());
 
         info!("{}", nfo.summary());

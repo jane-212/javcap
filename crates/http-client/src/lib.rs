@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bon::bon;
 use ratelimit::Ratelimiter;
 use reqwest::Client as HttpClient;
@@ -21,17 +21,22 @@ impl Client {
         amount: Option<u64>,
         interval: u64,
     ) -> Result<Client> {
-        let limiter = Ratelimiter::builder(amount.unwrap_or(1), Duration::from_secs(interval))
-            .initial_available(1)
-            .build()?;
+        let amount = amount.unwrap_or(1);
+        let limiter = Ratelimiter::builder(amount, Duration::from_secs(interval))
+            .max_tokens(amount)
+            .initial_available(amount)
+            .build()
+            .with_context(|| "build limiter")?;
         let mut client_builder = HttpClient::builder()
             .timeout(timeout)
             .user_agent(app::USER_AGENT);
         if let Some(url) = proxy {
-            let proxy = Proxy::all(url)?;
+            let proxy = Proxy::all(&url).with_context(|| format!("set proxy to {url}"))?;
             client_builder = client_builder.proxy(proxy);
         }
-        let client = client_builder.build()?;
+        let client = client_builder
+            .build()
+            .with_context(|| "build reqwest client")?;
         let client = Client { client, limiter };
 
         Ok(client)

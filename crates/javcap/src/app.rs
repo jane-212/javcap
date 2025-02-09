@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use colored::Colorize;
 use config::Config;
 use log::{info, warn};
@@ -30,7 +30,7 @@ pub struct App {
 
 impl App {
     pub async fn new(config: Config) -> Result<App> {
-        let helper = Helper::new(&config)?;
+        let helper = Helper::new(&config).with_context(|| "build helper")?;
         let bar = Bar::new().await;
         let app = App {
             tasks: JoinSet::new(),
@@ -53,10 +53,10 @@ impl App {
             let bar = self.bar.clone();
             self.tasks.spawn(async move {
                 let name = video.ty().name();
-                info!("已加入队列 > {name}");
+                info!("add {name} to queue");
                 let msg = match Self::process_video(video, helper, bar).await {
                     Ok(payload) => Message::Loaded(Box::new(payload)),
-                    Err(e) => Message::Failed(name, e.to_string()),
+                    Err(e) => Message::Failed(name, format!("{e:?}")),
                 };
                 tx.send(msg).await
             });
@@ -66,14 +66,21 @@ impl App {
     }
 
     pub async fn run(mut self) -> Result<()> {
-        self.load_all_videos().await?;
-        let mut rx = self.start_all_tasks().await?;
+        self.load_all_videos()
+            .await
+            .with_context(|| "load videos")?;
+        let mut rx = self
+            .start_all_tasks()
+            .await
+            .with_context(|| "start all tasks")?;
 
         while let Some(msg) = rx.recv().await {
-            self.handle_message(msg).await?;
+            self.handle_message(msg).await;
         }
 
-        self.wait_for_all_tasks().await?;
+        self.wait_for_all_tasks()
+            .await
+            .with_context(|| "wait for all tasks")?;
         self.summary().await;
 
         Ok(())
@@ -88,29 +95,50 @@ impl App {
     }
 
     async fn process_video(video: Video, helper: Arc<Helper>, bar: Arc<Bar>) -> Result<Payload> {
-        let _permit = helper.sema.acquire().await?;
+        let _permit = helper
+            .sema
+            .acquire()
+            .await
+            .with_context(|| "acquire permit")?;
 
-        let mut nfo = helper.spider.find(video.ty().clone()).await?;
+        let mut nfo = helper
+            .spider
+            .find(video.ty().clone())
+            .await
+            .with_context(|| "find video")?;
+        nfo.auto_fix();
         info!("{}", nfo.summary());
-        nfo.validate()?;
+        nfo.validate().with_context(|| "validate nfo")?;
 
         let title_task = tokio::spawn({
             let helper = helper.clone();
             let title = nfo.title().clone();
-            async move { helper.translator.translate(&title).await }
+            async move {
+                helper
+                    .translator
+                    .translate(&title)
+                    .await
+                    .with_context(|| format!("translate {title}"))
+            }
         });
         let plot_task = tokio::spawn({
             let helper = helper.clone();
             let plot = nfo.plot().clone();
-            async move { helper.translator.translate(&plot).await }
+            async move {
+                helper
+                    .translator
+                    .translate(&plot)
+                    .await
+                    .with_context(|| format!("translate {plot}"))
+            }
         });
 
         if let Some(title) = title_task.await?? {
-            info!("已翻译 > {title}");
+            info!("translated {title}");
             nfo.set_title(title);
         }
         if let Some(plot) = plot_task.await?? {
-            info!("已翻译 > {plot}");
+            info!("translated {plot}");
             nfo.set_plot(plot);
         }
 
@@ -120,12 +148,18 @@ impl App {
 
     async fn handle_succeed(&mut self, payload: &Payload) -> Result<()> {
         let out = self.get_out_path(payload).await?;
-        payload.write_all_to(&out).await?;
-        payload.move_videos_to(&out).await?;
+        payload
+            .write_all_to(&out)
+            .await
+            .with_context(|| format!("write payload to {}", out.display()))?;
+        payload
+            .move_videos_to(&out)
+            .await
+            .with_context(|| format!("move videos to {}", out.display()))?;
 
         self.bar.add().await;
         let name = payload.video().ty().name();
-        info!("完成 > {name}");
+        info!("{name} ok");
         self.succeed.push(name);
         Ok(())
     }
@@ -142,13 +176,15 @@ impl App {
 
     async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
         let out = self.concat_rule(payload);
-        self.bar.message(format!("> {}", out.display()));
+        self.bar.message(format!("target is {}", out.display()));
         if out.is_file() {
-            bail!("输出路径是文件, 无法创建文件夹");
+            bail!("target is a file");
         }
 
         if !out.exists() {
-            fs::create_dir_all(&out).await?;
+            fs::create_dir_all(&out)
+                .await
+                .with_context(|| format!("create dir for {}", out.display()))?;
         }
 
         Ok(out)
@@ -159,25 +195,23 @@ impl App {
         self.bar.message(&err);
 
         self.bar.add().await;
-        warn!("失败({name}) > {err}");
+        warn!("{name} failed, cause {err}");
         self.failed.push(name);
     }
 
-    async fn handle_message(&mut self, msg: Message) -> Result<()> {
+    async fn handle_message(&mut self, msg: Message) {
         self.print_bar(&msg.name());
         match msg {
             Message::Loaded(payload) => {
                 if let Err(err) = self.handle_succeed(&payload).await {
                     let name = payload.video().ty().name();
-                    self.handle_failed(name, err.to_string()).await;
+                    self.handle_failed(name, format!("{err:?}")).await;
                 }
             }
             Message::Failed(name, err) => {
                 self.handle_failed(name, err).await;
             }
         }
-
-        Ok(())
     }
 
     async fn wait_for_all_tasks(&mut self) -> Result<()> {
@@ -195,21 +229,24 @@ impl App {
             " Summary ".yellow(),
             width = app::LINE_LENGTH
         );
-        info!("成功: {}({})", self.succeed.len(), self.succeed.join(", "));
+        info!("ok: {}({})", self.succeed.len(), self.succeed.join(", "));
         println!(
             "{}",
-            format!("成功: {}({})", self.succeed.len(), self.succeed.join(", ")).green()
+            format!("ok: {}({})", self.succeed.len(), self.succeed.join(", ")).green()
         );
-        info!("失败: {}({})", self.failed.len(), self.failed.join(", "));
+        info!("failed: {}({})", self.failed.len(), self.failed.join(", "));
         println!(
             "{}",
-            format!("失败: {}({})", self.failed.len(), self.failed.join(", ")).red()
+            format!("failed: {}({})", self.failed.len(), self.failed.join(", ")).red()
         );
     }
 
     async fn load_all_videos(&mut self) -> Result<()> {
         let input = &self.config.input;
-        for file in Self::walk_dir(&input.path, &input.excludes).await? {
+        for file in Self::walk_dir(&input.path, &input.excludes)
+            .await
+            .with_context(|| "walk dir")?
+        {
             let name = match file.file_name().and_then(|name| name.to_str()) {
                 Some(name) => name,
                 None => continue,
@@ -247,16 +284,18 @@ impl App {
             .map(|video| video.ty().name())
             .collect::<Vec<_>>()
             .join(", ");
-        info!("共找到视频: {}({})", self.videos.len(), videos);
+        info!("found videos: {}({})", self.videos.len(), videos);
         self.bar
-            .message(format!("共找到视频: {}({})", self.videos.len(), videos));
+            .message(format!("found videos: {}({})", self.videos.len(), videos));
 
         Ok(())
     }
 
     async fn walk_dir(path: &Path, excludes: &[String]) -> Result<Vec<PathBuf>> {
         let mut files = Vec::new();
-        let mut entries = fs::read_dir(path).await?;
+        let mut entries = fs::read_dir(path)
+            .await
+            .with_context(|| format!("read dir in {}", path.display()))?;
         while let Some(entry) = entries.next_entry().await? {
             let file = entry.path();
 
@@ -267,7 +306,7 @@ impl App {
 
             let should_pass = excludes.iter().any(|e| e == name);
             if should_pass {
-                info!("跳过 > {}", file.display());
+                info!("skip {}", file.display());
                 continue;
             }
 
@@ -277,7 +316,7 @@ impl App {
                 continue;
             }
 
-            info!("找到视频 > {}", file.display());
+            info!("found video {}", file.display());
             files.push(file);
         }
 
