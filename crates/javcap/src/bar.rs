@@ -37,17 +37,21 @@ impl Bar {
         let total = self.total.clone();
         tokio::spawn(async move {
             let mut idx = 0;
-            let interval = Duration::from_millis(160);
-            let bar = ["⣼", "⣹", "⢻", "⠿", "⡟", "⣏", "⣧", "⣶"];
+            let interval = Duration::from_millis(80);
+            let bar = [
+                "⠁", "⠂", "⠄", "⡀", "⡈", "⡐", "⡠", "⣀", "⣁", "⣂", "⣄", "⣌", "⣔", "⣤", "⣥", "⣦",
+                "⣮", "⣶", "⣷", "⣿", "⡿", "⠿", "⢟", "⠟", "⡛", "⠛", "⠫", "⢋", "⠋", "⠍", "⡉", "⠉",
+                "⠑", "⠡", "⢁",
+            ];
 
             loop {
                 let total = { *total.lock().await };
                 let cnt = { *cnt.read().await };
                 let p = if total == 0 { 0 } else { cnt * 20 / total };
                 print!(
-                    "\r{} [{:.<20}] [{}/{}]",
+                    "\r{}|{:░<20}|({}/{})",
                     bar[idx],
-                    "*".repeat(p),
+                    "█".repeat(p),
                     cnt,
                     if total == 0 {
                         "?".to_string()
