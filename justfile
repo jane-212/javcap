@@ -5,14 +5,13 @@ alias t := try
 # mkdir dev and run
 try: clean
     @mkdir -p dev
-    @touch dev/stars-804.mp4
-    @touch dev/ipx-443-1.mp4
-    @touch dev/ipx-443-2.mp4
-    @touch dev/fc2-1200809.mkv
-    @touch dev/SONE-061.avi
-    @touch dev/SSIS-969.avi
-    @touch dev/ACHJ-052.wmv
-    @touch dev/SONE-388.wmv
+    @touch dev/FC2-PPV-3061625.wmv
+    @touch dev/MD-0260.wmv
+    @touch dev/FC2-PPV-3572974.wmv
+    @touch dev/PROB-3.wmv
+    @touch dev/FC2-PPV-1932561.wmv
+    @touch dev/ROYD-108.wmv
+    @touch dev/FC2-PPV-1425988.wmv
     @cargo r
 
 alias c := clean

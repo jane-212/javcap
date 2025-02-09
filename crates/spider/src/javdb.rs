@@ -189,7 +189,7 @@ impl Finder for Javdb {
             }
         }
 
-        info!("从javdb找到nfo > {nfo}");
+        info!("从javdb找到nfo({}) > {nfo}", key.name());
         Ok(nfo)
     }
 }

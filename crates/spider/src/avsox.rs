@@ -217,7 +217,7 @@ impl Finder for Avsox {
 
         nfo.set_rating(0.1);
 
-        info!("从avsox找到nfo > {nfo}");
+        info!("从avsox找到nfo({}) > {nfo}", key.name());
         Ok(nfo)
     }
 }

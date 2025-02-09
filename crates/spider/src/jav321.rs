@@ -188,7 +188,7 @@ impl Finder for Jav321 {
             nfo.set_poster(poster.to_vec());
         }
 
-        info!("从jav321找到nfo > {nfo}");
+        info!("从jav321找到nfo({}) > {nfo}", key.name());
         Ok(nfo)
     }
 }
