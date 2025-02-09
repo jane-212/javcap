@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
-use log::info;
+use log::{info, warn};
 use nfo::Nfo;
 use select::document::Document;
 use select::node::Node;
@@ -30,7 +30,8 @@ impl Avsox {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
         let avsox = Avsox {
             base_url: base_url.unwrap_or("https://avsox.click".to_string()),
             client,
@@ -39,7 +40,7 @@ impl Avsox {
         Ok(avsox)
     }
 
-    fn find_item<'a>(html: &'a Document, key: &VideoType) -> Option<Node<'a>> {
+    fn find_item<'a>(html: &'a Document, name: &str) -> Option<Node<'a>> {
         html.find(
             Name("div")
                 .and(Attr("id", "waterfall"))
@@ -52,7 +53,7 @@ impl Avsox {
                     .descendant(Name("date")),
             )
             .next()
-            .map(|date| date.text() == key.name())
+            .map(|date| date.text() == name)
             .unwrap_or(false)
         })
     }
@@ -60,26 +61,42 @@ impl Avsox {
 
 #[async_trait]
 impl Finder for Avsox {
+    fn name(&self) -> &'static str {
+        "avsox"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
+
+        match key {
+            VideoType::Jav(_, _) => {
+                warn!("jav type video not supported, skip({name})");
+                return Ok(nfo);
+            }
+            VideoType::Fc2(_) => {}
+        }
+
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
-        let url = format!("{}/cn/search/{}", self.base_url, key.name());
+        let url = format!("{}/cn/search/{name}", self.base_url);
         let text = self
             .client
             .wait()
             .await
-            .get(url)
+            .get(&url)
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .text()
-            .await?;
+            .await
+            .with_context(|| format!("decode to text from {url}"))?;
         let (url, poster) = {
             let html = Document::from(text.as_str());
 
-            let Some(item) = Self::find_item(&html, &key) else {
-                return Ok(nfo);
+            let Some(item) = Self::find_item(&html, &name) else {
+                bail!("{name} not found");
             };
 
             let mut poster = None;
@@ -130,11 +147,13 @@ impl Finder for Avsox {
                 .client
                 .wait()
                 .await
-                .get(poster)
+                .get(&poster)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {poster}"))?
                 .bytes()
-                .await?;
+                .await
+                .with_context(|| format!("decode to bytes from {poster}"))?;
             nfo.set_poster(poster.to_vec());
         }
 
@@ -144,16 +163,18 @@ impl Finder for Avsox {
                 .client
                 .wait()
                 .await
-                .get(url)
+                .get(&url)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {url}"))?
                 .text()
-                .await?;
+                .await
+                .with_context(|| format!("decode to text from {url}"))?;
             let fanart = {
                 let html = Document::from(text.as_str());
 
                 let Some(container) = html.find(Name("div").and(Class("container"))).nth(1) else {
-                    return Ok(nfo);
+                    bail!("container not found when find {name}");
                 };
 
                 let mut fanart = None;
@@ -215,11 +236,13 @@ impl Finder for Avsox {
                     .client
                     .wait()
                     .await
-                    .get(fanart)
+                    .get(&fanart)
                     .send()
-                    .await?
+                    .await
+                    .with_context(|| format!("send to {fanart}"))?
                     .bytes()
-                    .await?;
+                    .await
+                    .with_context(|| format!("decode to bytes from {fanart}"))?;
                 nfo.set_fanart(fanart.to_vec());
             }
         }

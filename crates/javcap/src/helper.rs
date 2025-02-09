@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use config::Config;
 use spider::Spider;
 use tokio::sync::Semaphore;
@@ -13,8 +13,8 @@ pub struct Helper {
 impl Helper {
     pub fn new(config: &Config) -> Result<Helper> {
         let sema = Semaphore::new(config.task_limit);
-        let spider = Spider::new(config)?;
-        let translator = Translator::new(config)?;
+        let spider = Spider::new(config).with_context(|| "build spider")?;
+        let translator = Translator::new(config).with_context(|| "build translator")?;
         let helper = Helper {
             sema,
             spider,

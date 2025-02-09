@@ -10,7 +10,7 @@ pub struct Output {
     #[validate(custom(function = "absolute_path"))]
     pub path: PathBuf,
 
-    #[validate(length(min = 1, message = "至少一个规则"))]
+    #[validate(length(min = 1, message = "should have at least 1 rule"))]
     pub rule: Vec<Tag>,
 }
 

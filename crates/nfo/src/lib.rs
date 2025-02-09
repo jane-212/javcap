@@ -12,55 +12,55 @@ pub struct Nfo {
     id: String,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "标题为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     title: String,
 
     #[getset(set = "pub")]
-    #[validate(range(min = 0.1, message = "无评分"))]
+    #[validate(range(min = 0.1, message = "empty"))]
     rating: f64,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "简介为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     plot: String,
 
     #[getset(set = "pub")]
-    #[validate(range(min = 1, message = "无时长"))]
+    #[validate(range(min = 1, message = "empty"))]
     runtime: u32,
 
     #[getset(set = "pub")]
-    #[validate(length(min = 1, message = "评级为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     mpaa: String,
 
     #[getset(get_mut = "pub")]
-    #[validate(length(min = 1, message = "类别为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     genres: HashSet<String>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "属地为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     country: String,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "导演为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     director: String,
 
     #[getset(set = "pub")]
-    #[validate(length(min = 1, message = "日期为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     premiered: String,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "工作室为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     studio: String,
 
     #[getset(get_mut = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "演员为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     actors: HashSet<String>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "封面为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     poster: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]
-    #[validate(length(min = 1, message = "背景为空"))]
+    #[validate(length(min = 1, message = "empty"))]
     fanart: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]

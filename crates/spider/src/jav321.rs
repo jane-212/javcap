@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
-use log::info;
+use log::{info, warn};
 use nfo::Nfo;
 use select::document::Document;
 use select::predicate::{Class, Name, Predicate};
@@ -21,7 +21,8 @@ impl Jav321 {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
 
         let jav321 = Jav321 { client };
         Ok(jav321)
@@ -30,8 +31,22 @@ impl Jav321 {
 
 #[async_trait]
 impl Finder for Jav321 {
+    fn name(&self) -> &'static str {
+        "jav321"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
+
+        match key {
+            VideoType::Fc2(_) => {
+                warn!("fc2 type video not supported, skip({name})");
+                return Ok(nfo);
+            }
+            VideoType::Jav(_, _) => {}
+        }
+
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
@@ -41,15 +56,17 @@ impl Finder for Jav321 {
             .wait()
             .await
             .post(url)
-            .form(&[("sn", key.name())])
+            .form(&[("sn", &name)])
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .text()
-            .await?;
+            .await
+            .with_context(|| format!("decode to text from {url}"))?;
         let (fanart, poster) = {
             let html = Document::from(text.as_str());
             let Some(panel) = html.find(Name("div").and(Class("panel"))).next() else {
-                return Ok(nfo);
+                bail!("panel not found when find {name}");
             };
 
             if let Some(title) = panel
@@ -167,11 +184,13 @@ impl Finder for Jav321 {
                 .client
                 .wait()
                 .await
-                .get(fanart)
+                .get(&fanart)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {fanart}"))?
                 .bytes()
-                .await?;
+                .await
+                .with_context(|| format!("decode to bytes from {fanart}"))?;
             nfo.set_fanart(fanart.to_vec());
         }
         if let Some(poster) = poster {
@@ -179,11 +198,13 @@ impl Finder for Jav321 {
                 .client
                 .wait()
                 .await
-                .get(poster)
+                .get(&poster)
                 .send()
-                .await?
+                .await
+                .with_context(|| format!("send to {poster}"))?
                 .bytes()
-                .await?;
+                .await
+                .with_context(|| format!("decode to bytes from {poster}"))?;
             nfo.set_poster(poster.to_vec());
         }
 

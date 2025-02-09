@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
-use log::info;
+use log::{info, warn};
 use nfo::Nfo;
 use select::document::Document;
 use select::predicate::{Class, Name, Predicate};
@@ -29,7 +29,8 @@ impl Javdb {
             .timeout(timeout)
             .interval(2)
             .maybe_proxy(proxy)
-            .build()?;
+            .build()
+            .with_context(|| "build http client")?;
 
         let javdb = Javdb {
             base_url: base_url.unwrap_or("https://javdb.com".to_string()),
@@ -41,8 +42,22 @@ impl Javdb {
 
 #[async_trait]
 impl Finder for Javdb {
+    fn name(&self) -> &'static str {
+        "javdb"
+    }
+
     async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let mut nfo = Nfo::new(key.name());
+        let name = key.name();
+        let mut nfo = Nfo::new(&name);
+
+        match key {
+            VideoType::Fc2(_) => {
+                warn!("fc2 type video not supported, skip({name})");
+                return Ok(nfo);
+            }
+            VideoType::Jav(_, _) => {}
+        }
+
         nfo.set_country("日本".to_string());
         nfo.set_mpaa("NC-17".to_string());
 
@@ -51,12 +66,14 @@ impl Finder for Javdb {
             .client
             .wait()
             .await
-            .get(url)
-            .query(&[("q", key.name().as_str()), ("f", "all")])
+            .get(&url)
+            .query(&[("q", name.as_str()), ("f", "all")])
             .send()
-            .await?
+            .await
+            .with_context(|| format!("send to {url}"))?
             .text()
-            .await?;
+            .await
+            .with_context(|| format!("decode to text from {url}"))?;
         let url = {
             let html = Document::from(text.as_str());
 
@@ -68,7 +85,7 @@ impl Finder for Javdb {
 
                 if a.find(Name("div").and(Class("video-title")).child(Name("strong")))
                     .next()
-                    .map(|node| node.text() != key.name())
+                    .map(|node| node.text() != name)
                     .unwrap_or(true)
                 {
                     continue;
