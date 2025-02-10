@@ -18,7 +18,7 @@ impl Airav {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Airav> {
         let client = Client::builder()
             .timeout(timeout)
-            .interval(2)
+            .interval(1)
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;

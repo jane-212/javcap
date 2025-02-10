@@ -19,7 +19,7 @@ impl Hbox {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Hbox> {
         let client = Client::builder()
             .timeout(timeout)
-            .interval(2)
+            .interval(1)
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
@@ -205,7 +205,7 @@ struct Content {
     purchase_price: i32,
     directors: Vec<Director>,
     casts: Vec<Cast>,
-    medal_magnification: String,
+    medal_magnification: Option<String>,
     hd_info: HdInfo,
     hd_content_price: i32,
     content_price: i32,

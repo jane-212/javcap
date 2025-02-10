@@ -120,7 +120,7 @@ async fn init_logger() -> Result<()> {
         .format(|buf, record| {
             writeln!(
                 buf,
-                "[{} {:<5} {}]\n{}",
+                "[{} {:<5} {}] {}",
                 Local::now().format("%Y-%m-%dT%H:%M:%S"),
                 record.level(),
                 record.target(),
