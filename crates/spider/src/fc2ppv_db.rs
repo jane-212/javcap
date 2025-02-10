@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
@@ -29,12 +30,14 @@ impl Fc2ppvDB {
     }
 }
 
+impl Display for Fc2ppvDB {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "fc2ppv db")
+    }
+}
+
 #[async_trait]
 impl Finder for Fc2ppvDB {
-    fn name(&self) -> &'static str {
-        "fc2ppv db"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => false,
@@ -43,17 +46,16 @@ impl Finder for Fc2ppvDB {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
         let mut nfo = Nfo::builder()
-            .id(&name)
+            .id(key)
             .country(Country::Japan)
             .mpaa(Mpaa::NC17)
             .build();
 
         let url = "https://fc2ppvdb.com/search";
         let name = match key {
-            VideoType::Jav(id, key) => format!("{id}-{key}"),
-            VideoType::Fc2(key) => key.clone(),
+            VideoType::Jav(id, number) => format!("{id}-{number}"),
+            VideoType::Fc2(number) => number.clone(),
         };
         let text = self
             .client
@@ -70,7 +72,7 @@ impl Finder for Fc2ppvDB {
         let img = {
             let html = Document::from(text.as_str());
             let Some(container) = html.find(Name("div").and(Class("container"))).next() else {
-                bail!("container not found when find {name}");
+                bail!("container not found");
             };
             let mut flexes = container.find(Name("div").and(Class("flex")));
 

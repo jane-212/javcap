@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
@@ -61,27 +62,28 @@ pub enum VideoType {
     Fc2(String),
 }
 
+impl Display for VideoType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VideoType::Jav(id, number) => write!(f, "{id}-{number}"),
+            VideoType::Fc2(number) => write!(f, "FC2-PPV-{number}"),
+        }
+    }
+}
+
+impl From<VideoType> for String {
+    fn from(value: VideoType) -> Self {
+        value.to_string()
+    }
+}
+
+impl From<&VideoType> for String {
+    fn from(value: &VideoType) -> Self {
+        value.to_string()
+    }
+}
+
 impl VideoType {
-    /// jav -> xxx-123
-    ///
-    /// fc2 -> FC2-PPV-123
-    pub fn name(&self) -> String {
-        match self {
-            VideoType::Jav(id, key) => format!("{id}-{key}"),
-            VideoType::Fc2(key) => format!("FC2-PPV-{key}"),
-        }
-    }
-
-    /// jav -> xxx
-    ///
-    /// fc2 -> FC2-PPV
-    pub fn id(&self) -> &str {
-        match self {
-            VideoType::Jav(id, _) => id,
-            VideoType::Fc2(_) => "FC2-PPV",
-        }
-    }
-
     /// jav -> xxx-123 | xxx 123 | xxx123 | xxx-123-1
     ///
     /// fc2 -> fc2-123 | fc2ppv-123 | fc2-ppv-123 | fc2ppv123 | fc2-ppv-123-1

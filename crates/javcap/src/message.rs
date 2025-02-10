@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use super::payload::Payload;
 
 pub enum Message {
@@ -5,11 +7,11 @@ pub enum Message {
     Failed(String, String),
 }
 
-impl Message {
-    pub fn name(&self) -> String {
+impl Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Message::Loaded(payload) => payload.video().ty().name(),
-            Message::Failed(name, _) => name.clone(),
+            Message::Loaded(payload) => write!(f, "{}", payload.video().ty()),
+            Message::Failed(name, _) => write!(f, "{name}"),
         }
     }
 }

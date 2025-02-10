@@ -7,6 +7,7 @@ mod javdb;
 mod missav;
 mod subtitle_cat;
 
+use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -25,8 +26,7 @@ use subtitle_cat::SubtitleCat;
 use video::VideoType;
 
 #[async_trait]
-trait Finder: Send + Sync {
-    fn name(&self) -> &'static str;
+trait Finder: Send + Sync + Display {
     fn support(&self, key: &VideoType) -> bool;
     async fn find(&self, key: &VideoType) -> Result<Nfo>;
 }
@@ -72,11 +72,10 @@ impl Spider {
 
     pub async fn find(&self, key: VideoType) -> Result<Nfo> {
         let key = Arc::new(key);
-        let name = key.name();
         let mut tasks = Vec::new();
         for finder in self.finders.iter() {
             if !finder.support(&key) {
-                warn!("finder {} not support {}", finder.name(), name);
+                warn!("finder {finder} not support {key}");
                 continue;
             }
 
@@ -86,7 +85,7 @@ impl Spider {
                 finder
                     .find(&key)
                     .await
-                    .with_context(|| format!("in finder {}", finder.name()))
+                    .with_context(|| format!("in finder {finder}"))
             });
             tasks.push(task);
         }
@@ -98,10 +97,10 @@ impl Spider {
                     None => nfo = Some(found_nfo),
                     Some(ref mut nfo) => nfo.merge(found_nfo),
                 },
-                Err(err) => error!("could not find {name}, caused by {err:?}"),
+                Err(err) => error!("could not find {key}, caused by {err:?}"),
             }
         }
 
-        nfo.ok_or_else(|| anyhow!("could not find anything about {name} in all finders"))
+        nfo.ok_or_else(|| anyhow!("could not find anything about {key} in all finders"))
     }
 }

@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -40,12 +41,14 @@ impl Javdb {
     }
 }
 
+impl Display for Javdb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "javdb")
+    }
+}
+
 #[async_trait]
 impl Finder for Javdb {
-    fn name(&self) -> &'static str {
-        "javdb"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => true,
@@ -54,9 +57,8 @@ impl Finder for Javdb {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
         let mut nfo = Nfo::builder()
-            .id(&name)
+            .id(key)
             .country(Country::Japan)
             .mpaa(Mpaa::NC17)
             .build();
@@ -67,7 +69,7 @@ impl Finder for Javdb {
             .wait()
             .await
             .get(&url)
-            .query(&[("q", name.as_str()), ("f", "all")])
+            .query(&[("q", key.to_string().as_str()), ("f", "all")])
             .send()
             .await
             .with_context(|| format!("send to {url}"))?
@@ -78,6 +80,7 @@ impl Finder for Javdb {
             let html = Document::from(text.as_str());
 
             let mut found = None;
+            let name = key.to_string();
             for item in html.find(Name("div").and(Class("item"))) {
                 let Some(a) = item.find(Name("a").and(Class("box"))).next() else {
                     continue;

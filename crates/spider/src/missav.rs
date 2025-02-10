@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -26,8 +27,11 @@ impl Missav {
         Ok(missav)
     }
 
-    async fn get_fanart(&self, name: &str) -> Result<Vec<u8>> {
-        let url = format!("https://fourhoi.com/{}/cover-n.jpg", name.to_lowercase());
+    async fn get_fanart(&self, key: &VideoType) -> Result<Vec<u8>> {
+        let url = format!(
+            "https://fourhoi.com/{}/cover-n.jpg",
+            key.to_string().to_lowercase()
+        );
         let img = self
             .client
             .wait()
@@ -47,12 +51,14 @@ impl Missav {
     }
 }
 
+impl Display for Missav {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "missav")
+    }
+}
+
 #[async_trait]
 impl Finder for Missav {
-    fn name(&self) -> &'static str {
-        "missav"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => true,
@@ -61,17 +67,13 @@ impl Finder for Missav {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
         let mut nfo = Nfo::builder()
-            .id(&name)
+            .id(key)
             .country(Country::Japan)
             .mpaa(Mpaa::NC17)
             .build();
 
-        let fanart = self
-            .get_fanart(&name)
-            .await
-            .with_context(|| format!("get fanart for {name}"))?;
+        let fanart = self.get_fanart(key).await.with_context(|| "get fanart")?;
         nfo.set_fanart(fanart);
 
         info!("{}", nfo.summary());

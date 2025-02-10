@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
@@ -29,12 +30,14 @@ impl SubtitleCat {
     }
 }
 
+impl Display for SubtitleCat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "subtitle cat")
+    }
+}
+
 #[async_trait]
 impl Finder for SubtitleCat {
-    fn name(&self) -> &'static str {
-        "subtitle cat"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => true,
@@ -43,8 +46,7 @@ impl Finder for SubtitleCat {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::builder().id(&name).build();
+        let mut nfo = Nfo::builder().id(key).build();
 
         let url = "https://www.subtitlecat.com/index.php";
         let text = self
@@ -52,7 +54,7 @@ impl Finder for SubtitleCat {
             .wait()
             .await
             .get(url)
-            .query(&[("search", &name)])
+            .query(&[("search", key.to_string())])
             .send()
             .await
             .with_context(|| format!("send to {url}"))?
@@ -75,12 +77,14 @@ impl Finder for SubtitleCat {
                 };
 
                 let possible_names = match &key {
-                    VideoType::Jav(id, key) => vec![format!("{id}-{key}"), format!("{id}{key}")],
-                    VideoType::Fc2(key) => vec![
-                        format!("FC2-{key}"),
-                        format!("FC2-PPV-{key}"),
-                        format!("FC2PPV-{key}"),
-                        format!("FC2PPV{key}"),
+                    VideoType::Jav(id, number) => {
+                        vec![format!("{id}-{number}"), format!("{id}{number}")]
+                    }
+                    VideoType::Fc2(number) => vec![
+                        format!("FC2-{number}"),
+                        format!("FC2-PPV-{number}"),
+                        format!("FC2PPV-{number}"),
+                        format!("FC2PPV{number}"),
                     ],
                 };
 
@@ -147,7 +151,7 @@ impl Finder for SubtitleCat {
                 .await
                 .with_context(|| format!("decode to text from {url}"))?;
             if subtitle.contains("html") && subtitle.contains("404") {
-                bail!("download subtitle for {name}, but found 404 html in srt file");
+                bail!("downloaded subtitle for {key}, but found 404 html in srt file");
             }
             nfo.set_subtitle(subtitle.into_bytes());
         }

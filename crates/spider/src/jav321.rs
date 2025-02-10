@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
@@ -29,12 +30,14 @@ impl Jav321 {
     }
 }
 
+impl Display for Jav321 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "jav321")
+    }
+}
+
 #[async_trait]
 impl Finder for Jav321 {
-    fn name(&self) -> &'static str {
-        "jav321"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => true,
@@ -43,9 +46,8 @@ impl Finder for Jav321 {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
         let mut nfo = Nfo::builder()
-            .id(&name)
+            .id(key)
             .country(Country::Japan)
             .mpaa(Mpaa::NC17)
             .build();
@@ -56,7 +58,7 @@ impl Finder for Jav321 {
             .wait()
             .await
             .post(url)
-            .form(&[("sn", &name)])
+            .form(&[("sn", key.to_string())])
             .send()
             .await
             .with_context(|| format!("send to {url}"))?
@@ -66,7 +68,7 @@ impl Finder for Jav321 {
         let (fanart, poster) = {
             let html = Document::from(text.as_str());
             let Some(panel) = html.find(Name("div").and(Class("panel"))).next() else {
-                bail!("panel not found when find {name}");
+                bail!("panel not found");
             };
 
             if let Some(title) = panel

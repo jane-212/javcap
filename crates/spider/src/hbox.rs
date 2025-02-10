@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -42,19 +43,24 @@ impl Hbox {
             .await
             .with_context(|| format!("decode to json from {url}"))?;
         if payload.count == 0 {
-            bail!("{name} not found");
+            bail!("payload count is zero");
         }
 
-        payload.contents.pop().ok_or(anyhow!("{name} not found"))
+        payload
+            .contents
+            .pop()
+            .ok_or(anyhow!("empty payload content"))
+    }
+}
+
+impl Display for Hbox {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "hbox")
     }
 }
 
 #[async_trait]
 impl Finder for Hbox {
-    fn name(&self) -> &'static str {
-        "hbox"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => true,
@@ -63,17 +69,16 @@ impl Finder for Hbox {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
         let mut nfo = Nfo::builder()
-            .id(&name)
+            .id(key)
             .country(Country::Japan)
             .mpaa(Mpaa::NC17)
             .build();
 
         let content = self
-            .find_name(&name)
+            .find_name(&key.to_string())
             .await
-            .with_context(|| format!("find name for {name}"))?;
+            .with_context(|| "find name")?;
         nfo.set_title(content.title);
         nfo.set_plot(content.description);
         nfo.set_premiered(content.release_date);

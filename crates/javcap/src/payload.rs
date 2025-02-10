@@ -30,26 +30,26 @@ impl Payload {
     }
 
     async fn write_fanart_to(&self, path: &Path) -> Result<()> {
-        let name = self.video.ty().name();
+        let name = self.video.ty();
         let filename = format!("{name}-fanart.jpg");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.fanart(), &file)
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
-        info!("write fanart of {} to {}", name, file.display());
+        info!("write fanart of {name} to {}", file.display());
         self.bar.message(format!("fanart...{}", "ok".green()));
 
         Ok(())
     }
 
     async fn write_poster_to(&self, path: &Path) -> Result<()> {
-        let name = self.video.ty().name();
+        let name = self.video.ty();
         let filename = format!("{name}-poster.jpg");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.poster(), &file)
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
-        info!("write poster of {} to {}", name, file.display());
+        info!("write poster of {name} to {}", file.display());
         self.bar.message(format!("poster...{}", "ok".green()));
 
         Ok(())
@@ -71,14 +71,14 @@ impl Payload {
     }
 
     async fn write_nfo_to(&self, path: &Path) -> Result<()> {
-        let name = self.video.ty().name();
+        let name = self.video.ty();
         let filename = format!("{name}.nfo");
         let file = path.join(filename);
         let nfo = self.nfo.to_string();
         Self::write_to_file(nfo.as_bytes(), &file)
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
-        info!("write nfo of {} to {}", name, file.display());
+        info!("write nfo of {name} to {}", file.display());
         self.bar.message(format!("nfo...{}", "ok".green()));
 
         Ok(())
@@ -89,26 +89,26 @@ impl Payload {
             return Ok(());
         }
 
-        let name = self.video.ty().name();
+        let name = self.video.ty();
         let filename = format!("{name}.srt");
         let file = path.join(filename);
         Self::write_to_file(self.nfo.subtitle(), &file)
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
-        info!("write subtitle of {} to {}", name, file.display());
+        info!("write subtitle of {name} to {}", file.display());
         self.bar.message(format!("subtitle...{}", "ok".green()));
 
         Ok(())
     }
 
     pub async fn move_videos_to(&self, path: &Path) -> Result<()> {
-        let name = self.video.ty().name();
+        let name = self.video.ty();
         for video in self.video.files() {
             let idx = video.idx();
             let filename = if *idx == 0 {
-                format!("{}.{}", name, video.ext())
+                format!("{name}.{}", video.ext())
             } else {
-                format!("{}-CD{}.{}", name, idx, video.ext())
+                format!("{name}-CD{idx}.{}", video.ext())
             };
             let out = path.join(&filename);
             if out.exists() {
@@ -120,8 +120,7 @@ impl Payload {
             let src = video.location();
             fs::rename(src, &out).await?;
             info!(
-                "move video of {} from {} to {}",
-                name,
+                "move video of {name} from {} to {}",
                 src.display(),
                 out.display()
             );
@@ -140,8 +139,11 @@ impl Payload {
         match tag {
             Tag::Title => self.nfo.title().to_string(),
             Tag::Studio => self.nfo.studio().to_string(),
-            Tag::Id => self.video.ty().id().to_string(),
-            Tag::Name => self.video.ty().name(),
+            Tag::Id => match self.video.ty() {
+                video::VideoType::Jav(id, _) => id.to_string(),
+                video::VideoType::Fc2(_) => "FC2-PPV".to_string(),
+            },
+            Tag::Name => self.video.ty().to_string(),
             Tag::Director => self.nfo.director().to_string(),
             Tag::Country => self.nfo.country().to_string(),
             Tag::Actor => self

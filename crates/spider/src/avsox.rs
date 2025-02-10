@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
@@ -59,12 +60,14 @@ impl Avsox {
     }
 }
 
+impl Display for Avsox {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "avsox")
+    }
+}
+
 #[async_trait]
 impl Finder for Avsox {
-    fn name(&self) -> &'static str {
-        "avsox"
-    }
-
     fn support(&self, key: &VideoType) -> bool {
         match key {
             VideoType::Jav(_, _) => true,
@@ -73,14 +76,13 @@ impl Finder for Avsox {
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
-        let name = key.name();
         let mut nfo = Nfo::builder()
-            .id(&name)
+            .id(key)
             .country(Country::Japan)
             .mpaa(Mpaa::NC17)
             .build();
 
-        let url = format!("{}/cn/search/{name}", self.base_url);
+        let url = format!("{}/cn/search/{key}", self.base_url);
         let text = self
             .client
             .wait()
@@ -95,8 +97,8 @@ impl Finder for Avsox {
         let (url, poster) = {
             let html = Document::from(text.as_str());
 
-            let Some(item) = Self::find_item(&html, &name) else {
-                bail!("{name} not found");
+            let Some(item) = Self::find_item(&html, &key.to_string()) else {
+                bail!("{key} not found");
             };
 
             let mut poster = None;
@@ -173,7 +175,7 @@ impl Finder for Avsox {
                 let html = Document::from(text.as_str());
 
                 let Some(container) = html.find(Name("div").and(Class("container"))).nth(1) else {
-                    bail!("container not found when find {name}");
+                    bail!("container not found");
                 };
 
                 let mut fanart = None;
