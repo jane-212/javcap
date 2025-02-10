@@ -1,3 +1,4 @@
+mod airav;
 mod avsox;
 mod fc2ppv_db;
 mod hbox;
@@ -9,7 +10,7 @@ mod subtitle_cat;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use avsox::Avsox;
 use config::Config;
@@ -71,10 +72,11 @@ impl Spider {
 
     pub async fn find(&self, key: VideoType) -> Result<Nfo> {
         let key = Arc::new(key);
+        let name = key.name();
         let mut tasks = Vec::new();
         for finder in self.finders.iter() {
             if !finder.support(&key) {
-                warn!("finder {} not support {}", finder.name(), key.name());
+                warn!("finder {} not support {}", finder.name(), name);
                 continue;
             }
 
@@ -89,14 +91,17 @@ impl Spider {
             tasks.push(task);
         }
 
-        let mut nfo = Nfo::new(key.name());
+        let mut nfo = None;
         for task in tasks {
             match task.await? {
-                Ok(found_nfo) => nfo.merge(found_nfo),
-                Err(err) => error!("{err:?}"),
+                Ok(found_nfo) => match nfo {
+                    None => nfo = Some(found_nfo),
+                    Some(ref mut nfo) => nfo.merge(found_nfo),
+                },
+                Err(err) => error!("could not find {name}, caused by {err:?}"),
             }
         }
 
-        Ok(nfo)
+        nfo.ok_or_else(|| anyhow!("could not find anything about {name} in all finders"))
     }
 }

@@ -33,3 +33,8 @@ alias r := remove
 # remove dev
 remove:
     @rm -rf dev
+
+alias f := format
+# format code
+format:
+    @cargo fmt

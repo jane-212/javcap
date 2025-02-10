@@ -44,7 +44,7 @@ impl Finder for SubtitleCat {
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
         let name = key.name();
-        let mut nfo = Nfo::new(&name);
+        let mut nfo = Nfo::builder().id(&name).build();
 
         let url = "https://www.subtitlecat.com/index.php";
         let text = self

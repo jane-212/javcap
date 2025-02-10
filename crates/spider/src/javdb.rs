@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
 use log::info;
-use nfo::Nfo;
+use nfo::{Country, Mpaa, Nfo};
 use select::document::Document;
 use select::predicate::{Class, Name, Predicate};
 use video::VideoType;
@@ -55,9 +55,11 @@ impl Finder for Javdb {
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
         let name = key.name();
-        let mut nfo = Nfo::new(&name)
-            .with_country("日本".to_string())
-            .with_mpaa("NC-17".to_string());
+        let mut nfo = Nfo::builder()
+            .id(&name)
+            .country(Country::Japan)
+            .mpaa(Mpaa::NC17)
+            .build();
 
         let url = format!("{}/search", self.base_url);
         let text = self
