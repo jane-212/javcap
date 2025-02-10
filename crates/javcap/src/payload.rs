@@ -108,7 +108,7 @@ impl Payload {
             let filename = if *idx == 0 {
                 format!("{}.{}", name, video.ext())
             } else {
-                format!("{}-{}.{}", name, idx, video.ext())
+                format!("{}-CD{}.{}", name, idx, video.ext())
             };
             let out = path.join(&filename);
             if out.exists() {
