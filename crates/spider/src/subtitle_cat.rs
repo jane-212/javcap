@@ -35,7 +35,14 @@ impl Finder for SubtitleCat {
         "subtitle cat"
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
+    fn support(&self, key: &VideoType) -> bool {
+        match key {
+            VideoType::Jav(_, _) => true,
+            VideoType::Fc2(_) => true,
+        }
+    }
+
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
         let name = key.name();
         let mut nfo = Nfo::new(&name);
 

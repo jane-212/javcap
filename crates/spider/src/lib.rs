@@ -17,7 +17,7 @@ use fc2ppv_db::Fc2ppvDB;
 use hbox::Hbox;
 use jav321::Jav321;
 use javdb::Javdb;
-use log::error;
+use log::{error, warn};
 use missav::Missav;
 use nfo::Nfo;
 use subtitle_cat::SubtitleCat;
@@ -26,7 +26,8 @@ use video::VideoType;
 #[async_trait]
 trait Finder: Send + Sync {
     fn name(&self) -> &'static str;
-    async fn find(&self, key: VideoType) -> Result<Nfo>;
+    fn support(&self, key: &VideoType) -> bool;
+    async fn find(&self, key: &VideoType) -> Result<Nfo>;
 }
 
 pub struct Spider {
@@ -69,13 +70,19 @@ impl Spider {
     }
 
     pub async fn find(&self, key: VideoType) -> Result<Nfo> {
+        let key = Arc::new(key);
         let mut tasks = Vec::new();
         for finder in self.finders.iter() {
+            if !finder.support(&key) {
+                warn!("finder {} not support {}", finder.name(), key.name());
+                continue;
+            }
+
             let finder = finder.clone();
             let key = key.clone();
             let task = tokio::spawn(async move {
                 finder
-                    .find(key)
+                    .find(&key)
                     .await
                     .with_context(|| format!("in finder {}", finder.name()))
             });

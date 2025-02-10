@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
-use log::{info, warn};
+use log::info;
 use nfo::Nfo;
 use select::document::Document;
 use select::predicate::{Attr, Class, Name, Predicate};
@@ -35,25 +35,23 @@ impl Finder for Fc2ppvDB {
         "fc2ppv db"
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::new(&name);
-
+    fn support(&self, key: &VideoType) -> bool {
         match key {
-            VideoType::Jav(_, _) => {
-                warn!("jav type video not supported, skip({name})");
-                return Ok(nfo);
-            }
-            VideoType::Fc2(_) => {}
+            VideoType::Jav(_, _) => false,
+            VideoType::Fc2(_) => true,
         }
+    }
 
-        nfo.set_country("日本".to_string());
-        nfo.set_mpaa("NC-17".to_string());
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
+        let name = key.name();
+        let mut nfo = Nfo::new(&name)
+            .with_country("日本".to_string())
+            .with_mpaa("NC-17".to_string());
 
         let url = "https://fc2ppvdb.com/search";
         let name = match key {
             VideoType::Jav(id, key) => format!("{id}-{key}"),
-            VideoType::Fc2(key) => key,
+            VideoType::Fc2(key) => key.clone(),
         };
         let text = self
             .client

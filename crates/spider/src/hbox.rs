@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
-use log::{info, warn};
+use log::info;
 use nfo::Nfo;
 use serde::Deserialize;
 use video::VideoType;
@@ -55,20 +55,18 @@ impl Finder for Hbox {
         "hbox"
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::new(&name);
-
+    fn support(&self, key: &VideoType) -> bool {
         match key {
-            VideoType::Fc2(_) => {
-                warn!("fc2 type video not supported, skip({name})");
-                return Ok(nfo);
-            }
-            VideoType::Jav(_, _) => {}
+            VideoType::Jav(_, _) => true,
+            VideoType::Fc2(_) => false,
         }
+    }
 
-        nfo.set_country("日本".to_string());
-        nfo.set_mpaa("NC-17".to_string());
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
+        let name = key.name();
+        let mut nfo = Nfo::new(&name)
+            .with_country("日本".to_string())
+            .with_mpaa("NC-17".to_string());
 
         let content = self
             .find_name(&name)

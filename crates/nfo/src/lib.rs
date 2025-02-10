@@ -2,13 +2,12 @@ use std::collections::HashSet;
 use std::fmt::{self, Display};
 use std::hash::Hash;
 
-use getset::{Getters, MutGetters, Setters};
+use getset::{Getters, MutGetters, Setters, WithSetters};
 use indoc::{formatdoc, writedoc};
 use validator::Validate;
 
-#[derive(Default, Setters, Getters, MutGetters, Validate)]
+#[derive(Default, Setters, Getters, MutGetters, Validate, WithSetters)]
 pub struct Nfo {
-    #[getset(get = "pub")]
     id: String,
 
     #[getset(set = "pub", get = "pub")]
@@ -27,7 +26,7 @@ pub struct Nfo {
     #[validate(range(min = 1, message = "empty"))]
     runtime: u32,
 
-    #[getset(set = "pub")]
+    #[getset(set_with = "pub")]
     #[validate(length(min = 1, message = "empty"))]
     mpaa: String,
 
@@ -35,7 +34,7 @@ pub struct Nfo {
     #[validate(length(min = 1, message = "empty"))]
     genres: HashSet<String>,
 
-    #[getset(set = "pub", get = "pub")]
+    #[getset(set_with = "pub", get = "pub")]
     #[validate(length(min = 1, message = "empty"))]
     country: String,
 

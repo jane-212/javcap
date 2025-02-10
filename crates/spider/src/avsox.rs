@@ -65,12 +65,18 @@ impl Finder for Avsox {
         "avsox"
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::new(&name);
+    fn support(&self, key: &VideoType) -> bool {
+        match key {
+            VideoType::Jav(_, _) => true,
+            VideoType::Fc2(_) => true,
+        }
+    }
 
-        nfo.set_country("日本".to_string());
-        nfo.set_mpaa("NC-17".to_string());
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
+        let name = key.name();
+        let mut nfo = Nfo::new(&name)
+            .with_country("日本".to_string())
+            .with_mpaa("NC-17".to_string());
 
         let url = format!("{}/cn/search/{name}", self.base_url);
         let text = self
