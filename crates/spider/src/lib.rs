@@ -11,6 +11,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
+use airav::Airav;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use avsox::Avsox;
@@ -64,6 +65,7 @@ impl Spider {
             ),
             Arc::new(Hbox::new(timeout, proxy.clone()).with_context(|| "build hbox")?),
             Arc::new(Fc2ppvDB::new(timeout, proxy.clone()).with_context(|| "build fc2ppv db")?),
+            Arc::new(Airav::new(timeout, proxy.clone()).with_context(|| "build airav")?),
         ];
 
         let spider = Spider { finders };

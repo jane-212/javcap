@@ -108,10 +108,41 @@ impl Nfo {
     pub fn summary(&self) -> String {
         formatdoc!(
             "
-            {self}
+            id: {}
+            country: {}
+            mpaa: {}
+            title: {}
+            rating: {}
+            plot: {}
+            runtime: {}
+            genres: {}
+            director: {}
+            premiered: {}
+            studio: {}
+            actors: {}
             fanart: {}
             poster: {}
             subtitle: {}",
+            self.id,
+            self.country,
+            self.mpaa,
+            self.title,
+            self.rating,
+            self.plot,
+            self.runtime,
+            self.genres
+                .iter()
+                .map(|genre| genre.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.director,
+            self.premiered,
+            self.studio,
+            self.actors
+                .iter()
+                .map(|actor| actor.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
             self.fanart.len(),
             self.poster.len(),
             self.subtitle.len(),
@@ -210,13 +241,13 @@ impl Display for Nfo {
                 .genres
                 .iter()
                 .map(|genre| format!("    <genre>{genre}</genre>"))
-                .collect::<Vec<String>>()
+                .collect::<Vec<_>>()
                 .join("\n"),
             tags = self
                 .genres
                 .iter()
                 .map(|genre| format!("    <tag>{genre}</tag>"))
-                .collect::<Vec<String>>()
+                .collect::<Vec<_>>()
                 .join("\n"),
             country = self.country,
             director = self.director,
@@ -226,7 +257,7 @@ impl Display for Nfo {
                 .actors
                 .iter()
                 .map(|actor| format!("    <actor>\n        <name>{actor}</name>\n    </actor>"))
-                .collect::<Vec<String>>()
+                .collect::<Vec<_>>()
                 .join("\n"),
         )
     }
