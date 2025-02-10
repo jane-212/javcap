@@ -62,6 +62,7 @@ self_update = { version = "0.42.0", default-features = false, features = [
 ] }
 bon = "3.3.2"
 async-openai = "0.27.2"
+chrono = "0.4.39"
 
 [profile.release]
 lto = true

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::{bail, Context, Result};
 use colored::Colorize;
 use config::Config;
-use log::{info, warn};
+use log::{error, info, warn};
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
@@ -176,7 +176,7 @@ impl App {
 
     async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
         let out = self.concat_rule(payload);
-        self.bar.message(format!("target is {}", out.display()));
+        self.bar.message(format!("to {}", out.display()));
         if out.is_file() {
             bail!("target is a file");
         }
@@ -195,7 +195,7 @@ impl App {
         self.bar.message(&err);
 
         self.bar.add().await;
-        warn!("{name} failed, cause {err}");
+        error!("{name} failed, caused by {err}");
         self.failed.push(name);
     }
 
@@ -306,7 +306,7 @@ impl App {
 
             let should_pass = excludes.iter().any(|e| e == name);
             if should_pass {
-                info!("skip {}", file.display());
+                warn!("skip {}", file.display());
                 continue;
             }
 

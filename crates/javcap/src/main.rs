@@ -1,14 +1,16 @@
 use std::env;
 use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
+use chrono::Local;
 use colored::Colorize;
 use config::Config;
 use env_logger::{Builder, Target};
 use javcap::App;
-use log::info;
+use log::{error, info};
 use self_update::backends::github::Update;
 use self_update::Status;
 use tokio::fs;
@@ -21,7 +23,8 @@ async fn main() -> ExitCode {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
-            eprintln!("{:?}", e);
+            eprintln!("{e:?}");
+            error!("{e:?}");
             ExitCode::FAILURE
         }
     };
@@ -114,6 +117,16 @@ async fn init_logger() -> Result<()> {
         env::set_var("LOG", "info");
     }
     Builder::from_env("LOG")
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{} {:<5} {}]\n{}",
+                Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.level(),
+                record.target(),
+                record.args(),
+            )
+        })
         .target(Target::Pipe(Box::new(log_file)))
         .init();
 
