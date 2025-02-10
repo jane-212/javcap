@@ -6,6 +6,7 @@ use bon::bon;
 use getset::{Getters, MutGetters, Setters};
 use indoc::{formatdoc, writedoc};
 use validator::Validate;
+use video::VideoType;
 
 #[derive(Setters, Getters, MutGetters, Validate)]
 pub struct Nfo {
@@ -16,7 +17,6 @@ pub struct Nfo {
     title: String,
 
     #[getset(set = "pub")]
-    #[validate(range(min = 0.1, message = "empty"))]
     rating: f64,
 
     #[getset(set = "pub", get = "pub")]
@@ -24,7 +24,6 @@ pub struct Nfo {
     plot: String,
 
     #[getset(set = "pub")]
-    #[validate(range(min = 1, message = "empty"))]
     runtime: u32,
 
     mpaa: Mpaa,
@@ -87,21 +86,32 @@ impl Nfo {
         }
     }
 
-    pub fn auto_fix(&mut self) {
-        self.rating = self.rating.max(0.1);
+    pub fn auto_fix_by_key(&mut self, key: &VideoType) {
         if self.plot.is_empty() {
             self.plot = self.title.clone();
         }
-        if self.director.is_empty() {
-            self.director = self.studio.clone();
-        }
-        if self.genres.is_empty() {
-            let director = self.director.clone();
-            self.genres_mut().insert(director);
-        }
-        if self.actors.is_empty() {
-            let director = self.director.clone();
-            self.actors_mut().insert(director);
+        match key {
+            VideoType::Jav(_, _) => {
+                if self.director.is_empty() {
+                    self.director = self.studio.clone();
+                }
+            }
+            VideoType::Fc2(_) => {
+                if self.studio.is_empty() {
+                    self.studio = "FC2-PPV".to_string();
+                }
+                if self.director.is_empty() {
+                    self.director = self.studio.clone();
+                }
+                if self.genres.is_empty() {
+                    let director = self.director.clone();
+                    self.genres_mut().insert(director);
+                }
+                if self.actors.is_empty() {
+                    let director = self.director.clone();
+                    self.actors_mut().insert(director);
+                }
+            }
         }
     }
 

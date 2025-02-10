@@ -106,7 +106,7 @@ impl App {
             .find(video.ty().clone())
             .await
             .with_context(|| "find video")?;
-        nfo.auto_fix();
+        nfo.auto_fix_by_key(video.ty());
         info!("{}", nfo.summary());
         nfo.validate().with_context(|| "validate nfo")?;
 

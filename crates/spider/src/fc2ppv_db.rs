@@ -181,8 +181,6 @@ impl Finder for Fc2ppvDB {
             nfo.set_poster(img);
         }
 
-        nfo.set_studio("FC2-PPV".to_string());
-
         info!("{}", nfo.summary());
         Ok(nfo)
     }

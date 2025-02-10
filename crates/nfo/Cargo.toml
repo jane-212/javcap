@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+video.workspace = true
+
 indoc.workspace = true
 getset.workspace = true
 validator.workspace = true
