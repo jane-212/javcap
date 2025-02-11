@@ -22,3 +22,4 @@ whoami.workspace = true
 self_update.workspace = true
 bon.workspace = true
 chrono.workspace = true
+target-triple.workspace = true
