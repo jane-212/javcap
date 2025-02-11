@@ -6,6 +6,7 @@ alias t := try
 try: remove
     @mkdir -p dev
     @touch dev/FC2-PPV-3061625.wmv
+    @touch dev/FC2-PPV-1292936.wmv
     @touch dev/HEYZO-3525.wmv
     @touch dev/MD-0260.wmv
     @touch dev/PROB-3.wmv

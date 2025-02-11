@@ -106,3 +106,29 @@ impl Spider {
         nfo.ok_or_else(|| anyhow!("could not find anything about {key} in all finders"))
     }
 }
+
+#[macro_export]
+macro_rules! select {
+    ($($k:ident: $v: expr)*) => {
+        struct Selectors {
+        $(
+            $k: Selector,
+        )*
+        }
+
+        impl Selectors {
+            fn new() -> Result<Selectors> {
+                let selectors = Selectors {
+                $(
+                    $k: Selector::parse($v)
+                        .map_err(|e| anyhow!("parse selector failed by {e}"))
+                        .with_context(|| $v)
+                        .with_context(|| stringify!($k))?,
+                )*
+                };
+
+                Ok(selectors)
+            }
+        }
+    };
+}

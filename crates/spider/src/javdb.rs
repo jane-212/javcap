@@ -1,21 +1,32 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
-use select::document::Document;
-use select::predicate::{Class, Name, Predicate};
+use scraper::{Html, Selector};
 use video::VideoType;
 
-use super::Finder;
+use super::{select, Finder};
+
+select!(
+    home_item: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div"
+    home_item_id: "a > div.video-title > strong"
+    home_title: "a"
+    home_date: "a > div.meta"
+    home_rating: "a > div.score > span"
+    detail_block: "body > section > div > div.video-detail > div.video-meta-panel > div > div:nth-child(2) > nav > div.panel-block"
+    detail_name: "strong"
+    detail_value: "span"
+);
 
 pub struct Javdb {
     base_url: String,
     client: Client,
+    selectors: Selectors,
 }
 
 #[bon]
@@ -32,10 +43,12 @@ impl Javdb {
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
+        let selectors = Selectors::new().with_context(|| "build selectors")?;
 
         let javdb = Javdb {
             base_url: base_url.unwrap_or("https://javdb.com".to_string()),
             client,
+            selectors,
         };
         Ok(javdb)
     }
@@ -63,6 +76,21 @@ impl Finder for Javdb {
             .mpaa(Mpaa::NC17)
             .build();
 
+        let url = self
+            .find_in_home(key, &mut nfo)
+            .await
+            .with_context(|| "find in home")?;
+        self.find_detail(&url, &mut nfo)
+            .await
+            .with_context(|| format!("find detail {url}"))?;
+
+        info!("{}", nfo.summary());
+        Ok(nfo)
+    }
+}
+
+impl Javdb {
+    async fn find_in_home(&self, key: &VideoType, nfo: &mut Nfo) -> Result<String> {
         let url = format!("{}/search", self.base_url);
         let text = self
             .client
@@ -71,136 +99,127 @@ impl Finder for Javdb {
             .get(&url)
             .query(&[("q", key.to_string().as_str()), ("f", "all")])
             .send()
-            .await
-            .with_context(|| format!("send to {url}"))?
+            .await?
             .text()
+            .await?;
+        let html = Html::parse_document(&text);
+
+        let name = key.to_string();
+        let Some(item) = html.select(&self.selectors.home_item).find(|node| {
+            node.select(&self.selectors.home_item_id)
+                .next()
+                .map(|node| node.text().collect::<String>() == name)
+                .unwrap_or(false)
+        }) else {
+            bail!("item not found");
+        };
+
+        if let Some(date) = item
+            .select(&self.selectors.home_date)
+            .next()
+            .map(|node| node.text().collect::<String>())
+        {
+            nfo.set_premiered(date.trim().to_string());
+        }
+
+        if let Some(rating) = item
+            .select(&self.selectors.home_rating)
+            .next()
+            .and_then(|node| node.text().last().map(|text| text.trim()))
+            .map(|text| {
+                text.chars()
+                    .take_while(|c| c.is_ascii_digit() || *c == '.')
+                    .collect::<String>()
+                    .parse::<f64>()
+                    .unwrap_or_default()
+            })
+            .map(|rating| rating * 2.0)
+        {
+            nfo.set_rating(rating);
+        }
+
+        if let Some(title) = item
+            .select(&self.selectors.home_title)
+            .next()
+            .and_then(|node| node.attr("title"))
+        {
+            nfo.set_title(title.to_string());
+        }
+
+        item.select(&self.selectors.home_title)
+            .next()
+            .and_then(|node| {
+                node.attr("href")
+                    .map(|href| format!("{}{href}", self.base_url))
+            })
+            .ok_or_else(|| anyhow!("detail url not found"))
+    }
+
+    async fn find_detail(&self, url: &str, nfo: &mut Nfo) -> Result<()> {
+        let text = self
+            .client
+            .wait()
             .await
-            .with_context(|| format!("decode to text from {url}"))?;
-        let url = {
-            let html = Document::from(text.as_str());
+            .get(url)
+            .send()
+            .await?
+            .text()
+            .await?;
+        let html = Html::parse_document(&text);
+        for block in html.select(&self.selectors.detail_block) {
+            let Some(name) = block
+                .select(&self.selectors.detail_name)
+                .next()
+                .map(|node| node.text().collect::<String>())
+            else {
+                continue;
+            };
+            let Some(value) = block
+                .select(&self.selectors.detail_value)
+                .next()
+                .map(|node| node.text().collect::<String>())
+            else {
+                continue;
+            };
 
-            let mut found = None;
-            let name = key.to_string();
-            for item in html.find(Name("div").and(Class("item"))) {
-                let Some(a) = item.find(Name("a").and(Class("box"))).next() else {
-                    continue;
-                };
+            let name = name.trim_end_matches(":").trim();
+            let value = value.trim();
 
-                if a.find(Name("div").and(Class("video-title")).child(Name("strong")))
-                    .next()
-                    .map(|node| node.text() != name)
-                    .unwrap_or(true)
-                {
-                    continue;
-                }
-
-                if let Some(title) = a.attr("title") {
-                    nfo.set_title(title.to_string());
-                }
-
-                found = a
-                    .attr("href")
-                    .map(|href| format!("{}{href}", self.base_url));
-
-                if let Some(score) = a
-                    .find(
-                        Name("div")
-                            .and(Class("score"))
-                            .child(Name("span").and(Class("value"))),
-                    )
-                    .next()
-                    .and_then(|node| node.last_child())
-                    .map(|node| node.text())
-                {
-                    let score = score.trim();
-                    let score: f64 = score
+            match name {
+                "時長" => {
+                    let runtime: u32 = value
                         .chars()
-                        .filter(|c| *c == '.' || c.is_ascii_digit())
+                        .filter(|c| c.is_ascii_digit())
                         .collect::<String>()
                         .parse()
                         .unwrap_or_default();
-                    nfo.set_rating(score * 2.0);
+                    nfo.set_runtime(runtime);
                 }
-
-                if let Some(meta) = a
-                    .find(Name("div").and(Class("meta")))
-                    .next()
-                    .map(|node| node.text())
-                {
-                    let meta = meta.trim();
-                    nfo.set_premiered(meta.to_string());
+                "導演" => {
+                    nfo.set_director(value.to_string());
                 }
-            }
-
-            found
-        };
-
-        if let Some(url) = url {
-            let text = self
-                .client
-                .wait()
-                .await
-                .get(url)
-                .send()
-                .await?
-                .text()
-                .await?;
-            {
-                let html = Document::from(text.as_str());
-
-                for block in html.find(Name("div").and(Class("panel-block"))) {
-                    let Some(name) = block.find(Name("strong")).next().map(|node| node.text())
-                    else {
-                        continue;
-                    };
-                    let Some(value) = block
-                        .find(Name("span").and(Class("value")))
-                        .next()
-                        .map(|node| node.text())
-                    else {
-                        continue;
-                    };
-                    let name = name.trim_end_matches(":").trim();
-                    let value = value.trim();
-
-                    match name {
-                        "時長" => {
-                            let runtime: u32 = value
-                                .chars()
-                                .filter(|c| c.is_ascii_digit())
-                                .collect::<String>()
-                                .parse()
-                                .unwrap_or_default();
-                            nfo.set_runtime(runtime);
-                        }
-                        "導演" => {
-                            nfo.set_director(value.to_string());
-                        }
-                        "片商" => {
-                            nfo.set_studio(value.to_string());
-                        }
-                        "類別" => {
-                            let genres = value.split(",").collect::<Vec<_>>();
-                            for genre in genres {
-                                nfo.genres_mut().insert(genre.trim().to_string());
-                            }
-                        }
-                        "演員" => {
-                            let actors = value
-                                .lines()
-                                .map(|line| line.trim().trim_end_matches(['♂', '♀']))
-                                .collect::<Vec<_>>();
-                            for actor in actors {
-                                nfo.actors_mut().insert(actor.to_string());
-                            }
-                        }
-                        _ => {}
+                "片商" => {
+                    nfo.set_studio(value.to_string());
+                }
+                "類別" => {
+                    let genres = value.split(",").collect::<Vec<_>>();
+                    for genre in genres {
+                        nfo.genres_mut().insert(genre.trim().to_string());
                     }
                 }
+                "演員" => {
+                    let actors = value
+                        .lines()
+                        .map(|line| line.trim().trim_end_matches(['♂', '♀']))
+                        .collect::<Vec<_>>();
+                    for actor in actors {
+                        nfo.actors_mut().insert(actor.to_string());
+                    }
+                }
+                _ => {}
             }
         }
 
-        info!("{}", nfo.summary());
-        Ok(nfo)
+        Ok(())
     }
 }
