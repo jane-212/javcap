@@ -1,17 +1,16 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use async_trait::async_trait;
+use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
-use scraper::{Html, Selector};
+use scraper::Html;
 use video::VideoType;
 
 use super::{select, Finder};
-
-const HOST: &str = app::url::JAV321;
 
 select!(
     title: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-heading > h3"
@@ -22,12 +21,19 @@ select!(
 );
 
 pub struct Jav321 {
+    base_url: String,
     client: Client,
     selectors: Selectors,
 }
 
+#[bon]
 impl Jav321 {
-    pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Jav321> {
+    #[builder]
+    pub fn new(
+        base_url: Option<String>,
+        timeout: Duration,
+        proxy: Option<String>,
+    ) -> Result<Jav321> {
         let client = Client::builder()
             .timeout(timeout)
             .interval(1)
@@ -36,7 +42,11 @@ impl Jav321 {
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
 
-        let jav321 = Jav321 { client, selectors };
+        let jav321 = Jav321 {
+            base_url: base_url.unwrap_or(app::url::JAV321.to_string()),
+            client,
+            selectors,
+        };
         Ok(jav321)
     }
 }
@@ -103,7 +113,7 @@ impl Jav321 {
         key: &VideoType,
         nfo: &mut Nfo,
     ) -> Result<(Option<String>, Option<String>)> {
-        let url = format!("{HOST}/search");
+        let url = format!("{}/search", self.base_url);
         let text = self
             .client
             .wait()
@@ -218,7 +228,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Jav321> {
-        Jav321::new(Duration::from_secs(5), None)
+        Jav321::builder().timeout(Duration::from_secs(5)).build()
     }
 
     #[test]

@@ -1,5 +1,6 @@
 mod airav;
 mod avsox;
+mod cable;
 mod fc2ppv_db;
 mod hbox;
 mod jav321;
@@ -15,6 +16,7 @@ use airav::Airav;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use avsox::Avsox;
+use cable::Cable;
 use config::Config;
 use fc2ppv_db::Fc2ppvDB;
 use hbox::Hbox;
@@ -22,7 +24,7 @@ use jav321::Jav321;
 use javdb::Javdb;
 use log::{error, warn};
 use missav::Missav;
-use nfo::Nfo;
+use nfo::{Country, Nfo};
 use subtitle_cat::SubtitleCat;
 use video::VideoType;
 
@@ -41,31 +43,30 @@ impl Spider {
         let timeout = Duration::from_secs(config.network.timeout);
         let proxy = &config.network.proxy;
         let url = &config.url;
+
+        macro_rules! spider {
+            ($s:ty, $u:expr, $m:expr) => {
+                Arc::new(
+                    <$s>::builder()
+                        .maybe_base_url($u)
+                        .timeout(timeout)
+                        .maybe_proxy(proxy.clone())
+                        .build()
+                        .with_context(|| $m)?,
+                )
+            };
+        }
+
         let finders: Vec<Arc<dyn Finder>> = vec![
-            Arc::new(Missav::new(timeout, proxy.clone()).with_context(|| "build missav")?),
-            Arc::new(
-                Avsox::builder()
-                    .maybe_base_url(url.avsox.clone())
-                    .timeout(timeout)
-                    .maybe_proxy(proxy.clone())
-                    .build()
-                    .with_context(|| "build avsox")?,
-            ),
-            Arc::new(
-                SubtitleCat::new(timeout, proxy.clone()).with_context(|| "build subtitle cat")?,
-            ),
-            Arc::new(Jav321::new(timeout, proxy.clone()).with_context(|| "build jav321")?),
-            Arc::new(
-                Javdb::builder()
-                    .maybe_base_url(url.javdb.clone())
-                    .timeout(timeout)
-                    .maybe_proxy(proxy.clone())
-                    .build()
-                    .with_context(|| "build javdb")?,
-            ),
-            Arc::new(Hbox::new(timeout, proxy.clone()).with_context(|| "build hbox")?),
-            Arc::new(Fc2ppvDB::new(timeout, proxy.clone()).with_context(|| "build fc2ppv db")?),
-            Arc::new(Airav::new(timeout, proxy.clone()).with_context(|| "build airav")?),
+            spider!(Airav, url.airav.clone(), "build airav"),
+            spider!(Avsox, url.avsox.clone(), "build avsox"),
+            spider!(Cable, url.cable.clone(), "build cable"),
+            spider!(Fc2ppvDB, url.fc2ppv_db.clone(), "build fc2ppv db"),
+            spider!(Hbox, url.hbox.clone(), "build hbox"),
+            spider!(Jav321, url.jav321.clone(), "build jav321"),
+            spider!(Javdb, url.javdb.clone(), "build javdb"),
+            spider!(Missav, url.missav.clone(), "build missav"),
+            spider!(SubtitleCat, url.subtitle_cat.clone(), "build subtitle cat"),
         ];
 
         let spider = Spider { finders };
@@ -107,21 +108,36 @@ impl Spider {
     }
 }
 
+fn which_country(key: &VideoType) -> Country {
+    match key {
+        VideoType::Jav(id, _) => match id.as_str() {
+            "MD" | "LY" | "MDHG" | "MSD" | "SZL" | "MDSR" | "MDCM" | "PCM" | "YCM" | "KCM"
+            | "PMX" | "PM" | "PMS" | "EMX" | "GDCM" | "XKTV" | "XKKY" | "XKG" | "XKVP" | "TM"
+            | "TML" | "TMT" | "TMTC" | "TMW" | "JDYG" | "JD" | "JDKR" | "RAS" | "XSJKY"
+            | "XSJYH" | "XSJ" | "IDG" | "FSOG" | "QDOG" | "TZ" | "DAD" => Country::China,
+            _ => Country::Japan,
+        },
+        VideoType::Fc2(_) => Country::Japan,
+    }
+}
+
 #[macro_export]
 macro_rules! select {
     ($($k:ident: $v: expr)*) => {
         struct Selectors {
         $(
-            $k: Selector,
+            $k: scraper::Selector,
         )*
         }
 
         impl Selectors {
-            fn new() -> Result<Selectors> {
+            fn new() -> anyhow::Result<Selectors> {
+                use anyhow::Context;
+
                 let selectors = Selectors {
                 $(
-                    $k: Selector::parse($v)
-                        .map_err(|e| anyhow!("parse selector failed by {e}"))
+                    $k: scraper::Selector::parse($v)
+                        .map_err(|e| anyhow::anyhow!("parse selector failed by {e}"))
                         .with_context(|| $v)
                         .with_context(|| stringify!($k))?,
                 )*

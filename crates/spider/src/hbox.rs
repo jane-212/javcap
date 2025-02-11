@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
+use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
@@ -11,14 +12,15 @@ use video::VideoType;
 
 use super::Finder;
 
-const HOST: &str = app::url::HBOX;
-
 pub struct Hbox {
+    base_url: String,
     client: Client,
 }
 
+#[bon]
 impl Hbox {
-    pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Hbox> {
+    #[builder]
+    pub fn new(base_url: Option<String>, timeout: Duration, proxy: Option<String>) -> Result<Hbox> {
         let client = Client::builder()
             .timeout(timeout)
             .interval(1)
@@ -26,12 +28,15 @@ impl Hbox {
             .build()
             .with_context(|| "build http client")?;
 
-        let hbox = Hbox { client };
+        let hbox = Hbox {
+            base_url: base_url.unwrap_or(app::url::HBOX.to_string()),
+            client,
+        };
         Ok(hbox)
     }
 
     async fn find_name(&self, name: &str) -> Result<Content> {
-        let url = format!("{HOST}/home_api/search_result");
+        let url = format!("{}/home_api/search_result", self.base_url);
         let mut payload = self
             .client
             .wait()
@@ -91,8 +96,8 @@ impl Finder for Hbox {
             nfo.genres_mut().insert(tag.name);
         });
         let poster = format!(
-            "{HOST}{}/{}",
-            content.back_cover_url_root, content.back_cover_file,
+            "{}{}/{}",
+            self.base_url, content.back_cover_url_root, content.back_cover_file,
         );
         let poster = self
             .client
@@ -293,7 +298,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Hbox> {
-        Hbox::new(Duration::from_secs(5), None)
+        Hbox::builder().timeout(Duration::from_secs(5)).build()
     }
 
     #[test]

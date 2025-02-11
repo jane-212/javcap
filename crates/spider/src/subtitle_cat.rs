@@ -3,15 +3,14 @@ use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
+use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::Nfo;
-use scraper::{Html, Selector};
+use scraper::Html;
 use video::VideoType;
 
 use super::{select, Finder};
-
-const HOST: &str = app::url::SUBTITLE_CAT;
 
 select!(
     home_item: "body > div.subtitles > div > div > div > table > tbody > tr > td:nth-child(1) > a"
@@ -19,12 +18,19 @@ select!(
 );
 
 pub struct SubtitleCat {
+    base_url: String,
     client: Client,
     selectors: Selectors,
 }
 
+#[bon]
 impl SubtitleCat {
-    pub fn new(timeout: Duration, proxy: Option<String>) -> Result<SubtitleCat> {
+    #[builder]
+    pub fn new(
+        base_url: Option<String>,
+        timeout: Duration,
+        proxy: Option<String>,
+    ) -> Result<SubtitleCat> {
         let client = Client::builder()
             .timeout(timeout)
             .interval(1)
@@ -33,7 +39,11 @@ impl SubtitleCat {
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
 
-        let subtitle_cat = SubtitleCat { client, selectors };
+        let subtitle_cat = SubtitleCat {
+            base_url: base_url.unwrap_or(app::url::SUBTITLE_CAT.to_string()),
+            client,
+            selectors,
+        };
         Ok(subtitle_cat)
     }
 }
@@ -95,12 +105,15 @@ impl SubtitleCat {
         let html = Html::parse_document(&text);
         html.select(&self.selectors.detail_download_url)
             .next()
-            .and_then(|node| node.attr("href").map(|href| format!("{HOST}{href}")))
+            .and_then(|node| {
+                node.attr("href")
+                    .map(|href| format!("{}{href}", self.base_url))
+            })
             .ok_or_else(|| anyhow!("download url not found"))
     }
 
     async fn find_detail(&self, key: &VideoType) -> Result<String> {
-        let url = format!("{HOST}/index.php");
+        let url = format!("{}/index.php", self.base_url);
         let text = self
             .client
             .wait()
@@ -129,7 +142,10 @@ impl SubtitleCat {
                 let title = item.text().collect::<String>();
                 possible_names.iter().any(|name| title.contains(name))
             })
-            .and_then(|node| node.attr("href").map(|href| format!("{HOST}/{href}")))
+            .and_then(|node| {
+                node.attr("href")
+                    .map(|href| format!("{}/{href}", self.base_url))
+            })
             .ok_or_else(|| anyhow!("subtitle not found"))
     }
 }
@@ -140,7 +156,9 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<SubtitleCat> {
-        SubtitleCat::new(Duration::from_secs(5), None)
+        SubtitleCat::builder()
+            .timeout(Duration::from_secs(5))
+            .build()
     }
 
     #[test]

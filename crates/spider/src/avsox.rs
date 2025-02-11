@@ -1,18 +1,16 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
-use scraper::{Html, Selector};
+use scraper::Html;
 use video::VideoType;
 
 use super::{select, Finder};
-
-const HOST: &str = app::url::AVSOX;
 
 select!(
     home_title: "#waterfall > div > a > div.photo-frame > img"
@@ -45,7 +43,7 @@ impl Avsox {
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
         let avsox = Avsox {
-            base_url: base_url.unwrap_or(HOST.to_string()),
+            base_url: base_url.unwrap_or(app::url::AVSOX.to_string()),
             client,
             selectors,
         };
