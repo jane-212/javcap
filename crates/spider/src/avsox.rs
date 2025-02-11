@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+const HOST: &str = app::url::AVSOX;
+
 select!(
     home_title: "#waterfall > div > a > div.photo-frame > img"
     home_date: "#waterfall > div > a > div.photo-info > span > date:nth-child(4)"
@@ -43,7 +45,7 @@ impl Avsox {
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
         let avsox = Avsox {
-            base_url: base_url.unwrap_or("https://avsox.click".to_string()),
+            base_url: base_url.unwrap_or(HOST.to_string()),
             client,
             selectors,
         };
@@ -112,7 +114,7 @@ impl Finder for Avsox {
             }
         }
 
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         Ok(nfo)
     }
 }
@@ -226,5 +228,87 @@ impl Avsox {
         }
 
         Ok(fanart)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<Avsox> {
+        Avsox::builder().timeout(Duration::from_secs(5)).build()
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            VideoType::Jav("STARS".to_string(), "804".to_string()),
+            VideoType::Fc2("3061625".to_string()),
+        ];
+        for video in videos {
+            assert!(finder.support(&video));
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [
+            (VideoType::Jav("HEYZO".to_string(), "3525".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("HEYZO-3525")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title(
+                    "竹田紀子 【たけだのりこ】 Sな淫乱痴熟女とねっとりエッチVol.2".to_string(),
+                )
+                .set_runtime(60)
+                .set_studio("HEYZO".to_string())
+                .set_premiered("2025-02-09".to_string());
+                let genres = [
+                    "舔阴",
+                    "内射",
+                    "手淫",
+                    "第一视角",
+                    "骑乘位",
+                    "指法",
+                    "痴女",
+                    "后入",
+                ];
+
+                for genre in genres {
+                    nfo.genres_mut().insert(genre.to_string());
+                }
+                nfo
+            }),
+            (VideoType::Fc2("1292936".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("FC2-PPV-1292936")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title("【個人撮影・セット販売】妖艶から淫靡な妻へ 完全版".to_string())
+                    .set_director("啼きの人妻".to_string())
+                    .set_studio("FC2-PPV".to_string())
+                    .set_runtime(68)
+                    .set_premiered("2020-03-04".to_string());
+
+                nfo
+            }),
+        ];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(!actual.fanart().is_empty());
+            assert!(!actual.poster().is_empty());
+            assert!(actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
+        }
+
+        Ok(())
     }
 }

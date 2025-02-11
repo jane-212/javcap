@@ -11,6 +11,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+const HOST: &str = app::url::SUBTITLE_CAT;
+
 select!(
     home_item: "body > div.subtitles > div > div > div > table > tbody > tr > td:nth-child(1) > a"
     detail_download_url: "#download_zh-CN"
@@ -74,7 +76,7 @@ impl Finder for SubtitleCat {
         }
         nfo.set_subtitle(subtitle.into_bytes());
 
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         Ok(nfo)
     }
 }
@@ -93,15 +95,12 @@ impl SubtitleCat {
         let html = Html::parse_document(&text);
         html.select(&self.selectors.detail_download_url)
             .next()
-            .and_then(|node| {
-                node.attr("href")
-                    .map(|href| format!("https://www.subtitlecat.com{href}"))
-            })
+            .and_then(|node| node.attr("href").map(|href| format!("{HOST}{href}")))
             .ok_or_else(|| anyhow!("download url not found"))
     }
 
     async fn find_detail(&self, key: &VideoType) -> Result<String> {
-        let url = "https://www.subtitlecat.com/index.php";
+        let url = format!("{HOST}/index.php");
         let text = self
             .client
             .wait()
@@ -130,10 +129,59 @@ impl SubtitleCat {
                 let title = item.text().collect::<String>();
                 possible_names.iter().any(|name| title.contains(name))
             })
-            .and_then(|node| {
-                node.attr("href")
-                    .map(|href| format!("https://www.subtitlecat.com/{href}"))
-            })
+            .and_then(|node| node.attr("href").map(|href| format!("{HOST}/{href}")))
             .ok_or_else(|| anyhow!("subtitle not found"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<SubtitleCat> {
+        SubtitleCat::new(Duration::from_secs(5), None)
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            (VideoType::Jav("STARS".to_string(), "804".to_string()), true),
+            (VideoType::Fc2("3061625".to_string()), true),
+        ];
+        for (video, supported) in videos {
+            assert_eq!(finder.support(&video), supported);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [
+            (VideoType::Jav("IPX".to_string(), "443".to_string()), {
+                Nfo::builder().id("IPX-443").build()
+            }),
+            (VideoType::Jav("ROYD".to_string(), "108".to_string()), {
+                Nfo::builder().id("ROYD-108").build()
+            }),
+            (VideoType::Jav("STARS".to_string(), "804".to_string()), {
+                Nfo::builder().id("STARS-804").build()
+            }),
+            (VideoType::Fc2("3061625".to_string()), {
+                Nfo::builder().id("FC2-PPV-3061625").build()
+            }),
+        ];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(actual.fanart().is_empty());
+            assert!(actual.poster().is_empty());
+            assert!(!actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
+        }
+
+        Ok(())
     }
 }

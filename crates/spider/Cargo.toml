@@ -7,6 +7,7 @@ edition = "2021"
 nfo.workspace = true
 video.workspace = true
 config.workspace = true
+app.workspace = true
 http-client.workspace = true
 
 anyhow.workspace = true
@@ -16,3 +17,6 @@ bon.workspace = true
 serde.workspace = true
 tokio.workspace = true
 scraper.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true

@@ -11,6 +11,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+const HOST: &str = app::url::FC2PPV_DB;
+
 select!(
     img: "body > div > div > div > main > div > section > div.container.lg\\:px-5.px-2.py-12.mx-auto > div.flex.flex-col.items-start.rounded-lg.shadow.md\\:flex-row.dark\\:border-gray-800.dark\\:bg-gray-900.py-2 > div.lg\\:w-2\\/5.w-full.mb-12.md\\:mb-0 > a > img"
     rating: "#percentage"
@@ -77,14 +79,14 @@ impl Finder for Fc2ppvDB {
         nfo.set_fanart(img.clone());
         nfo.set_poster(img);
 
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         Ok(nfo)
     }
 }
 
 impl Fc2ppvDB {
     async fn find_detail(&self, key: &VideoType, nfo: &mut Nfo) -> Result<String> {
-        let url = "https://fc2ppvdb.com/search";
+        let url = format!("{HOST}/search");
         let name = match key {
             VideoType::Jav(id, number) => format!("{id}-{number}"),
             VideoType::Fc2(number) => number.clone(),
@@ -176,5 +178,80 @@ impl Fc2ppvDB {
             .next()
             .and_then(|node| node.attr("src").map(|src| src.to_string()))
             .ok_or_else(|| anyhow!("img not found"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<Fc2ppvDB> {
+        Fc2ppvDB::new(Duration::from_secs(5), None)
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            (
+                VideoType::Jav("STARS".to_string(), "804".to_string()),
+                false,
+            ),
+            (VideoType::Fc2("3061625".to_string()), true),
+        ];
+        for (video, supported) in videos {
+            assert_eq!(finder.support(&video), supported);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [
+            (VideoType::Fc2("3061625".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("FC2-PPV-3061625")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title(
+                "人生初めてのハメ撮り。そして中出し。学年一の美●女が覆面男の精子に汚される瞬間！"
+                    .to_string(),
+            )
+            .set_director("KING POWER D".to_string())
+            .set_runtime(82)
+            .set_rating(9.1)
+            .set_premiered("2022-07-30".to_string());
+                nfo.actors_mut().insert("あすか".to_string());
+
+                nfo
+            }),
+            (VideoType::Fc2("1292936".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("FC2-PPV-1292936")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title("【個人撮影・セット販売】妖艶から淫靡な妻へ 完全版".to_string())
+                    .set_director("啼きの人妻".to_string())
+                    .set_runtime(68)
+                    .set_premiered("2020-03-04".to_string());
+                nfo.actors_mut().insert("夏原あかり".to_string());
+
+                nfo
+            }),
+        ];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(!actual.fanart().is_empty());
+            assert!(!actual.poster().is_empty());
+            assert!(actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
+        }
+
+        Ok(())
     }
 }

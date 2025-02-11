@@ -1,0 +1,21 @@
+name: daily
+
+on:
+  schedule:
+    - cron: "0 5,22 * * *"
+
+jobs:
+  daily-test:
+    name: daily-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      - name: Run test
+        run: |
+          cargo test --workspace --all-features --color always
