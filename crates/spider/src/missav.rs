@@ -1,10 +1,11 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
 use log::info;
-use nfo::Nfo;
+use nfo::{Country, Mpaa, Nfo};
 use video::VideoType;
 
 use super::Finder;
@@ -17,7 +18,7 @@ impl Missav {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Missav> {
         let client = Client::builder()
             .timeout(timeout)
-            .interval(2)
+            .interval(1)
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
@@ -26,8 +27,11 @@ impl Missav {
         Ok(missav)
     }
 
-    async fn get_fanart(&self, name: &str) -> Result<Vec<u8>> {
-        let url = format!("https://fourhoi.com/{}/cover-n.jpg", name.to_lowercase());
+    async fn get_fanart(&self, key: &VideoType) -> Result<Vec<u8>> {
+        let url = format!(
+            "https://fourhoi.com/{}/cover-n.jpg",
+            key.to_string().to_lowercase()
+        );
         let img = self
             .client
             .wait()
@@ -47,22 +51,29 @@ impl Missav {
     }
 }
 
+impl Display for Missav {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "missav")
+    }
+}
+
 #[async_trait]
 impl Finder for Missav {
-    fn name(&self) -> &'static str {
-        "missav"
+    fn support(&self, key: &VideoType) -> bool {
+        match key {
+            VideoType::Jav(_, _) => true,
+            VideoType::Fc2(_) => true,
+        }
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::new(&name);
-        nfo.set_country("日本".to_string());
-        nfo.set_mpaa("NC-17".to_string());
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
+        let mut nfo = Nfo::builder()
+            .id(key)
+            .country(Country::Japan)
+            .mpaa(Mpaa::NC17)
+            .build();
 
-        let fanart = self
-            .get_fanart(&name)
-            .await
-            .with_context(|| format!("get fanart for {name}"))?;
+        let fanart = self.get_fanart(key).await.with_context(|| "get fanart")?;
         nfo.set_fanart(fanart);
 
         info!("{}", nfo.summary());

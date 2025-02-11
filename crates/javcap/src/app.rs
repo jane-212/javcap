@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::{bail, Context, Result};
 use colored::Colorize;
 use config::Config;
-use log::{info, warn};
+use log::{error, info, warn};
 use tokio::fs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{self, Receiver};
@@ -52,7 +52,7 @@ impl App {
             let helper = self.helper.clone();
             let bar = self.bar.clone();
             self.tasks.spawn(async move {
-                let name = video.ty().name();
+                let name = video.ty().to_string();
                 info!("add {name} to queue");
                 let msg = match Self::process_video(video, helper, bar).await {
                     Ok(payload) => Message::Loaded(Box::new(payload)),
@@ -86,10 +86,10 @@ impl App {
         Ok(())
     }
 
-    fn print_bar(&self, name: &str) {
+    fn print_bar(&self, msg: &Message) {
         self.bar.message(format!(
             "{:=^width$}",
-            format!(" {} ", name).yellow(),
+            format!(" {} ", msg).yellow(),
             width = app::LINE_LENGTH,
         ));
     }
@@ -106,7 +106,7 @@ impl App {
             .find(video.ty().clone())
             .await
             .with_context(|| "find video")?;
-        nfo.auto_fix();
+        nfo.auto_fix_by_key(video.ty());
         info!("{}", nfo.summary());
         nfo.validate().with_context(|| "validate nfo")?;
 
@@ -158,9 +158,9 @@ impl App {
             .with_context(|| format!("move videos to {}", out.display()))?;
 
         self.bar.add().await;
-        let name = payload.video().ty().name();
-        info!("{name} ok");
-        self.succeed.push(name);
+        let ty = payload.video().ty();
+        info!("{ty} ok");
+        self.succeed.push(ty.to_string());
         Ok(())
     }
 
@@ -176,7 +176,7 @@ impl App {
 
     async fn get_out_path(&self, payload: &Payload) -> Result<PathBuf> {
         let out = self.concat_rule(payload);
-        self.bar.message(format!("target is {}", out.display()));
+        self.bar.message(format!("to {}", out.display()));
         if out.is_file() {
             bail!("target is a file");
         }
@@ -195,17 +195,17 @@ impl App {
         self.bar.message(&err);
 
         self.bar.add().await;
-        warn!("{name} failed, cause {err}");
+        error!("{name} failed, caused by {err}");
         self.failed.push(name);
     }
 
     async fn handle_message(&mut self, msg: Message) {
-        self.print_bar(&msg.name());
+        self.print_bar(&msg);
         match msg {
             Message::Loaded(payload) => {
                 if let Err(err) = self.handle_succeed(&payload).await {
-                    let name = payload.video().ty().name();
-                    self.handle_failed(name, format!("{err:?}")).await;
+                    let ty = payload.video().ty();
+                    self.handle_failed(ty.to_string(), format!("{err:?}")).await;
                 }
             }
             Message::Failed(name, err) => {
@@ -281,7 +281,7 @@ impl App {
         let videos = self
             .videos
             .values()
-            .map(|video| video.ty().name())
+            .map(|video| video.ty().to_string())
             .collect::<Vec<_>>()
             .join(", ");
         info!("found videos: {}({})", self.videos.len(), videos);
@@ -306,7 +306,7 @@ impl App {
 
             let should_pass = excludes.iter().any(|e| e == name);
             if should_pass {
-                info!("skip {}", file.display());
+                warn!("skip {}", file.display());
                 continue;
             }
 

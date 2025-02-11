@@ -1,3 +1,4 @@
+mod airav;
 mod avsox;
 mod fc2ppv_db;
 mod hbox;
@@ -6,10 +7,12 @@ mod javdb;
 mod missav;
 mod subtitle_cat;
 
+use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use airav::Airav;
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use avsox::Avsox;
 use config::Config;
@@ -17,16 +20,16 @@ use fc2ppv_db::Fc2ppvDB;
 use hbox::Hbox;
 use jav321::Jav321;
 use javdb::Javdb;
-use log::error;
+use log::{error, warn};
 use missav::Missav;
 use nfo::Nfo;
 use subtitle_cat::SubtitleCat;
 use video::VideoType;
 
 #[async_trait]
-trait Finder: Send + Sync {
-    fn name(&self) -> &'static str;
-    async fn find(&self, key: VideoType) -> Result<Nfo>;
+trait Finder: Send + Sync + Display {
+    fn support(&self, key: &VideoType) -> bool;
+    async fn find(&self, key: &VideoType) -> Result<Nfo>;
 }
 
 pub struct Spider {
@@ -62,6 +65,7 @@ impl Spider {
             ),
             Arc::new(Hbox::new(timeout, proxy.clone()).with_context(|| "build hbox")?),
             Arc::new(Fc2ppvDB::new(timeout, proxy.clone()).with_context(|| "build fc2ppv db")?),
+            Arc::new(Airav::new(timeout, proxy.clone()).with_context(|| "build airav")?),
         ];
 
         let spider = Spider { finders };
@@ -69,27 +73,62 @@ impl Spider {
     }
 
     pub async fn find(&self, key: VideoType) -> Result<Nfo> {
+        let key = Arc::new(key);
         let mut tasks = Vec::new();
         for finder in self.finders.iter() {
+            if !finder.support(&key) {
+                warn!("finder {finder} not support {key}");
+                continue;
+            }
+
             let finder = finder.clone();
             let key = key.clone();
             let task = tokio::spawn(async move {
                 finder
-                    .find(key)
+                    .find(&key)
                     .await
-                    .with_context(|| format!("in finder {}", finder.name()))
+                    .with_context(|| format!("in finder {finder}"))
             });
             tasks.push(task);
         }
 
-        let mut nfo = Nfo::new(key.name());
+        let mut nfo = None;
         for task in tasks {
             match task.await? {
-                Ok(found_nfo) => nfo.merge(found_nfo),
-                Err(err) => error!("{err:?}"),
+                Ok(found_nfo) => match nfo {
+                    None => nfo = Some(found_nfo),
+                    Some(ref mut nfo) => nfo.merge(found_nfo),
+                },
+                Err(err) => error!("could not find {key}, caused by {err:?}"),
             }
         }
 
-        Ok(nfo)
+        nfo.ok_or_else(|| anyhow!("could not find anything about {key} in all finders"))
     }
+}
+
+#[macro_export]
+macro_rules! select {
+    ($($k:ident: $v: expr)*) => {
+        struct Selectors {
+        $(
+            $k: Selector,
+        )*
+        }
+
+        impl Selectors {
+            fn new() -> Result<Selectors> {
+                let selectors = Selectors {
+                $(
+                    $k: Selector::parse($v)
+                        .map_err(|e| anyhow!("parse selector failed by {e}"))
+                        .with_context(|| $v)
+                        .with_context(|| stringify!($k))?,
+                )*
+                };
+
+                Ok(selectors)
+            }
+        }
+    };
 }

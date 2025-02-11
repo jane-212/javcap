@@ -1,10 +1,11 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
-use log::{info, warn};
-use nfo::Nfo;
+use log::info;
+use nfo::{Country, Mpaa, Nfo};
 use serde::Deserialize;
 use video::VideoType;
 
@@ -18,7 +19,7 @@ impl Hbox {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Hbox> {
         let client = Client::builder()
             .timeout(timeout)
-            .interval(2)
+            .interval(1)
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
@@ -42,38 +43,42 @@ impl Hbox {
             .await
             .with_context(|| format!("decode to json from {url}"))?;
         if payload.count == 0 {
-            bail!("{name} not found");
+            bail!("payload count is zero");
         }
 
-        payload.contents.pop().ok_or(anyhow!("{name} not found"))
+        payload
+            .contents
+            .pop()
+            .ok_or(anyhow!("empty payload content"))
+    }
+}
+
+impl Display for Hbox {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "hbox")
     }
 }
 
 #[async_trait]
 impl Finder for Hbox {
-    fn name(&self) -> &'static str {
-        "hbox"
+    fn support(&self, key: &VideoType) -> bool {
+        match key {
+            VideoType::Jav(_, _) => true,
+            VideoType::Fc2(_) => false,
+        }
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::new(&name);
-
-        match key {
-            VideoType::Fc2(_) => {
-                warn!("fc2 type video not supported, skip({name})");
-                return Ok(nfo);
-            }
-            VideoType::Jav(_, _) => {}
-        }
-
-        nfo.set_country("日本".to_string());
-        nfo.set_mpaa("NC-17".to_string());
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
+        let mut nfo = Nfo::builder()
+            .id(key)
+            .country(Country::Japan)
+            .mpaa(Mpaa::NC17)
+            .build();
 
         let content = self
-            .find_name(&name)
+            .find_name(&key.to_string())
             .await
-            .with_context(|| format!("find name for {name}"))?;
+            .with_context(|| "find name")?;
         nfo.set_title(content.title);
         nfo.set_plot(content.description);
         nfo.set_premiered(content.release_date);
@@ -200,7 +205,7 @@ struct Content {
     purchase_price: i32,
     directors: Vec<Director>,
     casts: Vec<Cast>,
-    medal_magnification: String,
+    medal_magnification: Option<String>,
     hd_info: HdInfo,
     hd_content_price: i32,
     content_price: i32,

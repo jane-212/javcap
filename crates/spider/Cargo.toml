@@ -11,8 +11,8 @@ http-client.workspace = true
 
 anyhow.workspace = true
 async-trait.workspace = true
-select.workspace = true
 log.workspace = true
 bon.workspace = true
 serde.workspace = true
 tokio.workspace = true
+scraper.workspace = true

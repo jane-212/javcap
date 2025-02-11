@@ -1,214 +1,211 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use http_client::Client;
-use log::{info, warn};
-use nfo::Nfo;
-use select::document::Document;
-use select::predicate::{Class, Name, Predicate};
+use log::info;
+use nfo::{Country, Mpaa, Nfo};
+use scraper::{Html, Selector};
 use video::VideoType;
 
-use super::Finder;
+use super::{select, Finder};
+
+select!(
+    title: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-heading > h3"
+    plot: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(3) > div"
+    poster: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(1) > div.col-md-3 > img"
+    fanart: "body > div:nth-child(6) > div.col-md-3 > div:nth-child(1) > p > a > img"
+    info: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(1) > div.col-md-9"
+);
 
 pub struct Jav321 {
     client: Client,
+    selectors: Selectors,
 }
 
 impl Jav321 {
     pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Jav321> {
         let client = Client::builder()
             .timeout(timeout)
-            .interval(2)
+            .interval(1)
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
+        let selectors = Selectors::new().with_context(|| "build selectors")?;
 
-        let jav321 = Jav321 { client };
+        let jav321 = Jav321 { client, selectors };
         Ok(jav321)
+    }
+}
+
+impl Display for Jav321 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "jav321")
     }
 }
 
 #[async_trait]
 impl Finder for Jav321 {
-    fn name(&self) -> &'static str {
-        "jav321"
+    fn support(&self, key: &VideoType) -> bool {
+        match key {
+            VideoType::Jav(_, _) => true,
+            VideoType::Fc2(_) => false,
+        }
     }
 
-    async fn find(&self, key: VideoType) -> Result<Nfo> {
-        let name = key.name();
-        let mut nfo = Nfo::new(&name);
+    async fn find(&self, key: &VideoType) -> Result<Nfo> {
+        let mut nfo = Nfo::builder()
+            .id(key)
+            .country(Country::Japan)
+            .mpaa(Mpaa::NC17)
+            .build();
 
-        match key {
-            VideoType::Fc2(_) => {
-                warn!("fc2 type video not supported, skip({name})");
-                return Ok(nfo);
-            }
-            VideoType::Jav(_, _) => {}
+        let (poster, fanart) = self
+            .find_detail(key, &mut nfo)
+            .await
+            .with_context(|| "find detail")?;
+        if let Some(poster) = poster {
+            let poster = self
+                .client
+                .wait()
+                .await
+                .get(poster)
+                .send()
+                .await?
+                .bytes()
+                .await?;
+            nfo.set_poster(poster.to_vec());
+        }
+        if let Some(fanart) = fanart {
+            let fanart = self
+                .client
+                .wait()
+                .await
+                .get(fanart)
+                .send()
+                .await?
+                .bytes()
+                .await?;
+            nfo.set_fanart(fanart.to_vec());
         }
 
-        nfo.set_country("日本".to_string());
-        nfo.set_mpaa("NC-17".to_string());
+        info!("{}", nfo.summary());
+        Ok(nfo)
+    }
+}
 
+impl Jav321 {
+    async fn find_detail(
+        &self,
+        key: &VideoType,
+        nfo: &mut Nfo,
+    ) -> Result<(Option<String>, Option<String>)> {
         let url = "https://www.jav321.com/search";
         let text = self
             .client
             .wait()
             .await
             .post(url)
-            .form(&[("sn", &name)])
+            .form(&[("sn", key.to_string())])
             .send()
-            .await
-            .with_context(|| format!("send to {url}"))?
+            .await?
             .text()
-            .await
-            .with_context(|| format!("decode to text from {url}"))?;
-        let (fanart, poster) = {
-            let html = Document::from(text.as_str());
-            let Some(panel) = html.find(Name("div").and(Class("panel"))).next() else {
-                bail!("panel not found when find {name}");
-            };
+            .await?;
+        let html = Html::parse_document(&text);
 
-            if let Some(title) = panel
-                .find(Name("div").and(Class("panel-heading")).child(Name("h3")))
-                .next()
-                .and_then(|heading| heading.first_child().map(|child| child.text()))
-            {
-                nfo.set_title(title.trim().to_string());
+        if let Some(title) = html
+            .select(&self.selectors.title)
+            .next()
+            .and_then(|node| node.text().next().map(|text| text.trim()))
+        {
+            nfo.set_title(title.to_string());
+        }
+
+        if let Some(plot) = html
+            .select(&self.selectors.plot)
+            .next()
+            .and_then(|node| node.text().next().map(|text| text.trim()))
+        {
+            nfo.set_plot(plot.to_string());
+        }
+
+        let poster = html
+            .select(&self.selectors.poster)
+            .next()
+            .and_then(|node| node.attr("src").map(|src| src.to_string()));
+
+        let fanart = html
+            .select(&self.selectors.fanart)
+            .next()
+            .and_then(|node| node.attr("src").map(|src| src.to_string()));
+
+        if let Some(info) = html.select(&self.selectors.info).next() {
+            let mut s = Vec::new();
+            for text in info.text() {
+                if text.starts_with(":") {
+                    s.push(":".to_string());
+                    s.push(text.trim_start_matches(":").trim().to_string());
+                } else {
+                    s.push(text.trim().to_string());
+                }
             }
 
-            let mut poster = None;
-            if let Some(body) = panel.find(Name("div").and(Class("panel-body"))).next() {
-                if let Some(plot) = body
-                    .last_child()
-                    .and_then(|child| child.first_child())
-                    .and_then(|child| child.first_child())
-                    .map(|node| node.text())
-                {
-                    nfo.set_plot(plot);
+            let mut v = Vec::new();
+            while let Some(text) = s.pop() {
+                if text.is_empty() {
+                    continue;
                 }
 
-                poster = body
-                    .first_child()
-                    .and_then(|node| node.first_child())
-                    .and_then(|node| node.first_child())
-                    .and_then(|node| node.attr("src"))
-                    .map(|src| src.to_string());
+                if text != ":" {
+                    v.push(text);
+                    continue;
+                }
 
-                if let Some(info) = body.first_child().and_then(|child| child.last_child()) {
-                    let mut s = Vec::new();
-                    for child in info.children() {
-                        let text = child.text();
-                        if text.starts_with(":") {
-                            s.push(":".to_string());
-                            s.push(text.trim_start_matches(":").trim().to_string());
-                        } else {
-                            s.push(text.trim().to_string());
-                        }
-                    }
-                    let mut v = Vec::new();
-                    while let Some(text) = s.pop() {
-                        if text.is_empty() {
-                            continue;
-                        }
-
-                        if text != ":" {
-                            v.push(text);
-                            continue;
-                        }
-
-                        if let Some(name) = s.pop() {
-                            match name.as_str() {
-                                "メーカー" => {
-                                    if let Some(studio) = v.first() {
-                                        nfo.set_studio(studio.to_string());
-                                    }
-                                }
-                                "出演者" => {
-                                    for actor in v.iter() {
-                                        nfo.actors_mut().insert(actor.to_string());
-                                    }
-                                }
-                                "ジャンル" => {
-                                    for genre in v.iter() {
-                                        nfo.genres_mut().insert(genre.to_string());
-                                    }
-                                }
-                                "配信開始日" => {
-                                    if let Some(date) = v.first() {
-                                        nfo.set_premiered(date.to_string());
-                                    }
-                                }
-                                "収録時間" => {
-                                    if let Some(runtime) = v.first() {
-                                        let runtime: String = runtime
-                                            .chars()
-                                            .filter(|c| c.is_ascii_digit())
-                                            .collect();
-                                        let runtime: u32 = runtime.parse().unwrap_or_default();
-                                        nfo.set_runtime(runtime);
-                                    }
-                                }
-                                "平均評価" => {
-                                    if let Some(rating) = v.first() {
-                                        let rating: f64 = rating.parse().unwrap_or_default();
-                                        nfo.set_rating(rating);
-                                    }
-                                }
-                                _ => {}
+                if let Some(name) = s.pop() {
+                    match name.as_str() {
+                        "メーカー" => {
+                            if let Some(studio) = v.first() {
+                                nfo.set_studio(studio.to_string());
                             }
                         }
-
-                        v.clear();
+                        "出演者" => {
+                            for actor in v.iter() {
+                                nfo.actors_mut().insert(actor.to_string());
+                            }
+                        }
+                        "ジャンル" => {
+                            for genre in v.iter() {
+                                nfo.genres_mut().insert(genre.to_string());
+                            }
+                        }
+                        "配信開始日" => {
+                            if let Some(date) = v.first() {
+                                nfo.set_premiered(date.to_string());
+                            }
+                        }
+                        "収録時間" => {
+                            if let Some(runtime) = v.first() {
+                                let runtime: String =
+                                    runtime.chars().filter(|c| c.is_ascii_digit()).collect();
+                                let runtime: u32 = runtime.parse().unwrap_or_default();
+                                nfo.set_runtime(runtime);
+                            }
+                        }
+                        "平均評価" => {
+                            if let Some(rating) = v.first() {
+                                let rating: f64 = rating.parse().unwrap_or_default();
+                                nfo.set_rating(rating);
+                            }
+                        }
+                        _ => {}
                     }
                 }
-            }
 
-            let mut fanart = None;
-            if let Some(items) = html.find(Name("div").and(Class("col-md-3"))).last() {
-                if let Some(src) = items
-                    .first_child()
-                    .and_then(|child| child.first_child())
-                    .and_then(|child| child.first_child())
-                    .and_then(|child| child.first_child())
-                    .and_then(|node| node.attr("src"))
-                {
-                    fanart = Some(src.to_string());
-                }
+                v.clear();
             }
-
-            (fanart, poster)
-        };
-        if let Some(fanart) = fanart {
-            let fanart = self
-                .client
-                .wait()
-                .await
-                .get(&fanart)
-                .send()
-                .await
-                .with_context(|| format!("send to {fanart}"))?
-                .bytes()
-                .await
-                .with_context(|| format!("decode to bytes from {fanart}"))?;
-            nfo.set_fanart(fanart.to_vec());
-        }
-        if let Some(poster) = poster {
-            let poster = self
-                .client
-                .wait()
-                .await
-                .get(&poster)
-                .send()
-                .await
-                .with_context(|| format!("send to {poster}"))?
-                .bytes()
-                .await
-                .with_context(|| format!("decode to bytes from {poster}"))?;
-            nfo.set_poster(poster.to_vec());
         }
 
-        info!("{}", nfo.summary());
-        Ok(nfo)
+        Ok((poster, fanart))
     }
 }
