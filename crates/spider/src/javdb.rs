@@ -7,12 +7,10 @@ use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
-use scraper::{Html, Selector};
+use scraper::Html;
 use video::VideoType;
 
 use super::{select, Finder};
-
-const HOST: &str = app::url::JAVDB;
 
 select!(
     home_item: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div"
@@ -48,7 +46,7 @@ impl Javdb {
         let selectors = Selectors::new().with_context(|| "build selectors")?;
 
         let javdb = Javdb {
-            base_url: base_url.unwrap_or(HOST.to_string()),
+            base_url: base_url.unwrap_or(app::url::JAVDB.to_string()),
             client,
             selectors,
         };

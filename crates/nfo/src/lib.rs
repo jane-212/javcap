@@ -285,6 +285,7 @@ impl Display for Nfo {
 pub enum Country {
     Unknown,
     Japan,
+    China,
 }
 
 impl Display for Country {
@@ -295,6 +296,7 @@ impl Display for Country {
             match self {
                 Country::Unknown => "未知",
                 Country::Japan => "日本",
+                Country::China => "国产",
             }
         )
     }

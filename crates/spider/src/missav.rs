@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
@@ -10,14 +11,19 @@ use video::VideoType;
 
 use super::Finder;
 
-const HOST: &str = app::url::MISSAV;
-
 pub struct Missav {
+    base_url: String,
     client: Client,
 }
 
+#[bon]
 impl Missav {
-    pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Missav> {
+    #[builder]
+    pub fn new(
+        base_url: Option<String>,
+        timeout: Duration,
+        proxy: Option<String>,
+    ) -> Result<Missav> {
         let client = Client::builder()
             .timeout(timeout)
             .interval(1)
@@ -25,12 +31,19 @@ impl Missav {
             .build()
             .with_context(|| "build http client")?;
 
-        let missav = Missav { client };
+        let missav = Missav {
+            base_url: base_url.unwrap_or(app::url::MISSAV.to_string()),
+            client,
+        };
         Ok(missav)
     }
 
     async fn get_fanart(&self, key: &VideoType) -> Result<Vec<u8>> {
-        let url = format!("{HOST}/{}/cover-n.jpg", key.to_string().to_lowercase());
+        let url = format!(
+            "{}/{}/cover-n.jpg",
+            self.base_url,
+            key.to_string().to_lowercase()
+        );
         let img = self
             .client
             .wait()
@@ -83,7 +96,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Missav> {
-        Missav::new(Duration::from_secs(5), None)
+        Missav::builder().timeout(Duration::from_secs(5)).build()
     }
 
     #[test]

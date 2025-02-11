@@ -11,14 +11,14 @@ task_limit = 3
 # type = "youdao"
 # key = ""
 # secret = ""
-# 
+#
 # deepseek
 # [[translators]]
 # type = "deepseek"
 # base = "https://api.deepseek.com"
 # model = "deepseek-chat"
 # key = ""
-# 
+#
 # openai
 # [[translators]]
 # type = "openai"
@@ -57,5 +57,12 @@ timeout = 5
 
 # 可以换用可直连地址
 [url]
+# airav = ""
 # avsox = ""
+# cable = ""
+# fc2ppv_db = ""
+# hbox = ""
+# jav321 = ""
 # javdb = ""
+# missav = ""
+# subtitle_cat = ""

@@ -3,15 +3,14 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
+use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
-use scraper::{Html, Selector};
+use scraper::Html;
 use video::VideoType;
 
 use super::{select, Finder};
-
-const HOST: &str = app::url::FC2PPV_DB;
 
 select!(
     img: "body > div > div > div > main > div > section > div.container.lg\\:px-5.px-2.py-12.mx-auto > div.flex.flex-col.items-start.rounded-lg.shadow.md\\:flex-row.dark\\:border-gray-800.dark\\:bg-gray-900.py-2 > div.lg\\:w-2\\/5.w-full.mb-12.md\\:mb-0 > a > img"
@@ -21,12 +20,19 @@ select!(
 );
 
 pub struct Fc2ppvDB {
+    base_url: String,
     client: Client,
     selectors: Selectors,
 }
 
+#[bon]
 impl Fc2ppvDB {
-    pub fn new(timeout: Duration, proxy: Option<String>) -> Result<Fc2ppvDB> {
+    #[builder]
+    pub fn new(
+        base_url: Option<String>,
+        timeout: Duration,
+        proxy: Option<String>,
+    ) -> Result<Fc2ppvDB> {
         let client = Client::builder()
             .timeout(timeout)
             .interval(1)
@@ -35,7 +41,11 @@ impl Fc2ppvDB {
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
 
-        let fc2ppv_db = Fc2ppvDB { client, selectors };
+        let fc2ppv_db = Fc2ppvDB {
+            base_url: base_url.unwrap_or(app::url::FC2PPV_DB.to_string()),
+            client,
+            selectors,
+        };
         Ok(fc2ppv_db)
     }
 }
@@ -86,7 +96,7 @@ impl Finder for Fc2ppvDB {
 
 impl Fc2ppvDB {
     async fn find_detail(&self, key: &VideoType, nfo: &mut Nfo) -> Result<String> {
-        let url = format!("{HOST}/search");
+        let url = format!("{}/search", self.base_url);
         let name = match key {
             VideoType::Jav(id, number) => format!("{id}-{number}"),
             VideoType::Fc2(number) => number.clone(),
@@ -187,7 +197,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Fc2ppvDB> {
-        Fc2ppvDB::new(Duration::from_secs(5), None)
+        Fc2ppvDB::builder().timeout(Duration::from_secs(5)).build()
     }
 
     #[test]
