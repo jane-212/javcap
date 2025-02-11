@@ -20,6 +20,11 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install audit
+        run: |
+          cargo install cargo-audit
+
       - name: Run test
         run: |
+          cargo audit
           cargo test --workspace --all-features --color always
