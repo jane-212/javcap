@@ -11,6 +11,8 @@ use video::VideoType;
 
 use super::Finder;
 
+const HOST: &str = app::url::HBOX;
+
 pub struct Hbox {
     client: Client,
 }
@@ -29,19 +31,17 @@ impl Hbox {
     }
 
     async fn find_name(&self, name: &str) -> Result<Content> {
-        let url = "https://hbox.jp/home_api/search_result";
+        let url = format!("{HOST}/home_api/search_result");
         let mut payload = self
             .client
             .wait()
             .await
-            .get(url)
+            .get(&url)
             .query(&[("q_array[]", name)])
             .send()
-            .await
-            .with_context(|| format!("send to {url}"))?
+            .await?
             .json::<Payload>()
-            .await
-            .with_context(|| format!("decode to json from {url}"))?;
+            .await?;
         if payload.count == 0 {
             bail!("payload count is zero");
         }
@@ -91,7 +91,7 @@ impl Finder for Hbox {
             nfo.genres_mut().insert(tag.name);
         });
         let poster = format!(
-            "https://hbox.jp{}/{}",
+            "{HOST}{}/{}",
             content.back_cover_url_root, content.back_cover_file,
         );
         let poster = self
@@ -100,14 +100,12 @@ impl Finder for Hbox {
             .await
             .get(&poster)
             .send()
-            .await
-            .with_context(|| format!("send to {poster}"))?
+            .await?
             .bytes()
-            .await
-            .with_context(|| format!("decode to bytes from {poster}"))?;
+            .await?;
         nfo.set_poster(poster.to_vec());
 
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         Ok(nfo)
     }
 }
@@ -288,3 +286,60 @@ struct Query {
 
 #[derive(Debug, Deserialize)]
 struct RefineList {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<Hbox> {
+        Hbox::new(Duration::from_secs(5), None)
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            (VideoType::Jav("STARS".to_string(), "804".to_string()), true),
+            (VideoType::Fc2("3061625".to_string()), false),
+        ];
+        for (video, supported) in videos {
+            assert_eq!(finder.support(&video), supported);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [(VideoType::Jav("STARS".to_string(), "804".to_string()), {
+            let mut nfo = Nfo::builder()
+                .id("STARS-804")
+                .country(Country::Japan)
+                .mpaa(Mpaa::NC17)
+                .build();
+            nfo.set_title("本能で絡み合う極上のランジェリー＆オイリー4本番 神木麗".to_string())
+                .set_plot("【神木麗1周年企画】Gカップボディと、抜群のプロポーションをより際立たせる高級ランジェリーとオイル。ホテルへ入るなり求め合う濃厚なSEX。美しい四肢を夜景バックに縛り付け、執拗に責め立てられ絶頂し続け自ら挿入を懇願。喘ぐ声も抑えることなく、密室に響き渡る。神木麗お初の4本番。最後は美しき涙も…".to_string())
+                .set_studio("SODクリエイト".to_string())
+                .set_director("チク兄".to_string())
+                .set_premiered("2023-04-06".to_string());
+            let genres = ["巨乳", "単体作品"];
+            nfo.actors_mut().insert("神木麗".to_string());
+
+            for genre in genres {
+                nfo.genres_mut().insert(genre.to_string());
+            }
+            nfo
+        })];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(actual.fanart().is_empty());
+            assert!(!actual.poster().is_empty());
+            assert!(actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
+        }
+
+        Ok(())
+    }
+}

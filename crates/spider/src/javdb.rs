@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+const HOST: &str = app::url::JAVDB;
+
 select!(
     home_item: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div"
     home_item_id: "a > div.video-title > strong"
@@ -46,7 +48,7 @@ impl Javdb {
         let selectors = Selectors::new().with_context(|| "build selectors")?;
 
         let javdb = Javdb {
-            base_url: base_url.unwrap_or("https://javdb.com".to_string()),
+            base_url: base_url.unwrap_or(HOST.to_string()),
             client,
             selectors,
         };
@@ -84,7 +86,7 @@ impl Finder for Javdb {
             .await
             .with_context(|| format!("find detail {url}"))?;
 
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         Ok(nfo)
     }
 }
@@ -218,6 +220,91 @@ impl Javdb {
                 }
                 _ => {}
             }
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<Javdb> {
+        Javdb::builder().timeout(Duration::from_secs(5)).build()
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            (VideoType::Jav("STARS".to_string(), "804".to_string()), true),
+            (VideoType::Fc2("3061625".to_string()), false),
+        ];
+        for (video, supported) in videos {
+            assert_eq!(finder.support(&video), supported);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [
+            (VideoType::Jav("ROYD".to_string(), "108".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("ROYD-108")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title("朝起きたら部屋に下着姿のギャルが！いつも生意気で悪態ばかりついてくるのに、甘えてきたので… 斎藤あみり".to_string())
+                .set_studio("ROYAL".to_string())
+                .set_rating(8.7)
+                .set_runtime(110)
+                .set_premiered("2022-10-25".to_string());
+                let actors = ["斎藤あみり", "かめじろう"];
+                let genres = ["辣妹", "中出", "單體作品", "女大學生", "淫亂真實", "女上位"];
+
+                for actor in actors {
+                    nfo.actors_mut().insert(actor.to_string());
+                }
+                for genre in genres {
+                    nfo.genres_mut().insert(genre.to_string());
+                }
+                nfo
+            }),
+            (VideoType::Jav("IPX".to_string(), "443".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("IPX-443")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title("1ヶ月間禁欲させ親友のいない数日間に親友の彼氏と朝から晩まで気が狂うくらいセックスしまくった 果てるまでヤリまくる計10性交！ 明里つむぎ".to_string())
+                        .set_studio("IDEA POCKET".to_string())
+                        .set_runtime(120)
+                        .set_director("苺原".to_string())
+                        .set_rating(8.82)
+                        .set_premiered("2020-02-13".to_string());
+                let actors = ["愛里るい", "藍井優太", "明里つむぎ"];
+                let genres = ["單體作品", "白天出軌", "中出", "紀錄片", "拘束"];
+
+                for actor in actors {
+                    nfo.actors_mut().insert(actor.to_string());
+                }
+                for genre in genres {
+                    nfo.genres_mut().insert(genre.to_string());
+                }
+                nfo
+            }),
+        ];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(actual.fanart().is_empty());
+            assert!(actual.poster().is_empty());
+            assert!(actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
         }
 
         Ok(())

@@ -1,4 +1,4 @@
-name: "ci"
+name: ci
 
 on:
   pull_request:
@@ -6,8 +6,8 @@ on:
       - opened
 
 jobs:
-  run-test:
-    name: run-test
+  check:
+    name: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -20,6 +20,10 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Run test
+      - name: Install audit
         run: |
-          cargo test --workspace --all-features --color always
+          cargo install cargo-audit
+
+      - name: Run check
+        run: |
+          cargo audit

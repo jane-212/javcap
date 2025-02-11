@@ -10,3 +10,4 @@ indoc.workspace = true
 getset.workspace = true
 validator.workspace = true
 bon.workspace = true
+educe.workspace = true

@@ -1,14 +1,16 @@
 use std::collections::HashSet;
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 
 use bon::bon;
+use educe::Educe;
 use getset::{Getters, MutGetters, Setters};
-use indoc::{formatdoc, writedoc};
+use indoc::writedoc;
 use validator::Validate;
 use video::VideoType;
 
-#[derive(Setters, Getters, MutGetters, Validate)]
+#[derive(Setters, Getters, MutGetters, Validate, Educe)]
+#[educe(PartialEq)]
 pub struct Nfo {
     id: String,
 
@@ -53,13 +55,16 @@ pub struct Nfo {
 
     #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "empty"))]
+    #[educe(PartialEq(ignore))]
     poster: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]
     #[validate(length(min = 1, message = "empty"))]
+    #[educe(PartialEq(ignore))]
     fanart: Vec<u8>,
 
     #[getset(set = "pub", get = "pub")]
+    #[educe(PartialEq(ignore))]
     subtitle: Vec<u8>,
 }
 
@@ -113,50 +118,6 @@ impl Nfo {
                 }
             }
         }
-    }
-
-    pub fn summary(&self) -> String {
-        formatdoc!(
-            "
-            id: {}
-            country: {}
-            mpaa: {}
-            title: {}
-            rating: {}
-            plot: {}
-            runtime: {}
-            genres: {}
-            director: {}
-            premiered: {}
-            studio: {}
-            actors: {}
-            fanart: {}
-            poster: {}
-            subtitle: {}",
-            self.id,
-            self.country,
-            self.mpaa,
-            self.title,
-            self.rating,
-            self.plot,
-            self.runtime,
-            self.genres
-                .iter()
-                .map(|genre| genre.as_str())
-                .collect::<Vec<_>>()
-                .join(", "),
-            self.director,
-            self.premiered,
-            self.studio,
-            self.actors
-                .iter()
-                .map(|actor| actor.as_str())
-                .collect::<Vec<_>>()
-                .join(", "),
-            self.fanart.len(),
-            self.poster.len(),
-            self.subtitle.len(),
-        )
     }
 
     pub fn merge(&mut self, other: Nfo) {
@@ -216,6 +177,53 @@ impl Merge for String {
         if self.len() < other.len() {
             *self = other;
         }
+    }
+}
+
+impl Debug for Nfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writedoc!(
+            f,
+            "
+            id: {}
+            country: {}
+            mpaa: {}
+            title: {}
+            rating: {}
+            plot: {}
+            runtime: {}
+            genres: {}
+            director: {}
+            premiered: {}
+            studio: {}
+            actors: {}
+            fanart: {}
+            poster: {}
+            subtitle: {}",
+            self.id,
+            self.country,
+            self.mpaa,
+            self.title,
+            self.rating,
+            self.plot,
+            self.runtime,
+            self.genres
+                .iter()
+                .map(|genre| genre.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.director,
+            self.premiered,
+            self.studio,
+            self.actors
+                .iter()
+                .map(|actor| actor.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.fanart.len(),
+            self.poster.len(),
+            self.subtitle.len(),
+        )
     }
 }
 

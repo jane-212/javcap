@@ -107,7 +107,7 @@ impl App {
             .await
             .with_context(|| "find video")?;
         nfo.auto_fix_by_key(video.ty());
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         nfo.validate().with_context(|| "validate nfo")?;
 
         let title_task = tokio::spawn({

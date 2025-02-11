@@ -11,6 +11,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+const HOST: &str = app::url::JAV321;
+
 select!(
     title: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-heading > h3"
     plot: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(3) > div"
@@ -90,7 +92,7 @@ impl Finder for Jav321 {
             nfo.set_fanart(fanart.to_vec());
         }
 
-        info!("{}", nfo.summary());
+        info!("{nfo:?}");
         Ok(nfo)
     }
 }
@@ -101,7 +103,7 @@ impl Jav321 {
         key: &VideoType,
         nfo: &mut Nfo,
     ) -> Result<(Option<String>, Option<String>)> {
-        let url = "https://www.jav321.com/search";
+        let url = format!("{HOST}/search");
         let text = self
             .client
             .wait()
@@ -195,7 +197,7 @@ impl Jav321 {
                         "平均評価" => {
                             if let Some(rating) = v.first() {
                                 let rating: f64 = rating.parse().unwrap_or_default();
-                                nfo.set_rating(rating);
+                                nfo.set_rating(rating * 2.0);
                             }
                         }
                         _ => {}
@@ -207,5 +209,91 @@ impl Jav321 {
         }
 
         Ok((poster, fanart))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<Jav321> {
+        Jav321::new(Duration::from_secs(5), None)
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            (VideoType::Jav("STARS".to_string(), "804".to_string()), true),
+            (VideoType::Fc2("3061625".to_string()), false),
+        ];
+        for (video, supported) in videos {
+            assert_eq!(finder.support(&video), supported);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [
+            (VideoType::Jav("ROYD".to_string(), "108".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("ROYD-108")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title("朝起きたら部屋に下着姿のギャルが！いつも生意気で悪態ばかりついてくるのに、甘えてきたので… 斎藤あみり".to_string())
+                .set_plot("朝起きると…隣には裸の同級生ギャル！話を聞くと酔ったボクに無理矢理ヤラれたヤバイ事実が！だけどいつも超生意気なギャルが甘え始めて…？どうやらイっても萎えないボクのチ○ポが病みつきになったらしく「いつもバカにしてゴメンね！」と何度もHを求められてヤリまくり！ギャルマ○コが気持ち良過ぎて抜かずの連続中出しが止められず！？".to_string())
+                .set_studio("ロイヤル".to_string())
+                .set_rating(9.0)
+                .set_runtime(105)
+                .set_premiered("2022-10-25".to_string());
+                nfo.actors_mut().insert("斎藤あみり".to_string());
+
+                nfo
+            }),
+            (VideoType::Jav("IPX".to_string(), "443".to_string()), {
+                let mut nfo = Nfo::builder()
+                    .id("IPX-443")
+                    .country(Country::Japan)
+                    .mpaa(Mpaa::NC17)
+                    .build();
+                nfo.set_title("1ヶ月間禁欲させ親友のいない数日間に親友の彼氏と朝から晩まで気が狂うくらいセックスしまくった 果てるまでヤリまくる計10性交！ 明里つむぎ".to_string())
+                        .set_plot("学生時代から地味で目立たないワタシ。反対にいつもまわりには友達がいて人気者の「美沙」。すべての面で親友に劣っているワタシでもあの人を想う気持ちは絶対に負けない…。親友が家を空ける数日間に全てを失う覚悟で親友の彼氏に想いをぶつけ朝から晩まで気が狂うくらいひたすらセックスしまくった。最低の裏切りだとはわかっている…。でも止められない。このまま時が止まればいいのに…。".to_string())
+                        .set_studio("アイデアポケット".to_string())
+                        .set_runtime(119)
+                        .set_premiered("2020-02-13".to_string());
+                let actors = ["愛里るい", "明里つむぎ"];
+                let genres = [
+                    "ハイビジョン",
+                    "拘束",
+                    "独占配信",
+                    "ドキュメンタリー",
+                    "単体作品",
+                    "中出し",
+                    "デジモ",
+                ];
+
+                for actor in actors {
+                    nfo.actors_mut().insert(actor.to_string());
+                }
+                for genre in genres {
+                    nfo.genres_mut().insert(genre.to_string());
+                }
+                nfo
+            }),
+        ];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(!actual.fanart().is_empty());
+            assert!(!actual.poster().is_empty());
+            assert!(actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
+        }
+
+        Ok(())
     }
 }

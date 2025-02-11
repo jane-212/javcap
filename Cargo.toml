@@ -63,9 +63,14 @@ bon = "3.3.2"
 async-openai = "0.27.2"
 chrono = "0.4.39"
 scraper = "0.22.0"
+educe = "0.6.0"
+pretty_assertions = "1.4.1"
 
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[workspace.metadata.typos.default.extend-words]
+auther_names = "auther_names"
