@@ -71,6 +71,3 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-
-[workspace.metadata.typos.default.extend-words]
-auther_names = "auther_names"
