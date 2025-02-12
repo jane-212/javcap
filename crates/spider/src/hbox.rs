@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::Finder;
 
+pub const HOST: &str = "https://hbox.jp";
+
 pub struct Hbox {
     base_url: String,
     client: Client,
@@ -27,11 +29,12 @@ impl Hbox {
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
-
-        let hbox = Hbox {
-            base_url: base_url.unwrap_or(app::url::HBOX.to_string()),
-            client,
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
         };
+
+        let hbox = Hbox { base_url, client };
         Ok(hbox)
     }
 

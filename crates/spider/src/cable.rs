@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, which_country, Finder};
 
+pub const HOST: &str = "https://www.hsav.xyz";
+
 select!(
     home_item: "#main-content > div > div.blog-items.blog-items-control.site__row.grid-default > article.post-item"
     home_title: "div > div.blog-pic > div > a > img"
@@ -39,9 +41,13 @@ impl Cable {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
 
         let cable = Cable {
-            base_url: base_url.unwrap_or(app::url::CABLE.to_string()),
+            base_url,
             client,
             selectors,
         };

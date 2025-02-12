@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+pub const HOST: &str = "https://fc2ppvdb.com";
+
 select!(
     img: "body > div > div > div > main > div > section > div.container.lg\\:px-5.px-2.py-12.mx-auto > div.flex.flex-col.items-start.rounded-lg.shadow.md\\:flex-row.dark\\:border-gray-800.dark\\:bg-gray-900.py-2 > div.lg\\:w-2\\/5.w-full.mb-12.md\\:mb-0 > a > img"
     rating: "#percentage"
@@ -40,9 +42,13 @@ impl Fc2ppvDB {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
 
         let fc2ppv_db = Fc2ppvDB {
-            base_url: base_url.unwrap_or(app::url::FC2PPV_DB.to_string()),
+            base_url,
             client,
             selectors,
         };

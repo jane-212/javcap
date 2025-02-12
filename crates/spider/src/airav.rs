@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+pub const HOST: &str = "https://airav.io";
+
 select!(
     home_item: "body > div:nth-child(4) > div > div.row.row-cols-2.row-cols-lg-4.g-2.mt-0 > div"
     home_title: "div > div.oneVideo-body > h5"
@@ -44,9 +46,13 @@ impl Airav {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
 
         let airav = Airav {
-            base_url: base_url.unwrap_or(app::url::AIRAV.to_string()),
+            base_url,
             client,
             selectors,
         };
