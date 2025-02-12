@@ -11,3 +11,4 @@ getset.workspace = true
 validator.workspace = true
 bon.workspace = true
 educe.workspace = true
+quick-xml.workspace = true
