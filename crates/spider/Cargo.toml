@@ -7,7 +7,6 @@ edition = "2021"
 nfo.workspace = true
 video.workspace = true
 config.workspace = true
-app.workspace = true
 http-client.workspace = true
 
 anyhow.workspace = true

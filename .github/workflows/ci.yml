@@ -4,11 +4,15 @@ on:
   pull_request:
     types:
       - opened
+  schedule:
+    - cron: "0 22 * * *"
 
 jobs:
   check:
     name: check
     runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: 1
     steps:
       - uses: actions/checkout@master
 
@@ -29,3 +33,7 @@ jobs:
       - name: Run check
         run: |
           cargo audit
+
+      - name: Run test
+        run: |
+          cargo test --workspace --all-features --color always

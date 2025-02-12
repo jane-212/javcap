@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+pub const HOST: &str = "https://javdb.com";
+
 select!(
     home_item: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div"
     home_item_id: "a > div.video-title > strong"
@@ -44,9 +46,13 @@ impl Javdb {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
 
         let javdb = Javdb {
-            base_url: base_url.unwrap_or(app::url::JAVDB.to_string()),
+            base_url,
             client,
             selectors,
         };

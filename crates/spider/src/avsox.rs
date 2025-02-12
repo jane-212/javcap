@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+pub const HOST: &str = "https://avsox.click";
+
 select!(
     home_title: "#waterfall > div > a > div.photo-frame > img"
     home_date: "#waterfall > div > a > div.photo-info > span > date:nth-child(4)"
@@ -42,12 +44,16 @@ impl Avsox {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
+
         let avsox = Avsox {
-            base_url: base_url.unwrap_or(app::url::AVSOX.to_string()),
+            base_url,
             client,
             selectors,
         };
-
         Ok(avsox)
     }
 }

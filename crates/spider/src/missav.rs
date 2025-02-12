@@ -11,6 +11,8 @@ use video::VideoType;
 
 use super::Finder;
 
+pub const HOST: &str = "https://fourhoi.com";
+
 pub struct Missav {
     base_url: String,
     client: Client,
@@ -30,11 +32,12 @@ impl Missav {
             .maybe_proxy(proxy)
             .build()
             .with_context(|| "build http client")?;
-
-        let missav = Missav {
-            base_url: base_url.unwrap_or(app::url::MISSAV.to_string()),
-            client,
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
         };
+
+        let missav = Missav { base_url, client };
         Ok(missav)
     }
 

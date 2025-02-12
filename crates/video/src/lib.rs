@@ -84,9 +84,18 @@ impl From<&VideoType> for String {
 }
 
 impl VideoType {
-    /// jav -> xxx-123 | xxx 123 | xxx123 | xxx-123-1
+    /// parse given name to a video and idx
     ///
-    /// fc2 -> fc2-123 | fc2ppv-123 | fc2-ppv-123 | fc2ppv123 | fc2-ppv-123-1
+    /// # Examples
+    ///
+    /// ```
+    /// use video::VideoType;
+    ///
+    /// let expected = VideoType::Jav("XXX".to_string(), "123".to_string());
+    /// let (video, idx) = VideoType::parse("xxx-123").unwrap();
+    /// assert_eq!(expected, video);
+    /// assert_eq!(idx, 0);
+    /// ```
     pub fn parse(name: impl AsRef<str>) -> Result<(VideoType, u32)> {
         let name = name.as_ref().to_uppercase();
 
@@ -162,5 +171,35 @@ impl VideoType {
 
     fn fc2(key: impl Into<String>) -> VideoType {
         VideoType::Fc2(key.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use test_case::test_case;
+
+    #[test_case("stars-804", VideoType::Jav("STARS".to_string(), "804".to_string()), 0; "stars-804")]
+    #[test_case("stars804", VideoType::Jav("STARS".to_string(), "804".to_string()), 0; "stars804")]
+    #[test_case("stars804-1", VideoType::Jav("STARS".to_string(), "804".to_string()), 1; "stars804-1")]
+    #[test_case("stars804-2", VideoType::Jav("STARS".to_string(), "804".to_string()), 2; "stars804-2")]
+    #[test_case("stars-804-1", VideoType::Jav("STARS".to_string(), "804".to_string()), 1; "stars-804-1")]
+    #[test_case("ipx-443-1", VideoType::Jav("IPX".to_string(), "443".to_string()), 1; "ipx-443-1")]
+    #[test_case("ipx-443-2", VideoType::Jav("IPX".to_string(), "443".to_string()), 2; "ipx-443-2")]
+    #[test_case("ipx443-3", VideoType::Jav("IPX".to_string(), "443".to_string()), 3; "ipx443-3")]
+    #[test_case("fc2-123456", VideoType::Fc2("123456".to_string()), 0; "fc2-123456")]
+    #[test_case("fc2ppv-123456", VideoType::Fc2("123456".to_string()), 0; "fc2ppv-123456")]
+    #[test_case("fc2-ppv-123456", VideoType::Fc2("123456".to_string()), 0; "fc2-ppv-123456")]
+    #[test_case("fc2-ppv-12345-1", VideoType::Fc2("12345".to_string()), 1; "fc2-ppv-12345-1")]
+    #[test_case("fc2ppv-12345-2", VideoType::Fc2("12345".to_string()), 2; "fc2ppv-12345-2")]
+    #[test_case("fc2-12345-3", VideoType::Fc2("12345".to_string()), 3; "fc2-12345-3")]
+    #[test_case("fc212345-4", VideoType::Fc2("12345".to_string()), 4; "fc212345-4")]
+    fn test_parse(name: &str, video: VideoType, idx: u32) -> Result<()> {
+        let (actual_video, actual_idx) = VideoType::parse(name)?;
+        assert_eq!(actual_video, video);
+        assert_eq!(actual_idx, idx);
+
+        Ok(())
     }
 }

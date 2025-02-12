@@ -13,3 +13,7 @@ toml.workspace = true
 serde.workspace = true
 validator.workspace = true
 log.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+test-case.workspace = true

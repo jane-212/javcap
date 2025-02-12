@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+pub const HOST: &str = "https://www.jav321.com";
+
 select!(
     title: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-heading > h3"
     plot: "body > div:nth-child(6) > div.col-md-7.col-md-offset-1.col-xs-12 > div:nth-child(1) > div.panel-body > div:nth-child(3) > div"
@@ -41,9 +43,13 @@ impl Jav321 {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
 
         let jav321 = Jav321 {
-            base_url: base_url.unwrap_or(app::url::JAV321.to_string()),
+            base_url,
             client,
             selectors,
         };

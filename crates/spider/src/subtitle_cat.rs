@@ -12,6 +12,8 @@ use video::VideoType;
 
 use super::{select, Finder};
 
+pub const HOST: &str = "https://www.subtitlecat.com";
+
 select!(
     home_item: "body > div.subtitles > div > div > div > table > tbody > tr > td:nth-child(1) > a"
     detail_download_url: "#download_zh-CN"
@@ -38,9 +40,13 @@ impl SubtitleCat {
             .build()
             .with_context(|| "build http client")?;
         let selectors = Selectors::new().with_context(|| "build selectors")?;
+        let base_url = match base_url {
+            Some(url) => url,
+            None => String::from(HOST),
+        };
 
         let subtitle_cat = SubtitleCat {
-            base_url: base_url.unwrap_or(app::url::SUBTITLE_CAT.to_string()),
+            base_url,
             client,
             selectors,
         };
