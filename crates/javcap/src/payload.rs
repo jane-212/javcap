@@ -37,7 +37,7 @@ impl Payload {
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
         info!("write fanart of {name} to {}", file.display());
-        self.bar.message(format!("fanart...{}", "ok".green()));
+        self.bar.message(format!("fanart ... {}", "ok".green()));
 
         Ok(())
     }
@@ -50,7 +50,7 @@ impl Payload {
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
         info!("write poster of {name} to {}", file.display());
-        self.bar.message(format!("poster...{}", "ok".green()));
+        self.bar.message(format!("poster ... {}", "ok".green()));
 
         Ok(())
     }
@@ -79,13 +79,14 @@ impl Payload {
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
         info!("write nfo of {name} to {}", file.display());
-        self.bar.message(format!("nfo...{}", "ok".green()));
+        self.bar.message(format!("nfo ... {}", "ok".green()));
 
         Ok(())
     }
 
     async fn write_subtitle_to(&self, path: &Path) -> Result<()> {
         if self.nfo.subtitle().is_empty() {
+            self.bar.message(format!("subtitle ... {}", "no".red()));
             return Ok(());
         }
 
@@ -96,7 +97,7 @@ impl Payload {
             .await
             .with_context(|| format!("write to file {}", file.display()))?;
         info!("write subtitle of {name} to {}", file.display());
-        self.bar.message(format!("subtitle...{}", "ok".green()));
+        self.bar.message(format!("subtitle ... {}", "ok".green()));
 
         Ok(())
     }
@@ -125,9 +126,9 @@ impl Payload {
                 out.display()
             );
             let msg = if *idx == 0 {
-                format!("video...{}", "ok".green())
+                format!("video ... {}", "ok".green())
             } else {
-                format!("video({idx})...{}", "ok".green())
+                format!("video({idx}) ... {}", "ok".green())
             };
             self.bar.message(msg);
         }

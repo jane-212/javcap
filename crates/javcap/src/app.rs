@@ -191,8 +191,8 @@ impl App {
     }
 
     async fn handle_failed(&mut self, name: String, err: String) {
-        self.bar.message(format!("{}", "failed".red()));
-        self.bar.message(&err);
+        self.bar
+            .message(format!("{}\n{}", "failed by".red(), err.red()));
 
         self.bar.add().await;
         error!("{name} failed, caused by {err}");

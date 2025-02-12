@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::sync::Arc;
 use std::time::Duration;
 
+use colored::Colorize;
 use tokio::sync::{Mutex, Notify, RwLock};
 use tokio::time;
 
@@ -43,17 +44,21 @@ impl Bar {
             loop {
                 let total = { *total.lock().await };
                 let cnt = { *cnt.read().await };
-                let p = if total == 0 { 0 } else { cnt * 20 / total };
-                let per = p * 5;
+                let per = if total == 0 { 0 } else { cnt * 100 / total };
+                let p = per / 5;
                 print!(
-                    "\r{spinner}|{per}%|{fill:░<20}|[{cnt}/{total}]",
-                    spinner = bar[idx],
-                    fill = "█".repeat(p),
-                    total = if total == 0 {
-                        "?".to_string()
-                    } else {
-                        total.to_string()
-                    }
+                    "\r{}",
+                    format!(
+                        "{spinner}|{per}%|{fill:░<20}|[{cnt}/{total}]",
+                        spinner = bar[idx],
+                        fill = "█".repeat(p),
+                        total = if total == 0 {
+                            "?".to_string()
+                        } else {
+                            total.to_string()
+                        }
+                    )
+                    .yellow()
                 );
                 io::stdout().flush().ok();
                 idx += 1;
