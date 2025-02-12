@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -11,15 +11,18 @@ pub struct Bar {
     total: Arc<Mutex<usize>>,
     should_quit: Arc<RwLock<bool>>,
     notify: Arc<Notify>,
+    disabled: bool,
 }
 
 impl Bar {
     pub async fn new() -> Bar {
+        let disabled = !io::stdout().is_terminal();
         let bar = Bar {
             total: Arc::new(Mutex::new(0)),
             cnt: Arc::new(RwLock::new(0)),
             should_quit: Arc::new(RwLock::new(false)),
             notify: Arc::new(Notify::new()),
+            disabled,
         };
         bar.start().await;
 
@@ -32,6 +35,10 @@ impl Bar {
     }
 
     async fn start(&self) {
+        if self.disabled {
+            return;
+        }
+
         let should_quit = self.should_quit.clone();
         let notify = self.notify.clone();
         let cnt = self.cnt.clone();
@@ -73,6 +80,10 @@ impl Bar {
     }
 
     pub async fn finish(&self) {
+        if self.disabled {
+            return;
+        }
+
         {
             let mut should_quit = self.should_quit.write().await;
             *should_quit = true;
@@ -82,7 +93,11 @@ impl Bar {
     }
 
     pub fn message(&self, msg: impl AsRef<str>) {
-        println!("\r{}\r{}", " ".repeat(40), msg.as_ref());
+        if self.disabled {
+            println!("{}", msg.as_ref());
+        } else {
+            println!("\r{}\r{}", " ".repeat(40), msg.as_ref());
+        }
     }
 
     pub async fn add(&self) {
