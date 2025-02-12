@@ -6,6 +6,7 @@ use bon::bon;
 use educe::Educe;
 use getset::{Getters, MutGetters, Setters};
 use indoc::writedoc;
+use quick_xml::escape::escape;
 use validator::Validate;
 use video::VideoType;
 
@@ -249,32 +250,35 @@ impl Display for Nfo {
                 <studio>{studio}</studio>
             {actors}
             </movie>",
-            title = self.title,
+            title = escape(&self.title),
             rating = self.rating,
-            plot = self.plot,
+            plot = escape(&self.plot),
             runtime = self.runtime,
             mpaa = self.mpaa,
             id = self.id,
             genres = self
                 .genres
                 .iter()
-                .map(|genre| format!("    <genre>{genre}</genre>"))
+                .map(|genre| format!("    <genre>{}</genre>", escape(genre)))
                 .collect::<Vec<_>>()
                 .join("\n"),
             tags = self
                 .genres
                 .iter()
-                .map(|genre| format!("    <tag>{genre}</tag>"))
+                .map(|genre| format!("    <tag>{}</tag>", escape(genre)))
                 .collect::<Vec<_>>()
                 .join("\n"),
             country = self.country,
-            director = self.director,
+            director = escape(&self.director),
             premiered = self.premiered,
-            studio = self.studio,
+            studio = escape(&self.studio),
             actors = self
                 .actors
                 .iter()
-                .map(|actor| format!("    <actor>\n        <name>{actor}</name>\n    </actor>"))
+                .map(|actor| format!(
+                    "    <actor>\n        <name>{}</name>\n    </actor>",
+                    escape(actor)
+                ))
                 .collect::<Vec<_>>()
                 .join("\n"),
         )
