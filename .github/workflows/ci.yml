@@ -20,6 +20,8 @@ jobs:
         with:
           toolchain: stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Install audit
         run: |
           cargo install cargo-audit
