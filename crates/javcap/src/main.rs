@@ -23,7 +23,7 @@ async fn main() -> ExitCode {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
-            eprintln!("{e:?}");
+            eprintln!("{}", format!("{e:?}").red());
             error!("{e:?}");
             ExitCode::FAILURE
         }
@@ -52,7 +52,7 @@ async fn run() -> Result<()> {
         }
 
         info!("latest version, skip");
-        println!("\nlatest version, skip");
+        println!("latest version, skip");
     }
 
     let app = App::new(config).await.with_context(|| "init app")?;

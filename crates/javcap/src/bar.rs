@@ -1,7 +1,8 @@
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::sync::Arc;
 use std::time::Duration;
 
+use colored::Colorize;
 use tokio::sync::{Mutex, Notify, RwLock};
 use tokio::time;
 
@@ -10,15 +11,18 @@ pub struct Bar {
     total: Arc<Mutex<usize>>,
     should_quit: Arc<RwLock<bool>>,
     notify: Arc<Notify>,
+    disabled: bool,
 }
 
 impl Bar {
     pub async fn new() -> Bar {
+        let disabled = !io::stdout().is_terminal();
         let bar = Bar {
             total: Arc::new(Mutex::new(0)),
             cnt: Arc::new(RwLock::new(0)),
             should_quit: Arc::new(RwLock::new(false)),
             notify: Arc::new(Notify::new()),
+            disabled,
         };
         bar.start().await;
 
@@ -31,6 +35,10 @@ impl Bar {
     }
 
     async fn start(&self) {
+        if self.disabled {
+            return;
+        }
+
         let should_quit = self.should_quit.clone();
         let notify = self.notify.clone();
         let cnt = self.cnt.clone();
@@ -43,17 +51,21 @@ impl Bar {
             loop {
                 let total = { *total.lock().await };
                 let cnt = { *cnt.read().await };
-                let p = if total == 0 { 0 } else { cnt * 20 / total };
-                let per = p * 5;
+                let per = if total == 0 { 0 } else { cnt * 100 / total };
+                let p = per / 5;
                 print!(
-                    "\r{spinner}|{per}%|{fill:░<20}|[{cnt}/{total}]",
-                    spinner = bar[idx],
-                    fill = "█".repeat(p),
-                    total = if total == 0 {
-                        "?".to_string()
-                    } else {
-                        total.to_string()
-                    }
+                    "\r{}",
+                    format!(
+                        "{spinner}|{per}%|{fill:░<20}|[{cnt}/{total}]",
+                        spinner = bar[idx],
+                        fill = "█".repeat(p),
+                        total = if total == 0 {
+                            "?".to_string()
+                        } else {
+                            total.to_string()
+                        }
+                    )
+                    .yellow()
                 );
                 io::stdout().flush().ok();
                 idx += 1;
@@ -68,6 +80,10 @@ impl Bar {
     }
 
     pub async fn finish(&self) {
+        if self.disabled {
+            return;
+        }
+
         {
             let mut should_quit = self.should_quit.write().await;
             *should_quit = true;
@@ -77,7 +93,11 @@ impl Bar {
     }
 
     pub fn message(&self, msg: impl AsRef<str>) {
-        println!("\r{}\r{}", " ".repeat(40), msg.as_ref());
+        if self.disabled {
+            println!("{}", msg.as_ref());
+        } else {
+            println!("\r{}\r{}", " ".repeat(40), msg.as_ref());
+        }
     }
 
     pub async fn add(&self) {
