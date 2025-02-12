@@ -69,7 +69,6 @@ fn check_for_update() -> Result<Status> {
         .repo_owner("jane-212")
         .repo_name("javcap")
         .bin_name(bin_name)
-        .target(target_triple::TARGET)
         .bin_path_in_archive("javcap-{{version}}-{{target}}/{{bin}}")
         .no_confirm(true)
         .show_output(false)
