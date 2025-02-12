@@ -11,6 +11,8 @@ jobs:
   check:
     name: check
     runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: 1
     steps:
       - uses: actions/checkout@master
 
