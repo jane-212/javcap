@@ -10,7 +10,7 @@ use log::info;
 use nfo::Nfo;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
-use video::Video;
+use video::{Video, VideoType};
 
 use super::bar::Bar;
 
@@ -141,8 +141,9 @@ impl Payload {
             Tag::Title => self.nfo.title().to_string(),
             Tag::Studio => self.nfo.studio().to_string(),
             Tag::Id => match self.video.ty() {
-                video::VideoType::Jav(id, _) => id.to_string(),
-                video::VideoType::Fc2(_) => "FC2-PPV".to_string(),
+                VideoType::Jav(id, _) => id.to_string(),
+                VideoType::Fc2(_) => "FC2-PPV".to_string(),
+                VideoType::Other(_) => "OTHER".to_string(),
             },
             Tag::Name => self.video.ty().to_string(),
             Tag::Director => self.nfo.director().to_string(),

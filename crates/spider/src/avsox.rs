@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::{select, Finder};
 
-pub const HOST: &str = "https://avsox.click";
+const HOST: &str = "https://avsox.click";
 
 select!(
     home_title: "#waterfall > div > a > div.photo-frame > img"
@@ -70,6 +70,7 @@ impl Finder for Avsox {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 

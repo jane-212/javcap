@@ -6,6 +6,7 @@ mod hbox;
 mod jav321;
 mod javdb;
 mod missav;
+mod porny;
 mod subtitle_cat;
 
 use std::fmt::Display;
@@ -118,6 +119,7 @@ fn which_country(key: &VideoType) -> Country {
             _ => Country::Japan,
         },
         VideoType::Fc2(_) => Country::Japan,
+        VideoType::Other(_) => Country::China,
     }
 }
 

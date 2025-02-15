@@ -258,10 +258,7 @@ impl App {
             };
 
             if input.exts.iter().any(|e| e == ext) {
-                let (video_ty, idx) = match VideoType::parse(file_name) {
-                    Ok(res) => res,
-                    Err(_) => continue,
-                };
+                let (video_ty, idx) = VideoType::parse(file_name);
 
                 let video = self
                     .videos

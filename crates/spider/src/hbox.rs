@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::Finder;
 
-pub const HOST: &str = "https://hbox.jp";
+const HOST: &str = "https://hbox.jp";
 
 pub struct Hbox {
     base_url: String,
@@ -73,6 +73,7 @@ impl Finder for Hbox {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => false,
+            VideoType::Other(_) => false,
         }
     }
 

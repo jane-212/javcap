@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::{select, Finder};
 
-pub const HOST: &str = "https://javdb.com";
+const HOST: &str = "https://javdb.com";
 
 select!(
     home_item: "body > section > div > div.movie-list.h.cols-4.vcols-8 > div"
@@ -72,6 +72,7 @@ impl Finder for Javdb {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => false,
+            VideoType::Other(_) => false,
         }
     }
 

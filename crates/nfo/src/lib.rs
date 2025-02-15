@@ -118,6 +118,9 @@ impl Nfo {
                     self.actors_mut().insert(director);
                 }
             }
+            VideoType::Other(_) => {
+                // TODO: Implement auto-fix for other video types
+            }
         }
     }
 

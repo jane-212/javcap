@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::{select, Finder};
 
-pub const HOST: &str = "https://airav.io";
+const HOST: &str = "https://airav.io";
 
 select!(
     home_item: "body > div:nth-child(4) > div > div.row.row-cols-2.row-cols-lg-4.g-2.mt-0 > div"
@@ -72,6 +72,7 @@ impl Finder for Airav {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 

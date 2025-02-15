@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::{select, Finder};
 
-pub const HOST: &str = "https://fc2ppvdb.com";
+const HOST: &str = "https://fc2ppvdb.com";
 
 select!(
     img: "body > div > div > div > main > div > section > div.container.lg\\:px-5.px-2.py-12.mx-auto > div.flex.flex-col.items-start.rounded-lg.shadow.md\\:flex-row.dark\\:border-gray-800.dark\\:bg-gray-900.py-2 > div.lg\\:w-2\\/5.w-full.mb-12.md\\:mb-0 > a > img"
@@ -68,6 +68,7 @@ impl Finder for Fc2ppvDB {
         match key {
             VideoType::Jav(_, _) => false,
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 
@@ -106,6 +107,7 @@ impl Fc2ppvDB {
         let name = match key {
             VideoType::Jav(id, number) => format!("{id}-{number}"),
             VideoType::Fc2(number) => number.clone(),
+            VideoType::Other(title) => title.clone(),
         };
         let text = self
             .client
