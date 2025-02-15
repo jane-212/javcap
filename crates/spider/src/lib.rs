@@ -26,6 +26,7 @@ use javdb::Javdb;
 use log::{error, warn};
 use missav::Missav;
 use nfo::{Country, Nfo};
+use porny::Porny;
 use subtitle_cat::SubtitleCat;
 use video::VideoType;
 
@@ -67,6 +68,7 @@ impl Spider {
             spider!(Jav321, url.jav321.clone(), "build jav321"),
             spider!(Javdb, url.javdb.clone(), "build javdb"),
             spider!(Missav, url.missav.clone(), "build missav"),
+            spider!(Porny, url.porny.clone(), "build 91 porny"),
             spider!(SubtitleCat, url.subtitle_cat.clone(), "build subtitle cat"),
         ];
 
