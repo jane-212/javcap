@@ -33,6 +33,8 @@
 
 第一次运行会自动生成 `config.toml` 文件。
 
+[点击](https://github.com/jane-212/javcap/blob/main/crates/config/config.default.toml)查看默认配置文件
+
 ```
 windows -> C:\Users\<user>\.config\javcap\config.toml
 macos -> /Users/<user>/.config/javcap/config.toml
