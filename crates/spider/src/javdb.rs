@@ -266,7 +266,7 @@ mod tests {
                     .build();
                 nfo.set_title("朝起きたら部屋に下着姿のギャルが！いつも生意気で悪態ばかりついてくるのに、甘えてきたので… 斎藤あみり".to_string())
                 .set_studio("ROYAL".to_string())
-                .set_rating(8.7)
+                .set_rating(8.68)
                 .set_runtime(110)
                 .set_premiered("2022-10-25".to_string());
                 let actors = ["斎藤あみり", "かめじろう"];
