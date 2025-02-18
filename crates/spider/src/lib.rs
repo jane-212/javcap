@@ -60,16 +60,16 @@ impl Spider {
         }
 
         let finders: Vec<Arc<dyn Finder>> = vec![
-            // spider!(Airav, url.airav.clone(), "build airav"),
-            // spider!(Avsox, url.avsox.clone(), "build avsox"),
-            // spider!(Cable, url.cable.clone(), "build cable"),
-            // spider!(Fc2ppvDB, url.fc2ppv_db.clone(), "build fc2ppv db"),
-            // spider!(Hbox, url.hbox.clone(), "build hbox"),
-            // spider!(Jav321, url.jav321.clone(), "build jav321"),
-            // spider!(Javdb, url.javdb.clone(), "build javdb"),
-            // spider!(Missav, url.missav.clone(), "build missav"),
+            spider!(Airav, url.airav.clone(), "build airav"),
+            spider!(Avsox, url.avsox.clone(), "build avsox"),
+            spider!(Cable, url.cable.clone(), "build cable"),
+            spider!(Fc2ppvDB, url.fc2ppv_db.clone(), "build fc2ppv db"),
+            spider!(Hbox, url.hbox.clone(), "build hbox"),
+            spider!(Jav321, url.jav321.clone(), "build jav321"),
+            spider!(Javdb, url.javdb.clone(), "build javdb"),
+            spider!(Missav, url.missav.clone(), "build missav"),
             spider!(Porny, url.porny.clone(), "build 91 porny"),
-            // spider!(SubtitleCat, url.subtitle_cat.clone(), "build subtitle cat"),
+            spider!(SubtitleCat, url.subtitle_cat.clone(), "build subtitle cat"),
         ];
 
         let spider = Spider { finders };
