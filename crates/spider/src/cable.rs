@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::{select, which_country, Finder};
 
-pub const HOST: &str = "https://www.hsav.xyz";
+const HOST: &str = "https://www.hsav.xyz";
 
 select!(
     home_item: "#main-content > div > div.blog-items.blog-items-control.site__row.grid-default > article.post-item"
@@ -67,6 +67,7 @@ impl Finder for Cable {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 
@@ -109,6 +110,7 @@ impl Cable {
         let name = match &key {
             VideoType::Jav(id, number) => format!("{id}-{number}"),
             VideoType::Fc2(number) => format!("FC2PPV-{number}"),
+            VideoType::Other(title) => title.clone(),
         };
         let text = self
             .client

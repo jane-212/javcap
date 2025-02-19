@@ -14,6 +14,7 @@ try: remove
     @touch dev/FC2-PPV-4554988.wmv
     @touch dev/PRED-323.wmv
     @touch dev/md-0331.wmv
+    @touch dev/小飞棍来咯.wmv
     @cargo r
 
 log_file := home_directory() / ".cache" / "javcap" / "log"

@@ -10,9 +10,9 @@ use nfo::{Country, Mpaa, Nfo};
 use serde::Deserialize;
 use video::VideoType;
 
-use super::Finder;
+use super::{which_country, Finder};
 
-pub const HOST: &str = "https://hbox.jp";
+const HOST: &str = "https://hbox.jp";
 
 pub struct Hbox {
     base_url: String,
@@ -71,8 +71,9 @@ impl Display for Hbox {
 impl Finder for Hbox {
     fn support(&self, key: &VideoType) -> bool {
         match key {
-            VideoType::Jav(_, _) => true,
+            VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
             VideoType::Fc2(_) => false,
+            VideoType::Other(_) => false,
         }
     }
 

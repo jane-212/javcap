@@ -28,5 +28,8 @@ pub struct Url {
     pub missav: Option<String>,
 
     #[validate(url(message = "should be a url"))]
+    pub porny: Option<String>,
+
+    #[validate(url(message = "should be a url"))]
     pub subtitle_cat: Option<String>,
 }

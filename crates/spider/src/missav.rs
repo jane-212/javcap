@@ -11,7 +11,7 @@ use video::VideoType;
 
 use super::Finder;
 
-pub const HOST: &str = "https://fourhoi.com";
+const HOST: &str = "https://fourhoi.com";
 
 pub struct Missav {
     base_url: String,
@@ -75,6 +75,7 @@ impl Finder for Missav {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 

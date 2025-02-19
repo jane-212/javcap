@@ -10,9 +10,9 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, Finder};
+use super::{select, which_country, Finder};
 
-pub const HOST: &str = "https://airav.io";
+const HOST: &str = "https://airav.io";
 
 select!(
     home_item: "body > div:nth-child(4) > div > div.row.row-cols-2.row-cols-lg-4.g-2.mt-0 > div"
@@ -70,8 +70,9 @@ impl Display for Airav {
 impl Finder for Airav {
     fn support(&self, key: &VideoType) -> bool {
         match key {
-            VideoType::Jav(_, _) => true,
+            VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 

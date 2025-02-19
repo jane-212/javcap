@@ -118,6 +118,17 @@ impl Nfo {
                     self.actors_mut().insert(director);
                 }
             }
+            VideoType::Other(_) => {
+                if self.poster.is_empty() {
+                    self.poster = self.fanart.clone();
+                }
+                if self.genres.is_empty() {
+                    self.genres.insert(self.director.clone());
+                }
+                if self.actors.is_empty() {
+                    self.actors.insert(self.director.clone());
+                }
+            }
         }
     }
 

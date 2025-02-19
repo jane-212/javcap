@@ -1,7 +1,6 @@
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Result};
 use bon::bon;
 use getset::Getters;
 use log::info;
@@ -60,6 +59,7 @@ impl VideoFile {
 pub enum VideoType {
     Jav(String, String),
     Fc2(String),
+    Other(String),
 }
 
 impl Display for VideoType {
@@ -67,6 +67,7 @@ impl Display for VideoType {
         match self {
             VideoType::Jav(id, number) => write!(f, "{id}-{number}"),
             VideoType::Fc2(number) => write!(f, "FC2-PPV-{number}"),
+            VideoType::Other(title) => write!(f, "{title}"),
         }
     }
 }
@@ -92,22 +93,23 @@ impl VideoType {
     /// use video::VideoType;
     ///
     /// let expected = VideoType::Jav("XXX".to_string(), "123".to_string());
-    /// let (video, idx) = VideoType::parse("xxx-123").unwrap();
+    /// let (video, idx) = VideoType::parse("xxx-123");
     /// assert_eq!(expected, video);
     /// assert_eq!(idx, 0);
     /// ```
-    pub fn parse(name: impl AsRef<str>) -> Result<(VideoType, u32)> {
+    pub fn parse(name: impl AsRef<str>) -> (VideoType, u32) {
         let name = name.as_ref().to_uppercase();
 
-        let (_, (id, key, idx)) = Self::_parse(&name).map_err(|err| anyhow!("{err}"))?;
-        info!("parse {name} to {id}-{key}-{idx}");
-
-        let ty = match id {
-            "FC2-PPV" => Self::fc2(key),
-            _ => Self::jav(id, key),
+        let (ty, idx) = match Self::_parse(&name) {
+            Ok((_, (id, key, idx))) => match id {
+                "FC2-PPV" => (Self::fc2(key), idx),
+                _ => (Self::jav(id, key), idx),
+            },
+            Err(_) => (Self::other(name.clone()), 0),
         };
+        info!("parse {name} to {ty}-{idx}");
 
-        Ok((ty, idx))
+        (ty, idx)
     }
 
     fn _parse(input: &str) -> IResult<&str, (&str, &str, u32)> {
@@ -172,6 +174,10 @@ impl VideoType {
     fn fc2(key: impl Into<String>) -> VideoType {
         VideoType::Fc2(key.into())
     }
+
+    fn other(key: impl Into<String>) -> VideoType {
+        VideoType::Other(key.into())
+    }
 }
 
 #[cfg(test)]
@@ -195,11 +201,10 @@ mod tests {
     #[test_case("fc2ppv-12345-2", VideoType::Fc2("12345".to_string()), 2; "fc2ppv-12345-2")]
     #[test_case("fc2-12345-3", VideoType::Fc2("12345".to_string()), 3; "fc2-12345-3")]
     #[test_case("fc212345-4", VideoType::Fc2("12345".to_string()), 4; "fc212345-4")]
-    fn test_parse(name: &str, video: VideoType, idx: u32) -> Result<()> {
-        let (actual_video, actual_idx) = VideoType::parse(name)?;
+    #[test_case("小飞棍来喽", VideoType::Other("小飞棍来喽".to_string()), 0; "小飞棍来喽")]
+    fn test_parse(name: &str, video: VideoType, idx: u32) {
+        let (actual_video, actual_idx) = VideoType::parse(name);
         assert_eq!(actual_video, video);
         assert_eq!(actual_idx, idx);
-
-        Ok(())
     }
 }

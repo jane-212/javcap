@@ -10,9 +10,9 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, Finder};
+use super::{select, which_country, Finder};
 
-pub const HOST: &str = "https://avsox.click";
+const HOST: &str = "https://avsox.click";
 
 select!(
     home_title: "#waterfall > div > a > div.photo-frame > img"
@@ -68,8 +68,9 @@ impl Display for Avsox {
 impl Finder for Avsox {
     fn support(&self, key: &VideoType) -> bool {
         match key {
-            VideoType::Jav(_, _) => true,
+            VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 

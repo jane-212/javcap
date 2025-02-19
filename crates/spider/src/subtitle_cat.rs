@@ -12,7 +12,7 @@ use video::VideoType;
 
 use super::{select, Finder};
 
-pub const HOST: &str = "https://www.subtitlecat.com";
+const HOST: &str = "https://www.subtitlecat.com";
 
 select!(
     home_item: "body > div.subtitles > div > div > div > table > tbody > tr > td:nth-child(1) > a"
@@ -66,6 +66,7 @@ impl Finder for SubtitleCat {
         match key {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => true,
+            VideoType::Other(_) => false,
         }
     }
 
@@ -141,6 +142,7 @@ impl SubtitleCat {
                 format!("FC2PPV-{number}"),
                 format!("FC2PPV{number}"),
             ],
+            VideoType::Other(title) => vec![title.clone()],
         };
 
         html.select(&self.selectors.home_item)
