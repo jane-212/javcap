@@ -93,6 +93,7 @@ impl Finder for Porny {
             .await?
             .to_vec();
         nfo.set_fanart(fanart);
+        nfo.set_studio("91".to_string());
 
         info!("{nfo:?}");
         Ok(nfo)
@@ -188,5 +189,61 @@ impl Porny {
             .and_then(|img| img.attr("style"))
             .and_then(|sty| sty.split("'").nth(1).map(|fanart| fanart.to_string()))
             .ok_or(anyhow!("fanart not found"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    fn finder() -> Result<Porny> {
+        Porny::builder().timeout(Duration::from_secs(5)).build()
+    }
+
+    #[test]
+    fn test_support() -> Result<()> {
+        let finder = finder()?;
+        let videos = [
+            (
+                VideoType::Jav("STARS".to_string(), "804".to_string()),
+                false,
+            ),
+            (VideoType::Fc2("3061625".to_string()), false),
+            (VideoType::Other("hello".to_string()), true),
+        ];
+        for (video, supported) in videos {
+            assert_eq!(finder.support(&video), supported);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find() -> Result<()> {
+        let finder = finder()?;
+        let cases = [(VideoType::Other("小飞棍来咯".to_string()), {
+            let mut nfo = Nfo::builder()
+                .id("小飞棍来咯")
+                .country(Country::China)
+                .mpaa(Mpaa::NC17)
+                .build();
+            nfo.set_premiered("2022-10-12".to_string());
+            nfo.set_director("炮王大恶魔".to_string());
+            nfo.set_title("小飞棍来咯".to_string());
+            nfo.set_studio("91".to_string());
+            nfo.set_runtime(3);
+
+            nfo
+        })];
+        for (video, expected) in cases {
+            let actual = finder.find(&video).await?;
+            assert!(!actual.fanart().is_empty());
+            assert!(actual.poster().is_empty());
+            assert!(actual.subtitle().is_empty());
+            assert_eq!(actual, expected);
+        }
+
+        Ok(())
     }
 }

@@ -93,7 +93,7 @@ impl VideoType {
     /// use video::VideoType;
     ///
     /// let expected = VideoType::Jav("XXX".to_string(), "123".to_string());
-    /// let (video, idx) = VideoType::parse("xxx-123").unwrap();
+    /// let (video, idx) = VideoType::parse("xxx-123");
     /// assert_eq!(expected, video);
     /// assert_eq!(idx, 0);
     /// ```
