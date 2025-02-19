@@ -61,15 +61,10 @@ async fn run() -> Result<()> {
 }
 
 fn check_for_update() -> Result<Status> {
-    #[cfg(target_os = "windows")]
-    let bin_name = "javcap.exe";
-    #[cfg(not(target_os = "windows"))]
-    let bin_name = "javcap";
     let status = Update::configure()
         .repo_owner("jane-212")
         .repo_name("javcap")
-        .bin_name(bin_name)
-        .bin_path_in_archive("javcap-{{version}}-{{target}}/{{bin}}")
+        .bin_name("javcap")
         .no_confirm(true)
         .show_output(false)
         .show_download_progress(true)
