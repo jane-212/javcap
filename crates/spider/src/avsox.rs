@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -147,6 +147,10 @@ impl Avsox {
             .next()
             .and_then(|node| node.attr("title"))
         {
+            if title.trim().is_empty() {
+                bail!("item not found");
+            }
+
             nfo.set_title(title.to_string());
         }
 

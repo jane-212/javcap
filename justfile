@@ -15,6 +15,8 @@ try: remove
     @touch dev/PRED-323.wmv
     @touch dev/md-0331.wmv
     @touch dev/小飞棍来咯.wmv
+    @touch dev/GOIN-002.wmv
+    @touch dev/GOIN-003.wmv
     @cargo r
 
 log_file := home_directory() / ".cache" / "javcap" / "log"
