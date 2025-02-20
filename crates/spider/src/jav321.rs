@@ -92,6 +92,7 @@ impl Finder for Jav321 {
                 .get(poster)
                 .send()
                 .await?
+                .error_for_status()?
                 .bytes()
                 .await?;
             nfo.set_poster(poster.to_vec());
@@ -104,6 +105,7 @@ impl Finder for Jav321 {
                 .get(fanart)
                 .send()
                 .await?
+                .error_for_status()?
                 .bytes()
                 .await?;
             nfo.set_fanart(fanart.to_vec());
