@@ -142,6 +142,7 @@ impl Handler for Youdao {
                 ("sign", &sign),
                 ("signType", "v3"),
                 ("curtime", &cur_time),
+                ("strict", "true"),
             ])
             .send()
             .await
