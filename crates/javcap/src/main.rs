@@ -10,9 +10,9 @@ use colored::Colorize;
 use config::Config;
 use env_logger::{Builder, Target};
 use javcap::App;
-use log::{error, info};
-use self_update::backends::github::Update;
+use log::{LevelFilter, error, info};
 use self_update::Status;
+use self_update::backends::github::Update;
 use tokio::fs;
 use validator::Validate;
 
@@ -108,14 +108,19 @@ async fn init_logger() -> Result<()> {
         .open(&log_file)
         .with_context(|| format!("open {}", log_file.display()))?;
 
-    if env::var("LOG")
-        .ok()
+    const LOG_ENV_KEY: &str = "LOG";
+    let mut logger = if env::var(LOG_ENV_KEY)
         .map(|log| log.is_empty())
         .unwrap_or(true)
     {
-        env::set_var("LOG", "info");
-    }
-    Builder::from_env("LOG")
+        // fallback to info level if `LOG` is not set or empty
+        let mut logger = Builder::new();
+        logger.filter_level(LevelFilter::Info);
+        logger
+    } else {
+        Builder::from_env(LOG_ENV_KEY)
+    };
+    logger
         .format(|buf, record| {
             writeln!(
                 buf,
