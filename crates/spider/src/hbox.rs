@@ -70,12 +70,12 @@ impl Display for Hbox {
 #[async_trait]
 impl Finder for Hbox {
     fn support(&self, key: &VideoType) -> bool {
-        // match key {
-        //     VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
-        //     VideoType::Fc2(_) => false,
-        //     VideoType::Other(_) => false,
-        // }
-        
+        match key {
+            VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
+            VideoType::Fc2(_) => false,
+            VideoType::Other(_) => false,
+        };
+
         // TODO: hbox可用是启用
         false
     }
