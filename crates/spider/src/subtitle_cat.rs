@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -10,7 +10,7 @@ use nfo::Nfo;
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, Finder};
+use super::{Finder, select};
 
 const HOST: &str = "https://www.subtitlecat.com";
 
@@ -165,7 +165,7 @@ mod tests {
 
     fn finder() -> Result<SubtitleCat> {
         SubtitleCat::builder()
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(10))
             .build()
     }
 

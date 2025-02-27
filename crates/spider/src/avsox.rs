@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -10,7 +10,7 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, which_country, Finder};
+use super::{Finder, select, which_country};
 
 const HOST: &str = "https://avsox.click";
 
@@ -246,7 +246,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Avsox> {
-        Avsox::builder().timeout(Duration::from_secs(5)).build()
+        Avsox::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]

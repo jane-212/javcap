@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -10,7 +10,7 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, Finder};
+use super::{Finder, select};
 
 const HOST: &str = "https://fc2ppvdb.com";
 
@@ -205,7 +205,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Fc2ppvDB> {
-        Fc2ppvDB::builder().timeout(Duration::from_secs(5)).build()
+        Fc2ppvDB::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]

@@ -10,7 +10,7 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, which_country, Finder};
+use super::{Finder, select, which_country};
 
 const HOST: &str = "https://airav.io";
 
@@ -238,7 +238,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Airav> {
-        Airav::builder().timeout(Duration::from_secs(5)).build()
+        Airav::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]

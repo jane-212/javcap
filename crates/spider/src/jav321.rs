@@ -10,7 +10,7 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, which_country, Finder};
+use super::{Finder, select, which_country};
 
 const HOST: &str = "https://www.jav321.com";
 
@@ -237,7 +237,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Jav321> {
-        Jav321::builder().timeout(Duration::from_secs(5)).build()
+        Jav321::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]

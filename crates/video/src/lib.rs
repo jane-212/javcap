@@ -5,11 +5,11 @@ use bon::bon;
 use getset::Getters;
 use log::info;
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
     combinator::{eof, map, opt},
     multi::many0,
-    IResult, Parser,
 };
 
 #[derive(Debug, Getters, Clone)]

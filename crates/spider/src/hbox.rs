@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -10,7 +10,7 @@ use nfo::{Country, Mpaa, Nfo};
 use serde::Deserialize;
 use video::VideoType;
 
-use super::{which_country, Finder};
+use super::{Finder, which_country};
 
 const HOST: &str = "https://hbox.jp";
 
@@ -302,7 +302,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Hbox> {
-        Hbox::builder().timeout(Duration::from_secs(5)).build()
+        Hbox::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]

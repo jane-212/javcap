@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
+use async_openai::Client;
 use async_openai::config::OpenAIConfig;
 use async_openai::types::{
     ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
     ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
 };
-use async_openai::Client;
 use async_trait::async_trait;
 use bon::bon;
 use indoc::formatdoc;

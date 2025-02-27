@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::time::Duration;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use async_trait::async_trait;
 use bon::bon;
 use http_client::Client;
@@ -10,7 +10,7 @@ use nfo::{Country, Mpaa, Nfo};
 use scraper::Html;
 use video::VideoType;
 
-use super::{select, Finder};
+use super::{Finder, select};
 
 const HOST: &str = "https://91porny.com";
 
@@ -198,7 +198,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Porny> {
-        Porny::builder().timeout(Duration::from_secs(5)).build()
+        Porny::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]

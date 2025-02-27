@@ -10,7 +10,7 @@ pub use translator::Translator;
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use input::Input;
 use log::info;
 use network::Network;

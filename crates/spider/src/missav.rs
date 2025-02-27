@@ -100,7 +100,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn finder() -> Result<Missav> {
-        Missav::builder().timeout(Duration::from_secs(5)).build()
+        Missav::builder().timeout(Duration::from_secs(10)).build()
     }
 
     #[test]
