@@ -241,7 +241,7 @@ mod tests {
             )
             .set_director("KING POWER D".to_string())
             .set_runtime(82)
-            .set_rating(9.1)
+            .set_rating(9.2)
             .set_premiered("2022-07-30".to_string());
                 nfo.actors_mut().insert("あすか".to_string());
 
