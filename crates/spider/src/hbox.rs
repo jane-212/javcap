@@ -70,11 +70,14 @@ impl Display for Hbox {
 #[async_trait]
 impl Finder for Hbox {
     fn support(&self, key: &VideoType) -> bool {
-        match key {
-            VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
-            VideoType::Fc2(_) => false,
-            VideoType::Other(_) => false,
-        }
+        // match key {
+        //     VideoType::Jav(_, _) => !matches!(which_country(key), Country::China),
+        //     VideoType::Fc2(_) => false,
+        //     VideoType::Other(_) => false,
+        // }
+        
+        // TODO: hbox可用是启用
+        false
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
@@ -306,6 +309,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "hbox暂时不可用"]
     fn test_support() -> Result<()> {
         let finder = finder()?;
         let videos = [
@@ -320,6 +324,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "hbox暂时不可用"]
     async fn test_find() -> Result<()> {
         let finder = finder()?;
         let cases = [(VideoType::Jav("STARS".to_string(), "804".to_string()), {
