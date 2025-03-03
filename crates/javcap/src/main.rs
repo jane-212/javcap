@@ -6,6 +6,7 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 use chrono::Local;
+use clap::{Parser, Subcommand};
 use colored::Colorize;
 use config::Config;
 use env_logger::{Builder, Target};
@@ -16,10 +17,99 @@ use self_update::backends::github::Update;
 use tokio::fs;
 use validator::Validate;
 
+#[derive(Parser)]
+#[command(version = app::VERSION)]
+#[command(long_about = "电影刮削器")]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// 搜索并刮削
+    Run {
+        /// 配置文件路径
+        #[arg(short, long)]
+        config: Option<String>,
+    },
+
+    /// 显示默认配置
+    Config,
+
+    /// 显示上次运行的日志
+    Log,
+
+    /// 更新程序
+    Upgrade,
+}
+
 #[tokio::main]
 async fn main() -> ExitCode {
+    let cli = Cli::parse();
+    match cli.command {
+        Some(command) => match command {
+            Commands::Run { config } => run(config).await,
+            Commands::Config => {
+                println!("{}", Config::DEFAULT_CONFIG.trim_end());
+                ExitCode::SUCCESS
+            }
+            Commands::Log => log().await,
+            Commands::Upgrade => upgrade().await,
+        },
+        None => run(None).await,
+    }
+}
+
+async fn upgrade() -> ExitCode {
+    match _upgrade().await {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("{e:?}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn _upgrade() -> Result<()> {
+    println!("check for update...");
+    let status = tokio::task::spawn_blocking(check_for_update).await??;
+    if status.updated() {
+        println!("updated to version v{}", status.version());
+    } else {
+        println!("latest version, nothing to do today");
+    }
+
+    Ok(())
+}
+
+async fn log() -> ExitCode {
+    let log_dir = log_dir();
+    let log_file = log_dir.join("log");
+
+    if !log_file.exists() {
+        eprintln!("no log file found");
+        return ExitCode::FAILURE;
+    }
+
+    match fs::read_to_string(&log_file)
+        .await
+        .with_context(|| "read log file")
+    {
+        Ok(content) => {
+            println!("{}", content.trim_end());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{e:?}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn run(config: Option<String>) -> ExitCode {
     println!("{}", ">".repeat(app::LINE_LENGTH).yellow());
-    let code = match run().await {
+    let code = match _run(config).await {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("{:#^width$}", " Error ".red(), width = app::LINE_LENGTH);
@@ -32,13 +122,18 @@ async fn main() -> ExitCode {
     code
 }
 
-async fn run() -> Result<()> {
+async fn _run(config: Option<String>) -> Result<()> {
     init_logger().await.with_context(|| "init logger")?;
 
     info!("app version: v{}({})", app::VERSION, app::HASH);
     println!("app version: v{}({})", app::VERSION, app::HASH);
 
-    let config = Config::load().await.with_context(|| "load config")?;
+    let config = match config {
+        Some(path) => Config::load_from(path)
+            .await
+            .with_context(|| "load config")?,
+        None => Config::load().await.with_context(|| "load config")?,
+    };
     config.validate().with_context(|| "validate config")?;
 
     if config.check_for_update {
@@ -77,18 +172,20 @@ fn check_for_update() -> Result<Status> {
     Ok(status)
 }
 
-async fn init_logger() -> Result<()> {
-    let log_dir = {
-        let username = whoami::username();
-        #[cfg(target_os = "macos")]
-        let user_dir = PathBuf::from("/Users").join(username);
-        #[cfg(target_os = "linux")]
-        let user_dir = PathBuf::from("/home").join(username);
-        #[cfg(target_os = "windows")]
-        let user_dir = PathBuf::from("C:\\Users").join(username);
+fn log_dir() -> PathBuf {
+    let username = whoami::username();
+    #[cfg(target_os = "macos")]
+    let user_dir = PathBuf::from("/Users").join(username);
+    #[cfg(target_os = "linux")]
+    let user_dir = PathBuf::from("/home").join(username);
+    #[cfg(target_os = "windows")]
+    let user_dir = PathBuf::from("C:\\Users").join(username);
 
-        user_dir.join(".cache").join(app::NAME)
-    };
+    user_dir.join(".cache").join(app::NAME)
+}
+
+async fn init_logger() -> Result<()> {
+    let log_dir = log_dir();
     if !log_dir.exists() {
         fs::create_dir_all(&log_dir)
             .await

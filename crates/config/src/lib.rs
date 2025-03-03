@@ -44,6 +44,8 @@ pub struct Config {
 }
 
 impl Config {
+    pub const DEFAULT_CONFIG: &str = include_str!("../config.default.toml");
+
     pub async fn load() -> Result<Config> {
         let config_path = Config::config_path();
         let config_file = config_path.join("config.toml");
@@ -70,6 +72,26 @@ impl Config {
         Ok(config)
     }
 
+    pub async fn load_from(path: impl AsRef<Path>) -> Result<Config> {
+        let config_file = path.as_ref();
+        if !config_file.exists() {
+            info!("config not found in {}", config_file.display());
+            bail!("config not found in {}", config_file.display());
+        }
+        info!("load config from {}", config_file.display());
+
+        let mut config = String::new();
+        OpenOptions::new()
+            .read(true)
+            .open(config_file)
+            .await?
+            .read_to_string(&mut config)
+            .await?;
+        let config = toml::from_str::<Config>(&config)?;
+
+        Ok(config)
+    }
+
     async fn generate_default_config_file(path: &Path) -> Result<()> {
         OpenOptions::new()
             .create(true)
@@ -77,7 +99,7 @@ impl Config {
             .write(true)
             .open(path)
             .await?
-            .write_all(include_bytes!("../config.default.toml"))
+            .write_all(Self::DEFAULT_CONFIG.as_bytes())
             .await?;
         info!("generate default config to {}", path.display());
 
