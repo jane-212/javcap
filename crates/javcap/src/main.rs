@@ -39,6 +39,9 @@ enum Commands {
 
     /// 显示上次运行的日志
     Log,
+
+    /// 更新程序
+    Upgrade,
 }
 
 #[tokio::main]
@@ -52,9 +55,32 @@ async fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
             Commands::Log => log().await,
+            Commands::Upgrade => upgrade().await,
         },
         None => run(None).await,
     }
+}
+
+async fn upgrade() -> ExitCode {
+    match _upgrade().await {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("{e:?}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn _upgrade() -> Result<()> {
+    println!("check for update...");
+    let status = tokio::task::spawn_blocking(check_for_update).await??;
+    if status.updated() {
+        println!("updated to version v{}", status.version());
+    } else {
+        println!("latest version, nothing to do today");
+    }
+
+    Ok(())
 }
 
 async fn log() -> ExitCode {
