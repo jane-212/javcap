@@ -65,6 +65,7 @@ chrono = "0.4.39"
 scraper = "0.22.0"
 educe = "0.6.0"
 quick-xml = "0.37.2"
+clap = { version = "4.5.31", features = ["derive"] }
 
 pretty_assertions = "1.4.1"
 test-case = "3.3.1"
