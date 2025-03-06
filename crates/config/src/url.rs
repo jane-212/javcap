@@ -32,4 +32,10 @@ pub struct Url {
 
     #[validate(url(message = "should be a url"))]
     pub subtitle_cat: Option<String>,
+
+    #[validate(url(message = "should be a url"))]
+    pub the_porn_db: Option<String>,
+
+    #[validate(url(message = "should be a url"))]
+    pub the_porn_db_api: Option<String>,
 }

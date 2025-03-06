@@ -67,3 +67,9 @@ timeout = 10
 # missav = ""
 # porny = ""
 # subtitle_cat = ""
+# the_porn_db = ""
+# the_porn_db_api = ""
+
+# 填写key来启用the porn db
+[the_porn_db]
+# key = ""
