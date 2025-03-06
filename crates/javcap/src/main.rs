@@ -108,7 +108,33 @@ async fn log() -> ExitCode {
 }
 
 async fn run(config: Option<String>) -> ExitCode {
-    println!("{}", ">".repeat(app::LINE_LENGTH).yellow());
+    println!("{}", ">".repeat(*app::LINE_LENGTH).yellow());
+    let banner = include_str!("../banner");
+    for line in banner.lines() {
+        let padding = if *app::LINE_LENGTH <= 30 {
+            0
+        } else {
+            (*app::LINE_LENGTH - 30) / 2
+        };
+        println!(
+            "{}{}{}",
+            " ".repeat(padding),
+            line.yellow(),
+            " ".repeat(padding)
+        );
+    }
+    println!();
+    println!(
+        "{:^width$}",
+        format!("v{}({})", app::VERSION, app::HASH).yellow(),
+        width = app::LINE_LENGTH
+    );
+    println!(
+        "{:^width$}",
+        "https://github.com/jane-212/javcap".yellow(),
+        width = app::LINE_LENGTH
+    );
+    println!();
     let code = match _run(config).await {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
@@ -118,15 +144,13 @@ async fn run(config: Option<String>) -> ExitCode {
             ExitCode::FAILURE
         }
     };
-    println!("{}", "<".repeat(app::LINE_LENGTH).yellow());
+    println!("{}", "<".repeat(*app::LINE_LENGTH).yellow());
     code
 }
 
 async fn _run(config: Option<String>) -> Result<()> {
     init_logger().await.with_context(|| "init logger")?;
-
     info!("app version: v{}({})", app::VERSION, app::HASH);
-    println!("app version: v{}({})", app::VERSION, app::HASH);
 
     let config = match config {
         Some(path) => Config::load_from(path)
