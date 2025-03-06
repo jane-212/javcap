@@ -111,10 +111,10 @@ async fn run(config: Option<String>) -> ExitCode {
     println!("{}", ">".repeat(*app::LINE_LENGTH).yellow());
     let banner = include_str!("../banner");
     for line in banner.lines() {
-        let padding = if *app::LINE_LENGTH <= 30 {
+        let padding = if *app::LINE_LENGTH <= 49 {
             0
         } else {
-            (*app::LINE_LENGTH - 30) / 2
+            (*app::LINE_LENGTH - 49) / 2
         };
         println!(
             "{}{}{}",
