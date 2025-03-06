@@ -87,10 +87,18 @@ impl App {
     }
 
     fn print_bar(&self, msg: &Message) {
+        let msg = format!(" {} ", msg);
+        let len = msg.len();
+        let cnt = msg.chars().count();
+        let width = if len == cnt { len } else { (len + cnt) / 2 };
+        let padding = *app::LINE_LENGTH - width;
+        let padding_left = padding / 2;
+        let padding_right = padding - padding_left;
         self.bar.message(format!(
-            "{:=^width$}",
-            format!(" {} ", msg).yellow(),
-            width = app::LINE_LENGTH,
+            "{}{}{}",
+            "=".repeat(padding_left).yellow(),
+            msg.yellow(),
+            "=".repeat(padding_right).yellow(),
         ));
     }
 
