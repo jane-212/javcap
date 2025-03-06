@@ -16,6 +16,8 @@ bon.workspace = true
 serde.workspace = true
 tokio.workspace = true
 scraper.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

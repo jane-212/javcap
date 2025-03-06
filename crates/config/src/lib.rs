@@ -2,6 +2,7 @@ mod helper;
 mod input;
 mod network;
 mod output;
+mod the_porn_db;
 mod translator;
 mod url;
 
@@ -16,6 +17,7 @@ use log::info;
 use network::Network;
 use output::Output;
 use serde::Deserialize;
+use the_porn_db::ThePornDB;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use url::Url;
@@ -41,6 +43,8 @@ pub struct Config {
 
     #[validate(nested)]
     pub url: Url,
+
+    pub the_porn_db: ThePornDB,
 }
 
 impl Config {

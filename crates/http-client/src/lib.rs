@@ -5,6 +5,7 @@ use bon::bon;
 use ratelimit::Ratelimiter;
 use reqwest::Client as HttpClient;
 use reqwest::Proxy;
+use reqwest::header::HeaderMap;
 use tokio::time;
 
 pub struct Client {
@@ -19,6 +20,7 @@ impl Client {
         timeout: Duration,
         proxy: Option<String>,
         amount: Option<u64>,
+        headers: Option<HeaderMap>,
         interval: u64,
     ) -> Result<Client> {
         let amount = amount.unwrap_or(1);
@@ -33,6 +35,9 @@ impl Client {
         if let Some(url) = proxy {
             let proxy = Proxy::all(&url).with_context(|| format!("set proxy to {url}"))?;
             client_builder = client_builder.proxy(proxy);
+        }
+        if let Some(headers) = headers {
+            client_builder = client_builder.default_headers(headers);
         }
         let client = client_builder
             .build()

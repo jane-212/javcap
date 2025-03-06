@@ -8,6 +8,7 @@ mod javdb;
 mod missav;
 mod porny;
 mod subtitle_cat;
+mod the_porn_db;
 
 use std::fmt::Display;
 use std::sync::Arc;
@@ -28,6 +29,7 @@ use missav::Missav;
 use nfo::{Country, Nfo};
 use porny::Porny;
 use subtitle_cat::SubtitleCat;
+use the_porn_db::ThePornDB;
 use video::VideoType;
 
 #[async_trait]
@@ -59,7 +61,7 @@ impl Spider {
             };
         }
 
-        let finders: Vec<Arc<dyn Finder>> = vec![
+        let mut finders: Vec<Arc<dyn Finder>> = vec![
             spider!(Airav, url.airav.clone(), "build airav"),
             spider!(Avsox, url.avsox.clone(), "build avsox"),
             spider!(Cable, url.cable.clone(), "build cable"),
@@ -71,6 +73,18 @@ impl Spider {
             spider!(Porny, url.porny.clone(), "build 91 porny"),
             spider!(SubtitleCat, url.subtitle_cat.clone(), "build subtitle cat"),
         ];
+        if let Some(ref key) = config.the_porn_db.key {
+            finders.push(Arc::new(
+                ThePornDB::builder()
+                    .maybe_base_url(url.the_porn_db.clone())
+                    .maybe_api_url(url.the_porn_db_api.clone())
+                    .key(key)
+                    .timeout(timeout)
+                    .maybe_proxy(proxy.clone())
+                    .build()
+                    .with_context(|| "build the porn db")?,
+            ));
+        }
 
         let spider = Spider { finders };
         Ok(spider)
