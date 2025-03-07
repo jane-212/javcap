@@ -1,6 +1,7 @@
 mod openai;
 mod youdao;
 
+use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -112,14 +113,13 @@ impl Translator {
         let translated = handler
             .translate(content)
             .await
-            .with_context(|| format!("in translator {}", handler.name()))?;
+            .with_context(|| format!("in translator {handler}"))?;
 
         Ok(Some(translated))
     }
 }
 
 #[async_trait]
-trait Handler: Send + Sync {
-    fn name(&self) -> &'static str;
+trait Handler: Send + Sync + Display {
     async fn translate(&self, content: &str) -> Result<String>;
 }

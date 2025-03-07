@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, bail};
@@ -82,12 +83,14 @@ impl Youdao {
     }
 }
 
+impl Display for Youdao {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "youdao")
+    }
+}
+
 #[async_trait]
 impl Handler for Youdao {
-    fn name(&self) -> &'static str {
-        "youdao"
-    }
-
     async fn translate(&self, content: &str) -> Result<String> {
         #[derive(Deserialize)]
         #[allow(dead_code)]

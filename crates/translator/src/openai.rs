@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow};
@@ -78,12 +79,14 @@ impl Openai {
     }
 }
 
+impl Display for Openai {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "openai")
+    }
+}
+
 #[async_trait]
 impl Handler for Openai {
-    fn name(&self) -> &'static str {
-        "openai"
-    }
-
     async fn translate(&self, content: &str) -> Result<String> {
         let translated = self
             .chat(formatdoc!(
