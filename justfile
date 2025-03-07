@@ -6,17 +6,8 @@ alias t := try
 try: remove
     @mkdir -p dev
     @touch dev/FC2-PPV-3061625.wmv
-    @touch dev/FC2-PPV-1292936.wmv
-    @touch dev/HEYZO-3525.wmv
-    @touch dev/ROYD-108.wmv
-    @touch dev/stars-804.wmv
-    @touch dev/ipx-443.wmv
-    @touch dev/FC2-PPV-4554988.wmv
-    @touch dev/PRED-323.wmv
-    @touch dev/md-0331.wmv
+    @touch dev/cawd-773.wmv
     @touch dev/小飞棍来咯.wmv
-    @touch dev/GOIN-002.wmv
-    @touch dev/GOIN-003.wmv
     @cargo r
 
 log_file := home_directory() / ".cache" / "javcap" / "log"
