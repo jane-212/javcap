@@ -45,18 +45,19 @@ impl Bar {
         let total = self.total.clone();
         tokio::spawn(async move {
             let mut idx = 0;
-            let interval = Duration::from_millis(120);
+            let interval = Duration::from_millis(200);
             let bar = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"];
+            let line_len = *app::LINE_LENGTH - 20;
 
             loop {
                 let total = { *total.lock().await };
                 let cnt = { *cnt.read().await };
                 let per = if total == 0 { 0 } else { cnt * 100 / total };
-                let p = per / 5;
+                let p = per * line_len / 100;
                 print!(
                     "\r{}",
                     format!(
-                        "{spinner}|{per}%|{fill:░<20}|[{cnt}/{total}]",
+                        "{spinner}|{per}%|{fill:░<line_len$}|[{cnt}/{total}]",
                         spinner = bar[idx],
                         fill = "█".repeat(p),
                         total = if total == 0 {
@@ -96,7 +97,7 @@ impl Bar {
         if self.disabled {
             println!("{}", msg.as_ref());
         } else {
-            println!("\r{}\r{}", " ".repeat(40), msg.as_ref());
+            println!("\r{}\r{}", " ".repeat(*app::LINE_LENGTH), msg.as_ref());
         }
     }
 
