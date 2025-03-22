@@ -7,20 +7,26 @@ use bon::bon;
 use http_client::Client;
 use log::info;
 use nfo::{Country, Mpaa, Nfo};
-use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{self, HeaderMap, HeaderValue};
+use scraper::Html;
 use serde::Deserialize;
 use serde_json::Value;
 use video::VideoType;
 
-use super::{Finder, which_country};
+use super::{Finder, select, which_country};
 
 const HOST: &str = "https://theporndb.net";
 const API_HOST: &str = "https://api.theporndb.net";
+
+select!(
+    data: "#app"
+);
 
 pub struct ThePornDB {
     base_url: String,
     api_url: String,
     client: Client,
+    selectors: Selectors,
 }
 
 #[bon]
@@ -44,14 +50,6 @@ impl ThePornDB {
                 HeaderValue::from_static("application/json"),
             );
             headers.insert(header::ACCEPT, HeaderValue::from_static("application/json"));
-            headers.insert(
-                HeaderName::from_bytes(b"x-inertia")?,
-                HeaderValue::from_static("true"),
-            );
-            headers.insert(
-                HeaderName::from_bytes(b"x-inertia-version")?,
-                HeaderValue::from_static("86b9c117e30461c03c71ed4e182e3a1a"),
-            );
 
             headers
         };
@@ -70,11 +68,13 @@ impl ThePornDB {
             Some(url) => url,
             None => String::from(API_HOST),
         };
+        let selectors = Selectors::new().with_context(|| "build selectors")?;
 
         let this = Self {
             base_url,
             api_url,
             client,
+            selectors,
         };
         Ok(this)
     }
@@ -243,8 +243,7 @@ impl ThePornDB {
         if let Some(director) = data.directors.first() {
             nfo.set_director(director.name.clone());
         }
-        if let Some(posters) = data.posters {
-            let poster = posters.large;
+        if let Some(poster) = data.posters.map(|posters| posters.large) {
             let poster = self
                 .client
                 .wait()
@@ -257,8 +256,7 @@ impl ThePornDB {
                 .to_vec();
             nfo.set_poster(poster);
         }
-        if let Some(background) = data.background {
-            let fanart = background.large;
+        if let Some(fanart) = data.background.map(|background| background.large) {
             let fanart = self
                 .client
                 .wait()
@@ -350,7 +348,7 @@ impl ThePornDB {
 
         let name = key.to_string();
         let url = format!("{}/jav", self.base_url);
-        let res = self
+        let text = self
             .client
             .wait()
             .await
@@ -358,8 +356,15 @@ impl ThePornDB {
             .query(&[("q", &name)])
             .send()
             .await?
-            .json::<Response>()
+            .text()
             .await?;
+        let html = Html::parse_document(&text);
+        let data = html
+            .select(&self.selectors.data)
+            .next()
+            .and_then(|app| app.attr("data-page"))
+            .ok_or(anyhow!("data-page attribute not found"))?;
+        let res = serde_json::from_str::<Response>(data).with_context(|| "parse data to json")?;
 
         res.props
             .scenes
@@ -443,15 +448,22 @@ impl ThePornDB {
             pub uuid: String,
         }
 
-        let res = self
+        let text = self
             .client
             .wait()
             .await
             .get(link)
             .send()
             .await?
-            .json::<Response>()
+            .text()
             .await?;
+        let html = Html::parse_document(&text);
+        let data = html
+            .select(&self.selectors.data)
+            .next()
+            .and_then(|app| app.attr("data-page"))
+            .ok_or(anyhow!("data-page attribute not found"))?;
+        let res = serde_json::from_str::<Response>(data).with_context(|| "parse data to json")?;
 
         Ok(res.props.scene.uuid)
     }
