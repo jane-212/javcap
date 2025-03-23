@@ -62,18 +62,8 @@ impl Config {
                 config_file.display()
             );
         }
-        info!("load config from {}", config_file.display());
 
-        let mut config = String::new();
-        OpenOptions::new()
-            .read(true)
-            .open(config_file)
-            .await?
-            .read_to_string(&mut config)
-            .await?;
-        let config = toml::from_str::<Config>(&config)?;
-
-        Ok(config)
+        Self::load_and_decode(config_file).await
     }
 
     pub async fn load_from(path: impl AsRef<Path>) -> Result<Config> {
@@ -82,12 +72,18 @@ impl Config {
             info!("config not found in {}", config_file.display());
             bail!("config not found in {}", config_file.display());
         }
-        info!("load config from {}", config_file.display());
+
+        Self::load_and_decode(config_file).await
+    }
+
+    async fn load_and_decode(path: impl AsRef<Path>) -> Result<Config> {
+        let path = path.as_ref();
+        info!("load config from {}", path.display());
 
         let mut config = String::new();
         OpenOptions::new()
             .read(true)
-            .open(config_file)
+            .open(path)
             .await?
             .read_to_string(&mut config)
             .await?;

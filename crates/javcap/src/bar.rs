@@ -47,6 +47,7 @@ impl Bar {
             let mut idx = 0;
             let interval = Duration::from_millis(200);
             let bar = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"];
+            let bar_len = bar.len();
             let line_len = *app::LINE_LENGTH - 20;
 
             loop {
@@ -70,7 +71,7 @@ impl Bar {
                 );
                 io::stdout().flush().ok();
                 idx += 1;
-                idx %= bar.len();
+                idx %= bar_len;
                 time::sleep(interval).await;
                 if *should_quit.read().await {
                     break;
@@ -90,14 +91,15 @@ impl Bar {
             *should_quit = true;
         }
         self.notify.notified().await;
-        print!("\r");
+        print!("\r{}\r", " ".repeat(*app::LINE_LENGTH));
     }
 
     pub fn message(&self, msg: impl AsRef<str>) {
+        let msg = msg.as_ref();
         if self.disabled {
-            println!("{}", msg.as_ref());
+            println!("{msg}");
         } else {
-            println!("\r{}\r{}", " ".repeat(*app::LINE_LENGTH), msg.as_ref());
+            println!("\r{}\r{msg}", " ".repeat(*app::LINE_LENGTH));
         }
     }
 

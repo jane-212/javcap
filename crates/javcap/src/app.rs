@@ -237,16 +237,14 @@ impl App {
             " Summary ".yellow(),
             width = app::LINE_LENGTH
         );
-        info!("ok: {}({})", self.succeed.len(), self.succeed.join(", "));
-        println!(
-            "{}",
-            format!("ok: {}({})", self.succeed.len(), self.succeed.join(", ")).green()
-        );
-        info!("failed: {}({})", self.failed.len(), self.failed.join(", "));
-        println!(
-            "{}",
-            format!("failed: {}({})", self.failed.len(), self.failed.join(", ")).red()
-        );
+
+        let ok = format!("ok: {}({})", self.succeed.len(), self.succeed.join(", "));
+        info!("{ok}");
+        println!("{}", ok.green());
+
+        let failed = format!("failed: {}({})", self.failed.len(), self.failed.join(", "));
+        info!("{failed}");
+        println!("{}", failed.red());
     }
 
     async fn load_all_videos(&mut self) -> Result<()> {
@@ -289,9 +287,9 @@ impl App {
             .map(|video| video.ty().to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        info!("found videos: {}({})", self.videos.len(), videos);
-        self.bar
-            .message(format!("found videos: {}({})", self.videos.len(), videos));
+        let summary = format!("found videos: {}({})", self.videos.len(), videos);
+        info!("{summary}");
+        self.bar.message(summary);
 
         Ok(())
     }
