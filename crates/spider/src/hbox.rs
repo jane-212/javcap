@@ -76,7 +76,7 @@ impl Finder for Hbox {
             VideoType::Other(_) => false,
         };
 
-        // TODO: hbox可用是启用
+        // TODO: hbox可用时启用
         false
     }
 
