@@ -87,8 +87,9 @@ impl Translator {
     }
 
     async fn wait(&self) -> Option<Arc<dyn Handler>> {
-        let handler = 'outer: loop {
-            let mut times = Vec::with_capacity(self.handlers.len());
+        let mut times = Vec::with_capacity(self.handlers.len());
+
+        'outer: loop {
             for handler in self.handlers.iter() {
                 match handler.0.try_wait() {
                     Ok(_) => break 'outer Some(handler.1.clone()),
@@ -101,9 +102,9 @@ impl Translator {
                 Some(sleep) => time::sleep(*sleep).await,
                 None => break None,
             }
-        };
 
-        handler
+            times.clear();
+        }
     }
 
     pub async fn translate(&self, content: &str) -> Result<Option<String>> {
