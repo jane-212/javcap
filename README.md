@@ -18,33 +18,11 @@
 </div>
 
 <h2>
-  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png" alt="Party Popper" width="25" height="25" />
-  怎么下载
-</h2>
-
-[点击下载](https://github.com/jane-212/javcap/releases)
-
-<h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" />
-  如何使用
+  WIKI
 </h2>
 
-在命令行运行或者双击运行。
-
-第一次运行会自动生成 `config.toml` 文件。
-
-[查看默认配置文件](https://github.com/jane-212/javcap/blob/main/crates/config/config.default.toml)
-
-```
-windows -> C:\Users\<user>\.config\javcap\config.toml
-macos -> /Users/<user>/.config/javcap/config.toml
-linux -> /home/<user>/.config/javcap/config.toml
-```
-
-编辑修改配置文件后再次运行,程序会自动搜索目录下所有视频并刮削数据。
-
-> [!NOTE]
-> 如果对 `toml` 文件有疑问可以[点击这里](https://toml.io/cn/)
+[点击前往](https://github.com/jane-212/javcap/wiki)
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Comet.png" alt="Comet" width="25" height="25" />
