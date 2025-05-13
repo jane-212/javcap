@@ -19,10 +19,10 @@
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" />
-  WIKI
+  下载及使用
 </h2>
 
-[点击前往](https://github.com/jane-212/javcap/wiki)
+详见[WIKI](https://github.com/jane-212/javcap/wiki)
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Comet.png" alt="Comet" width="25" height="25" />
