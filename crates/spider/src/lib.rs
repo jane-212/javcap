@@ -56,22 +56,22 @@ impl Spider {
                         .timeout(timeout)
                         .maybe_proxy(proxy.clone())
                         .build()
-                        .with_context(|| $m)?,
+                        .with_context(|| concat!("build ", $m))?,
                 )
             };
         }
 
         let mut finders: Vec<Arc<dyn Finder>> = vec![
-            spider!(Airav, url.airav.clone(), "build airav"),
-            spider!(Avsox, url.avsox.clone(), "build avsox"),
-            spider!(Cable, url.cable.clone(), "build cable"),
-            spider!(Fc2ppvDB, url.fc2ppv_db.clone(), "build fc2ppv db"),
-            spider!(Hbox, url.hbox.clone(), "build hbox"),
-            spider!(Jav321, url.jav321.clone(), "build jav321"),
-            spider!(Javdb, url.javdb.clone(), "build javdb"),
-            spider!(Missav, url.missav.clone(), "build missav"),
-            spider!(Porny, url.porny.clone(), "build 91 porny"),
-            spider!(SubtitleCat, url.subtitle_cat.clone(), "build subtitle cat"),
+            spider!(Airav, url.airav.clone(), "airav"),
+            spider!(Avsox, url.avsox.clone(), "avsox"),
+            spider!(Cable, url.cable.clone(), "cable"),
+            spider!(Fc2ppvDB, url.fc2ppv_db.clone(), "fc2ppv db"),
+            spider!(Hbox, url.hbox.clone(), "hbox"),
+            spider!(Jav321, url.jav321.clone(), "jav321"),
+            spider!(Javdb, url.javdb.clone(), "javdb"),
+            spider!(Missav, url.missav.clone(), "missav"),
+            spider!(Porny, url.porny.clone(), "91 porny"),
+            spider!(SubtitleCat, url.subtitle_cat.clone(), "subtitle cat"),
         ];
         if let Some(ref key) = config.the_porn_db.key {
             finders.push(Arc::new(
