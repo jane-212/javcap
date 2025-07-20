@@ -68,7 +68,10 @@ impl Finder for Cable {
             VideoType::Jav(_, _) => true,
             VideoType::Fc2(_) => true,
             VideoType::Other(_) => false,
-        }
+        };
+
+        // TODO: cable可用时启用
+        false
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
@@ -173,6 +176,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "cable暂时不可用"]
     fn test_support() -> Result<()> {
         let finder = finder()?;
         let videos = [
@@ -187,6 +191,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "cable暂时不可用"]
     async fn test_find() -> Result<()> {
         let finder = finder()?;
         let cases = [
