@@ -120,7 +120,7 @@ impl Porny {
             item.select(&self.selectors.title)
                 .next()
                 .map(|title| title.text().collect::<String>())
-                .map(|title| title.contains(&name))
+                .map(|title| title == name)
                 .unwrap_or(false)
         }) else {
             bail!("item not found");
