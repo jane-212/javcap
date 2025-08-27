@@ -290,7 +290,7 @@ mod tests {
                         .set_studio("IDEA POCKET".to_string())
                         .set_runtime(120)
                         .set_director("苺原".to_string())
-                        .set_rating(8.78)
+                        .set_rating(8.8)
                         .set_premiered("2020-02-13".to_string());
                 let actors = ["愛里るい", "藍井優太", "明里つむぎ"];
                 let genres = ["單體作品", "白天出軌", "中出", "紀錄片", "拘束"];
