@@ -22,7 +22,7 @@
   使用
 </h2>
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jane-212/javcap)
+[WIKI](https://github.com/jane-212/javcap/wiki)
 
 <h2>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Comet.png" alt="Comet" width="25" height="25" />
