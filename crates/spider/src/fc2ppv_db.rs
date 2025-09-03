@@ -69,7 +69,10 @@ impl Finder for Fc2ppvDB {
             VideoType::Jav(_, _) => false,
             VideoType::Fc2(_) => true,
             VideoType::Other(_) => false,
-        }
+        };
+
+        // TODO: fc2ppv db可用时启用
+        false
     }
 
     async fn find(&self, key: &VideoType) -> Result<Nfo> {
@@ -209,6 +212,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "fc2ppv db暂时不可用"]
     fn test_support() -> Result<()> {
         let finder = finder()?;
         let videos = [
@@ -226,6 +230,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "fc2ppv db暂时不可用"]
     async fn test_find() -> Result<()> {
         let finder = finder()?;
         let cases = [
