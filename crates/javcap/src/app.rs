@@ -117,6 +117,7 @@ impl App {
         nfo.auto_fix_by_key(video.ty());
         info!("{nfo:?}");
         nfo.validate().with_context(|| "validate nfo")?;
+        nfo.traditional_to_simplified();
 
         let title_task = tokio::spawn({
             let helper = helper.clone();

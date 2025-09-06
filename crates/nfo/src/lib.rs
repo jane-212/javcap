@@ -92,6 +92,27 @@ impl Nfo {
         }
     }
 
+    pub fn traditional_to_simplified(&mut self) {
+        let genres = self
+            .genres
+            .iter()
+            .map(|genre| fast2s::convert(genre))
+            .collect::<Vec<_>>();
+        self.genres.clear();
+        self.genres.extend(genres);
+
+        let actors = self
+            .actors
+            .iter()
+            .map(|actor| fast2s::convert(actor))
+            .collect::<Vec<_>>();
+        self.actors.clear();
+        self.actors.extend(actors);
+
+        fast2s::replace(&mut self.title);
+        fast2s::replace(&mut self.plot);
+    }
+
     pub fn auto_fix_by_key(&mut self, key: &VideoType) {
         if self.plot.is_empty() {
             self.plot = self.title.clone();

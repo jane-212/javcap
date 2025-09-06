@@ -12,3 +12,4 @@ validator.workspace = true
 bon.workspace = true
 educe.workspace = true
 quick-xml.workspace = true
+fast2s.workspace = true
