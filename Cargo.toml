@@ -21,7 +21,7 @@ chrono = "0.4.39"
 clap = { version = "4.5.31", features = ["derive"] }
 colored = "3.0.0"
 config = { path = "crates/config" }
-deeplx = { version = "2.2.2", default-features = false, features = ["mimalloc"] }
+deeplx = { version = "2.2.2", default-features = false }
 educe = "0.6.0"
 env_logger = "0.11.6"
 fast2s = "0.3.1"
