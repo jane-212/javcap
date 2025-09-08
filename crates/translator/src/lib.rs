@@ -1,3 +1,4 @@
+mod deepl;
 mod openai;
 mod youdao;
 
@@ -9,6 +10,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use config::Config;
 use config::Translator as CfgTranslator;
+use deepl::DeepL;
 use log::info;
 use openai::Openai;
 use ratelimit::Ratelimiter;
@@ -67,6 +69,18 @@ impl Translator {
                             .maybe_proxy(proxy.clone())
                             .build()
                             .with_context(|| "build openai client")?;
+                        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
+                            .initial_available(1)
+                            .build()
+                            .with_context(|| "build limiter")?;
+
+                        (limiter, Arc::new(handler) as Arc<dyn Handler>)
+                    }
+                    CfgTranslator::DeepL => {
+                        let handler = DeepL::builder()
+                            .maybe_proxy(proxy.clone())
+                            .build()
+                            .with_context(|| "build deepl client")?;
                         let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
                             .initial_available(1)
                             .build()

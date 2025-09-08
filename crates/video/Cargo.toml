@@ -5,10 +5,10 @@ edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
-nom.workspace = true
+bon.workspace = true
 getset.workspace = true
 log.workspace = true
-bon.workspace = true
+nom.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

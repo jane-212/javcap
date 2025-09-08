@@ -1,6 +1,5 @@
 # 是否检查更新
 check_for_update = false
-
 # 同时进行的任务数量
 task_limit = 3
 
@@ -25,6 +24,10 @@ task_limit = 3
 # base = "https://models.inference.ai.azure.com"
 # model = "gpt-4o"
 # key = ""
+#
+# deepl
+# [[translators]]
+# type = "deepl"
 
 [input]
 # 输入路径, 必须是绝对路径

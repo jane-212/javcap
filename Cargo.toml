@@ -1,80 +1,79 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/app",
-    "crates/config",
-    "crates/http-client",
-    "crates/javcap",
-    "crates/nfo",
-    "crates/spider",
-    "crates/translator",
-    "crates/video",
+  "crates/app",
+  "crates/config",
+  "crates/http-client",
+  "crates/javcap",
+  "crates/nfo",
+  "crates/spider",
+  "crates/translator",
+  "crates/video",
 ]
 
 [workspace.dependencies]
-config = { path = "crates/config" }
-app = { path = "crates/app" }
-video = { path = "crates/video" }
-nfo = { path = "crates/nfo" }
-spider = { path = "crates/spider" }
-translator = { path = "crates/translator" }
-http-client = { path = "crates/http-client" }
-
 anyhow = "1.0.95"
-tokio = { version = "1.43.0", features = [
-    "macros",
-    "rt-multi-thread",
-    "fs",
-    "io-util",
-    "sync",
-    "time",
-] }
-whoami = "1.5.2"
-toml = "0.8.19"
-serde = { version = "1.0.217", features = ["derive"] }
-validator = { version = "0.20.0", features = ["derive"] }
-nom = "8.0.0"
-indoc = "2.0.5"
-getset = "0.1.4"
-ratelimit = "0.10.0"
-async-trait = "0.1.86"
-reqwest = { version = "0.12.12", default-features = false, features = [
-    "charset",
-    "http2",
-    "macos-system-configuration",
-    "rustls-tls",
-    "json",
-    "brotli",
-    "gzip",
-    "deflate",
-] }
-uuid = { version = "1.13.1", features = ["v4"] }
-sha256 = "1.5.0"
-colored = "3.0.0"
-log = "0.4.25"
-env_logger = "0.11.6"
-self_update = { version = "0.39.0", default-features = false, features = [
-    "archive-tar",
-    "archive-zip",
-    "rustls",
-    "compression-flate2",
-] }
-bon = "3.3.2"
+app = { path = "crates/app" }
 async-openai = "0.27.2"
+async-trait = "0.1.86"
+bon = "3.3.2"
 chrono = "0.4.39"
-scraper = "0.22.0"
-educe = "0.6.0"
-quick-xml = "0.37.2"
 clap = { version = "4.5.31", features = ["derive"] }
-serde_json = "1.0.140"
-terminal_size = "0.4.1"
+colored = "3.0.0"
+config = { path = "crates/config" }
+deeplx = { version = "2.2.2", default-features = false, features = ["mimalloc"] }
+educe = "0.6.0"
+env_logger = "0.11.6"
 fast2s = "0.3.1"
-
+getset = "0.1.4"
+http-client = { path = "crates/http-client" }
+indoc = "2.0.5"
+log = "0.4.25"
+nfo = { path = "crates/nfo" }
+nom = "8.0.0"
 pretty_assertions = "1.4.1"
+quick-xml = "0.37.2"
+ratelimit = "0.10.0"
+reqwest = { version = "0.12.12", default-features = false, features = [
+  "brotli",
+  "charset",
+  "deflate",
+  "gzip",
+  "http2",
+  "json",
+  "macos-system-configuration",
+  "rustls-tls",
+] }
+scraper = "0.22.0"
+self_update = { version = "0.39.0", default-features = false, features = [
+  "archive-tar",
+  "archive-zip",
+  "compression-flate2",
+  "rustls",
+] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.140"
+sha256 = "1.5.0"
+spider = { path = "crates/spider" }
+terminal_size = "0.4.1"
 test-case = "3.3.1"
+tokio = { version = "1.43.0", features = [
+  "fs",
+  "io-util",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
+toml = "0.8.19"
+translator = { path = "crates/translator" }
+uuid = { version = "1.13.1", features = ["v4"] }
+validator = { version = "0.20.0", features = ["derive"] }
+video = { path = "crates/video" }
+whoami = "1.5.2"
 
 [profile.release]
-lto = true
-codegen-units = 1
-panic = "abort"
 strip = true
+lto = true
+panic = "abort"
+codegen-units = 1

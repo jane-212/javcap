@@ -4,17 +4,18 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-config.workspace = true
-
-async-trait.workspace = true
 anyhow.workspace = true
+async-openai.workspace = true
+async-trait.workspace = true
+bon.workspace = true
+config.workspace = true
+deeplx.workspace = true
+indoc.workspace = true
+log.workspace = true
 ratelimit.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+sha256.workspace = true
 tokio.workspace = true
 uuid.workspace = true
-serde.workspace = true
-reqwest.workspace = true
-sha256.workspace = true
-log.workspace = true
-bon.workspace = true
-async-openai.workspace = true
-indoc.workspace = true
+
