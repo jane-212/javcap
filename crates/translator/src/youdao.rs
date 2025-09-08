@@ -4,7 +4,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use bon::bon;
-use log::info;
 use reqwest::{Client, Proxy};
 use serde::Deserialize;
 use sha256::digest;
@@ -155,12 +154,10 @@ impl Handler for Youdao {
             .with_context(|| format!("decode to json from {url}"))?;
 
         if res.code != "0" {
-            info!("translate failed, code: {}", res.code);
             bail!("translate failed, code: {}", res.code);
         }
 
         let Some(translated) = res.translation.map(|trans| trans.join("\n")) else {
-            info!("translate failed, no response");
             bail!("translate failed, no response");
         };
 

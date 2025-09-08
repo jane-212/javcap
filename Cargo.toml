@@ -70,6 +70,7 @@ translator = { path = "crates/translator" }
 uuid = { version = "1.13.1", features = ["v4"] }
 validator = { version = "0.20.0", features = ["derive"] }
 video = { path = "crates/video" }
+whatlang = "0.16.4"
 whoami = "1.5.2"
 
 [profile.release]

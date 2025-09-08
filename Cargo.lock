@@ -3435,6 +3435,7 @@ dependencies = [
  "sha256",
  "tokio",
  "uuid",
+ "whatlang",
 ]
 
 [[package]]

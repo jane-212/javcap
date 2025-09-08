@@ -6,7 +6,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use config::Config;
 use config::Translator as CfgTranslator;
@@ -15,6 +15,7 @@ use log::info;
 use openai::Openai;
 use ratelimit::Ratelimiter;
 use tokio::time;
+use whatlang::Lang;
 use youdao::Youdao;
 
 pub struct Translator {
@@ -122,6 +123,14 @@ impl Translator {
     }
 
     pub async fn translate(&self, content: &str) -> Result<Option<String>> {
+        let Some(lang) = whatlang::detect_lang(content) else {
+            bail!("failed to detect language");
+        };
+        if lang == Lang::Cmn {
+            info!("Mandarin detected, skip: {content}");
+            return Ok(None);
+        }
+
         let Some(handler) = self.wait().await else {
             return Ok(None);
         };
