@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-video.workspace = true
-
-indoc.workspace = true
-getset.workspace = true
-validator.workspace = true
 bon.workspace = true
 educe.workspace = true
-quick-xml.workspace = true
 fast2s.workspace = true
+getset.workspace = true
+indoc.workspace = true
+quick-xml.workspace = true
+validator.workspace = true
+video.workspace = true
+

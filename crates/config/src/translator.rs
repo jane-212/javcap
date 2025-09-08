@@ -17,4 +17,6 @@ pub enum Translator {
         model: String,
         key: String,
     },
+    #[serde(rename = "deepl")]
+    DeepL,
 }

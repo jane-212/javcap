@@ -4,20 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-nfo.workspace = true
-video.workspace = true
-config.workspace = true
-http-client.workspace = true
-
 anyhow.workspace = true
 async-trait.workspace = true
-log.workspace = true
 bon.workspace = true
-serde.workspace = true
-tokio.workspace = true
-scraper.workspace = true
+config.workspace = true
+http-client.workspace = true
+log.workspace = true
+nfo.workspace = true
 reqwest.workspace = true
+scraper.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+tokio.workspace = true
+video.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

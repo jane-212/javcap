@@ -1,3 +1,4 @@
+mod deepl;
 mod openai;
 mod youdao;
 
@@ -5,14 +6,16 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use config::Config;
 use config::Translator as CfgTranslator;
+use deepl::DeepL;
 use log::info;
 use openai::Openai;
 use ratelimit::Ratelimiter;
 use tokio::time;
+use whatlang::Lang;
 use youdao::Youdao;
 
 pub struct Translator {
@@ -74,6 +77,18 @@ impl Translator {
 
                         (limiter, Arc::new(handler) as Arc<dyn Handler>)
                     }
+                    CfgTranslator::DeepL => {
+                        let handler = DeepL::builder()
+                            .maybe_proxy(proxy.clone())
+                            .build()
+                            .with_context(|| "build deepl client")?;
+                        let limiter = Ratelimiter::builder(1, Duration::from_secs(2))
+                            .initial_available(1)
+                            .build()
+                            .with_context(|| "build limiter")?;
+
+                        (limiter, Arc::new(handler) as Arc<dyn Handler>)
+                    }
                 };
                 handlers.push(handler);
             }
@@ -108,6 +123,14 @@ impl Translator {
     }
 
     pub async fn translate(&self, content: &str) -> Result<Option<String>> {
+        let Some(lang) = whatlang::detect_lang(content) else {
+            bail!("failed to detect language");
+        };
+        if lang == Lang::Cmn {
+            info!("Mandarin detected, skip: {content}");
+            return Ok(None);
+        }
+
         let Some(handler) = self.wait().await else {
             return Ok(None);
         };

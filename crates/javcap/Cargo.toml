@@ -4,22 +4,22 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-app.workspace = true
-config.workspace = true
-video.workspace = true
-nfo.workspace = true
-spider.workspace = true
-translator.workspace = true
-
-tokio.workspace = true
 anyhow.workspace = true
-validator.workspace = true
-getset.workspace = true
-colored.workspace = true
-log.workspace = true
-env_logger.workspace = true
-whoami.workspace = true
-self_update.workspace = true
+app.workspace = true
 bon.workspace = true
 chrono.workspace = true
 clap.workspace = true
+colored.workspace = true
+config.workspace = true
+env_logger.workspace = true
+getset.workspace = true
+log.workspace = true
+nfo.workspace = true
+self_update.workspace = true
+spider.workspace = true
+tokio.workspace = true
+translator.workspace = true
+validator.workspace = true
+video.workspace = true
+whoami.workspace = true
+
