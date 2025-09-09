@@ -1,7 +1,5 @@
 <div align="center">
-  <a href="https://github.com/jane-212/javcap">
-    <img src="images/logo.png" alt="Logo" width="240" height="240">
-  </a>
+  <img src="images/logo.png" alt="Logo" width="120" height="120">
 
   <h3 align="center">Javcap</h3>
 
