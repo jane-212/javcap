@@ -74,5 +74,6 @@ timeout = 10
 # the_porn_db_api = ""
 
 # 填写key来启用the porn db
+# 网址: https://theporndb.net
 [the_porn_db]
 # key = ""
