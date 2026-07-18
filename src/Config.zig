@@ -1,14 +1,18 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
+const builtin = @import("builtin");
+const options = @import("options");
 
 const Self = @This();
 
 pub fn init(
     alloc: Allocator,
     io: Io,
-    path: []const u8,
 ) !Parsed(Self) {
+    const path = try config_path(alloc);
+    defer alloc.free(path);
+
     const cwd = std.Io.Dir.cwd();
     const file = try cwd.openFile(io, path, .{});
     defer file.close(io);
@@ -42,4 +46,25 @@ pub fn Parsed(comptime T: type) type {
             std.zon.parse.free(self.alloc, self.value);
         }
     };
+}
+
+fn config_path(alloc: Allocator) ![]u8 {
+    const key = switch (builtin.os.tag) {
+        .windows => "USERNAME",
+        .macos => "USER",
+        .linux => "USER",
+        else => @compileError("current os not support"),
+    };
+    const user = try std.process.Environ.getAlloc(.empty, alloc, key);
+    defer alloc.free(user);
+    if (user.len == 0) return error.UserNotFound;
+
+    const root = switch (builtin.os.tag) {
+        .macos => "/Users",
+        .windows => "C:\\Users",
+        .linux => "/home",
+        else => @compileError("current os not support"),
+    };
+
+    return try std.fs.path.join(alloc, &.{ root, user, ".config", options.name, "config.zon" });
 }
