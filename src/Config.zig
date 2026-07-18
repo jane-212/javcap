@@ -6,15 +6,30 @@ const options = @import("options");
 
 const Self = @This();
 
+const Source = struct {
+    from: []const u8,
+    to: []const u8,
+};
+
+sources: []Source,
+
 pub fn init(
     alloc: Allocator,
     io: Io,
-) !Parsed(Self) {
-    const path = try config_path(alloc);
+    user: []const u8,
+) !?Parsed(Self) {
+    const path = try configPath(alloc, user);
     defer alloc.free(path);
 
-    const cwd = std.Io.Dir.cwd();
-    const file = try cwd.openFile(io, path, .{});
+    const cwd = Io.Dir.cwd();
+    const file = cwd.openFile(io, path, .{}) catch |err| switch (err) {
+        error.FileNotFound => {
+            try generateDefaultConfig(io, path);
+            std.debug.print("已自动生成默认配置文件 -> {s}\n", .{path});
+            return null;
+        },
+        else => return err,
+    };
     defer file.close(io);
 
     var buffer: [4 * 1024]u8 = undefined;
@@ -31,6 +46,8 @@ pub fn init(
     defer alloc.free(config_file_z);
 
     const config = try std.zon.parse.fromSliceAlloc(Self, alloc, config_file_z, null, .{});
+    errdefer std.zon.parse.free(alloc, config);
+
     return .{
         .alloc = alloc,
         .value = config,
@@ -48,17 +65,7 @@ pub fn Parsed(comptime T: type) type {
     };
 }
 
-fn config_path(alloc: Allocator) ![]u8 {
-    const key = switch (builtin.os.tag) {
-        .windows => "USERNAME",
-        .macos => "USER",
-        .linux => "USER",
-        else => @compileError("current os not support"),
-    };
-    const user = try std.process.Environ.getAlloc(.empty, alloc, key);
-    defer alloc.free(user);
-    if (user.len == 0) return error.UserNotFound;
-
+fn configPath(alloc: Allocator, user: []const u8) ![]u8 {
     const root = switch (builtin.os.tag) {
         .macos => "/Users",
         .windows => "C:\\Users",
@@ -67,4 +74,19 @@ fn config_path(alloc: Allocator) ![]u8 {
     };
 
     return try std.fs.path.join(alloc, &.{ root, user, ".config", options.name, "config.zon" });
+}
+
+fn generateDefaultConfig(io: Io, path: []const u8) !void {
+    const default_config = @embedFile("config.default.zon");
+
+    const cwd = Io.Dir.cwd();
+    const file = try cwd.createFile(io, path, .{});
+    defer file.close(io);
+
+    var buffer: [4 * 1024]u8 = undefined;
+    var file_writer = file.writer(io, &buffer);
+    const writer = &file_writer.interface;
+
+    try writer.writeAll(default_config);
+    try writer.flush();
 }
