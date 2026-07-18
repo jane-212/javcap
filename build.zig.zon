@@ -1,0 +1,12 @@
+.{
+    .name = .javcap,
+    .version = "0.0.0",
+    .fingerprint = 0x94d97281b09726b7,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
