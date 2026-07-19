@@ -77,6 +77,7 @@ fn generateDefaultConfig(io: Io, path: []const u8) !void {
     const default_config = @embedFile("config.default.zon");
 
     const cwd = Io.Dir.cwd();
+    if (std.fs.path.dirname(path)) |dir| try cwd.createDirPath(io, dir);
     const file = try cwd.createFile(io, path, .{});
     defer file.close(io);
 

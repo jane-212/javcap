@@ -2,6 +2,7 @@ const std = @import("std");
 const Io = std.Io;
 const builtin = @import("builtin");
 const Config = @import("Config.zig");
+const App = @import("App.zig");
 
 pub fn main(init: std.process.Init) !void {
     const alloc = init.gpa;
@@ -19,6 +20,13 @@ pub fn main(init: std.process.Init) !void {
     var rawConfig = try Config.init(alloc, io, user) orelse return;
     defer rawConfig.deinit();
     const config = rawConfig.value;
+
+    var app = try App.init(alloc, io);
+    defer app.deinit();
+
+    for (config.sources) |source| try app.addSource(source);
+
+    try app.start();
 
     if (config.pause_after_finish) try waitForEnter(io);
 }
