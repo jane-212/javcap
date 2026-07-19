@@ -1,4 +1,6 @@
 .{
+    // 程序是否在结束时暂停
+    .pause_after_finish = true,
     .sources = .{
         .{
             // 输入文件目录 使用绝对路径

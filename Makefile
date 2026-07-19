@@ -7,4 +7,4 @@ help:
 .PHONY: run r
 r: run
 run:
-	zig build run
+	@zig build run

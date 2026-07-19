@@ -6,11 +6,12 @@ const options = @import("options");
 
 const Self = @This();
 
-const Source = struct {
+pub const Source = struct {
     from: []const u8,
     to: []const u8,
 };
 
+pause_after_finish: bool,
 sources: []Source,
 
 pub fn init(
