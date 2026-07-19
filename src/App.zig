@@ -2,21 +2,27 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
 const domain = @import("domain");
+const spider = @import("spider");
 
 const Self = @This();
 
 io: Io,
 alloc: Allocator,
 entries: std.ArrayList(domain.Entry),
+engine: spider.Spider,
 
 pub fn init(alloc: Allocator, io: Io) !Self {
-    const entries = try std.ArrayList(domain.Entry).initCapacity(alloc, 8);
+    var entries = try std.ArrayList(domain.Entry).initCapacity(alloc, 8);
     errdefer entries.deinit(alloc);
+
+    var engine = try spider.Spider.init(alloc, io);
+    errdefer engine.deinit();
 
     return .{
         .io = io,
         .alloc = alloc,
         .entries = entries,
+        .engine = engine,
     };
 }
 
@@ -55,7 +61,11 @@ pub fn addSource(self: *Self, source: domain.Source) !void {
 
 pub fn start(self: *Self) !void {
     std.debug.print("*************************\n", .{});
-    for (self.entries.items) |entry| std.debug.print("key: {s}\ntype: {}\nfile: {s}\npath: {s}\ndest: {s}\n*************************\n", .{ entry.key, entry.type, entry.file, entry.path, entry.dest });
+    for (self.entries.items) |entry| {
+        std.debug.print("key: {s}\ntype: {}\nfile: {s}\npath: {s}\ndest: {s}\n*************************\n", .{ entry.key, entry.type, entry.file, entry.path, entry.dest });
+        const nfo = try self.engine.search(entry.key);
+        _ = nfo;
+    }
 }
 
 fn isVideo(alloc: Allocator, ext: []const u8, exts: [][]const u8) !bool {
@@ -70,5 +80,6 @@ fn isVideo(alloc: Allocator, ext: []const u8, exts: [][]const u8) !bool {
 pub fn deinit(self: *Self) void {
     for (self.entries.items) |*entry| entry.deinit();
     self.entries.deinit(self.alloc);
+    self.engine.deinit();
     self.* = undefined;
 }

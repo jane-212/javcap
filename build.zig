@@ -36,6 +36,15 @@ pub fn build(b: *std.Build) void {
     });
     exe.root_module.addImport("core", core);
 
+    const spider = b.createModule(.{
+        .root_source_file = b.path("src/spider/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    spider.addImport("core", core);
+    spider.addImport("domain", domain);
+    exe.root_module.addImport("spider", spider);
+
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
