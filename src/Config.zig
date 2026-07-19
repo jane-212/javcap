@@ -60,6 +60,7 @@ pub fn Parsed(comptime T: type) type {
 
         pub fn deinit(self: *@This()) void {
             std.zon.parse.free(self.alloc, self.value);
+            self.* = undefined;
         }
     };
 }

@@ -10,10 +10,13 @@ alloc: Allocator,
 entries: std.ArrayList(domain.Entry),
 
 pub fn init(alloc: Allocator, io: Io) !Self {
+    const entries = try std.ArrayList(domain.Entry).initCapacity(alloc, 8);
+    errdefer entries.deinit(alloc);
+
     return .{
         .io = io,
         .alloc = alloc,
-        .entries = try .initCapacity(alloc, 8),
+        .entries = entries,
     };
 }
 
@@ -43,7 +46,10 @@ pub fn addSource(self: *Self, source: domain.Source) !void {
         const full_path = try std.fs.path.join(alloc, &.{ source.from, entry.path });
         defer alloc.free(full_path);
 
-        try self.entries.append(self.alloc, try .init(self.alloc, source.type, name, file, source.to, full_path));
+        var e = try domain.Entry.init(self.alloc, source.type, name, file, source.to, full_path);
+        errdefer e.deinit();
+
+        try self.entries.append(self.alloc, e);
     }
 }
 
@@ -62,6 +68,7 @@ fn isVideo(alloc: Allocator, ext: []const u8, exts: [][]const u8) !bool {
 }
 
 pub fn deinit(self: *Self) void {
-    for (self.entries.items) |entry| entry.deinit();
+    for (self.entries.items) |*entry| entry.deinit();
     self.entries.deinit(self.alloc);
+    self.* = undefined;
 }

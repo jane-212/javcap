@@ -33,8 +33,9 @@ pub fn init(
     };
 }
 
-pub fn deinit(self: *const Self) void {
+pub fn deinit(self: *Self) void {
     self.alloc.free(self.key);
     self.alloc.free(self.file);
     self.alloc.free(self.path);
+    self.* = undefined;
 }
