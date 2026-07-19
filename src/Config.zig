@@ -14,7 +14,7 @@ pub fn init(
     alloc: Allocator,
     io: Io,
     user: []const u8,
-) !?Parsed(Self) {
+) !Parsed(Self) {
     const path = try configPath(alloc, user);
     defer alloc.free(path);
 
@@ -23,7 +23,7 @@ pub fn init(
         error.FileNotFound => {
             try generateDefaultConfig(io, path);
             std.debug.print("已自动生成默认配置文件 -> {s}\n", .{path});
-            return null;
+            return error.GenerateDefaultConfig;
         },
         else => return err,
     };
@@ -44,6 +44,8 @@ pub fn init(
 
     const config = try std.zon.parse.fromSliceAlloc(Self, alloc, config_file_z, null, .{});
     errdefer std.zon.parse.free(alloc, config);
+
+    try config.ensureValidate();
 
     return .{
         .alloc = alloc,
@@ -87,4 +89,15 @@ fn generateDefaultConfig(io: Io, path: []const u8) !void {
 
     try writer.writeAll(default_config);
     try writer.flush();
+}
+
+fn ensureValidate(self: *const Self) !void {
+    for (self.sources) |s| {
+        try ensureAbsolutePath(s.from);
+        try ensureAbsolutePath(s.to);
+    }
+}
+
+fn ensureAbsolutePath(path: []const u8) !void {
+    if (!std.fs.path.isAbsolute(path)) return error.NotAbsolutePath;
 }

@@ -17,14 +17,24 @@ pub fn main(init: std.process.Init) !void {
     };
     const user = env.get(key) orelse return error.UserNotFound;
 
-    var rawConfig = try Config.init(alloc, io, user) orelse return;
+    var rawConfig = Config.init(alloc, io, user) catch |err| switch (err) {
+        error.GenerateDefaultConfig => return,
+        error.NotAbsolutePath => {
+            std.debug.print("配置文件中的路径必须是绝对路径\n", .{});
+            return;
+        },
+        else => {
+            std.debug.print("加载配置文件失败, 请检查文件格式\n", .{});
+            return;
+        },
+    };
     defer rawConfig.deinit();
     const config = rawConfig.value;
 
     var app = try App.init(alloc, io);
     defer app.deinit();
 
-    for (config.sources) |source| try app.addSource(source);
+    for (config.sources) |s| try app.addSource(s);
 
     try app.start();
 

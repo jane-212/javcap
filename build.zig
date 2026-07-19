@@ -1,5 +1,6 @@
 const std = @import("std");
 const zon = @import("build.zig.zon");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -11,6 +12,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .strip = if (builtin.mode == .Debug) false else true,
         }),
     });
     b.installArtifact(exe);
