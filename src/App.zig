@@ -40,13 +40,16 @@ pub fn addSource(self: *Self, source: domain.Source) !void {
         defer alloc.free(upper);
         if (!try isVideo(alloc, upper, source.exts)) continue;
         const name = std.fs.path.stem(file);
+        const full_path = try std.fs.path.join(alloc, &.{ source.from, entry.path });
+        defer alloc.free(full_path);
 
-        try self.entries.append(self.alloc, try .init(self.alloc, source.type, name, file, source.to, entry.path));
+        try self.entries.append(self.alloc, try .init(self.alloc, source.type, name, file, source.to, full_path));
     }
 }
 
 pub fn start(self: *Self) !void {
-    for (self.entries.items) |entry| std.debug.print("entry: {}\n", .{entry});
+    std.debug.print("*************************\n", .{});
+    for (self.entries.items) |entry| std.debug.print("key: {s}\ntype: {}\nfile: {s}\npath: {s}\ndest: {s}\n*************************\n", .{ entry.key, entry.type, entry.file, entry.path, entry.dest });
 }
 
 fn isVideo(alloc: Allocator, ext: []const u8, exts: [][]const u8) !bool {
