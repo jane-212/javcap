@@ -20,10 +20,6 @@ pub fn main(init: std.process.Init) !void {
     defer rawConfig.deinit();
     const config = rawConfig.value;
 
-    for (config.sources) |source| {
-        std.debug.print("from: {s}\nto: {s}\n", .{ source.from, source.to });
-    }
-
     if (config.pause_after_finish) try waitForEnter(io);
 }
 

@@ -6,7 +6,10 @@ const options = @import("options");
 
 const Self = @This();
 
+pub const SourceType = enum { local };
+
 pub const Source = struct {
+    type: SourceType,
     from: []const u8,
     to: []const u8,
 };
