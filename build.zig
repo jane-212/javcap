@@ -20,6 +20,13 @@ pub fn build(b: *std.Build) void {
     options.addOption([]const u8, "version", zon.version);
     exe.root_module.addOptions("options", options);
 
+    const domain = b.createModule(.{
+        .root_source_file = b.path("src/domain/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.addImport("domain", domain);
+
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);

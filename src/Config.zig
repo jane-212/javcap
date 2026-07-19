@@ -3,19 +3,12 @@ const Allocator = std.mem.Allocator;
 const Io = std.Io;
 const builtin = @import("builtin");
 const options = @import("options");
+const domain = @import("domain");
 
 const Self = @This();
 
-pub const SourceType = enum { local };
-
-pub const Source = struct {
-    type: SourceType,
-    from: []const u8,
-    to: []const u8,
-};
-
 pause_after_finish: bool,
-sources: []Source,
+sources: []domain.Source,
 
 pub fn init(
     alloc: Allocator,
