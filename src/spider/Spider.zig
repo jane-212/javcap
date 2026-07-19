@@ -27,10 +27,10 @@ pub fn init(alloc: Allocator, io: Io) !Self {
     };
 }
 
-pub fn search(self: *Self, key: []const u8) !domain.Nfo {
+pub fn search(self: *Self, alloc: Allocator, key: []const u8) !domain.Nfo {
     _ = self;
     std.debug.print("search: {s}\n", .{key});
-    return .{};
+    return domain.Nfo.init(alloc);
 }
 
 pub fn deinit(self: *Self) void {

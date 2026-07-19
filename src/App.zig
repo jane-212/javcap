@@ -63,8 +63,8 @@ pub fn start(self: *Self) !void {
     std.debug.print("*************************\n", .{});
     for (self.entries.items) |entry| {
         std.debug.print("key: {s}\ntype: {}\nfile: {s}\npath: {s}\ndest: {s}\n*************************\n", .{ entry.key, entry.type, entry.file, entry.path, entry.dest });
-        const nfo = try self.engine.search(entry.key);
-        _ = nfo;
+        var nfo = try self.engine.search(self.alloc, entry.key);
+        defer nfo.deinit();
     }
 }
 
