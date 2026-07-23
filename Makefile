@@ -3,8 +3,8 @@ all: help
 .PHONY: help
 help:
 	@echo "run(r) - Run the app"
-	@echo "clean - Run the app"
-	@echo "reset - Run the app"
+	@echo "clean - Clean cache"
+	@echo "reset - Reset test directory"
 
 .PHONY: run r
 r: run
