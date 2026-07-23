@@ -17,10 +17,18 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
+    const mod = b.addModule("javcap", .{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = if (builtin.mode == .Debug) false else true,
+    });
+    exe.root_module.addImport("javcap", mod);
+
     const options = b.addOptions();
     options.addOption([]const u8, "name", "javcap");
     options.addOption([]const u8, "version", zon.version);
-    exe.root_module.addOptions("options", options);
+    mod.addOptions("options", options);
 
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
@@ -31,10 +39,19 @@ pub fn build(b: *std.Build) void {
     }
 
     const test_step = b.step("test", "Run tests");
+
+    const mod_tests = b.addTest(.{
+        .root_module = mod,
+    });
+
+    const run_mod_tests = b.addRunArtifact(mod_tests);
+
     const exe_tests = b.addTest(.{
         .root_module = exe.root_module,
     });
     const run_exe_tests = b.addRunArtifact(exe_tests);
+
+    test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
 
     const check_step = b.step("check", "Check compile");
