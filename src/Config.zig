@@ -18,7 +18,7 @@ fn configPath(alloc: Allocator, user: []const u8) ![]const u8 {
         else => @compileError("Unsupported OS"),
     };
 
-    return try std.fs.path.join(alloc, .{ root, user, ".config", options.name, "config.zon" });
+    return try std.fs.path.join(alloc, &.{ root, user, ".config", options.name, "config.zon" });
 }
 
 test "Test the config path is right" {
@@ -29,7 +29,7 @@ test "Test the config path is right" {
         .windows => "C:\\Users\\cat\\.config\\javcap\\config.zon",
         else => @compileError("Unsupported OS"),
     };
-    const actual = try configPath(alloc, "javcap");
+    const actual = try configPath(alloc, "cat");
     defer alloc.free(actual);
 
     try std.testing.expectEqualStrings(expected, actual);
