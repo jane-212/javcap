@@ -3,8 +3,9 @@ all: help
 .PHONY: help
 help:
 	@echo "run(r) - Run the app"
-	@echo "clean - Clean cache"
-	@echo "reset - Reset test directory"
+	@echo "clean - Clean caches"
+	@echo "reset - Reset dev directory"
+	@echo "test(t) - Run the tests"
 
 .PHONY: run r
 r: run
@@ -27,3 +28,8 @@ reset:
 	@touch input/stars-804.mp4
 	@mkdir input/ok
 	@touch input/ok/ipx-144.mkv
+
+.PHONY: test t
+t: test
+test:
+	@zig build test
