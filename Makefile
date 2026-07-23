@@ -3,8 +3,27 @@ all: help
 .PHONY: help
 help:
 	@echo "run(r) - Run the app"
+	@echo "clean - Run the app"
+	@echo "reset - Run the app"
 
 .PHONY: run r
 r: run
-run:
+run: reset
 	@zig build run
+
+.PHONY: clean
+clean:
+	@rm -rf input
+	@rm -rf output
+	@rm -rf zig-pkg
+	@rm -rf zig-out
+	@rm -rf .zig-cache
+
+.PHONY: reset
+reset:
+	@rm -rf input
+	@rm -rf output
+	@mkdir input
+	@touch input/stars-804.mp4
+	@mkdir input/ok
+	@touch input/ok/ipx-144.mkv
