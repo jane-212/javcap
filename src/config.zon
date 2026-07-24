@@ -1,10 +1,17 @@
 .{
+    // 是否在程序结束时暂停
     .pause_after_finish = true,
+    // 搜索源
     .sources = .{
         .{
+            // 源类别
+            // .local - 本地
             .type = .local,
+            // 输入目录 - 必须是绝对路径
             .from = "",
+            // 输出目录 - 必须是绝对路径
             .to = "",
+            // 哪些后缀应该被当作视频
             .exts = .{ "mp4", "avi", "mov", "m4v", "mkv", "flv", "rmvb", "wmv" },
         },
     },

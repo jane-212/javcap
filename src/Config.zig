@@ -3,6 +3,18 @@ const Allocator = std.mem.Allocator;
 const builtin = @import("builtin");
 const options = @import("options");
 const Io = std.Io;
+const domain = @import("domain");
+const storage = domain.storage;
+
+pause_after_finish: bool,
+sources: []Source,
+
+pub const Source = struct {
+    type: storage.Type,
+    from: []const u8,
+    to: []const u8,
+    exts: []const []const u8,
+};
 
 const Self = @This();
 
