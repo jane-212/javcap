@@ -1,0 +1,11 @@
+.{
+    .pause_after_finish = true,
+    .sources = .{
+        .{
+            .type = .local,
+            .from = "",
+            .to = "",
+            .exts = .{ "mp4", "avi", "mov", "m4v", "mkv", "flv", "rmvb", "wmv" },
+        },
+    },
+}
