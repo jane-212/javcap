@@ -73,9 +73,11 @@ pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const
         const ext = if (extWithDot.len == 0) extWithDot else extWithDot[1..];
         if (!scanner.matchExts(ext, exts)) continue;
 
+        const absolutePath = try std.fs.path.join(alloc, &.{ path, p });
+
         try entries.append(self.alloc, .{
             .type = .local,
-            .path = try alloc.dupe(u8, p),
+            .path = absolutePath,
         });
     }
 
