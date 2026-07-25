@@ -96,12 +96,27 @@ pub const Context = struct {
     }
 
     pub fn formatValidate(self: *Context, writer: *Io.Writer) !void {
-        try writer.print("{s} => {s}: {s}\n", .{ self.validate.message.?, self.validate.field.?, self.validate.value.? });
+        try writer.print("{s}\n", .{self.validate.message.?});
+        try writer.print("error: {s}: {s}\n", .{ self.validate.field.?, self.validate.value.? });
         try writer.flush();
     }
 
     pub fn formatDiagnostics(self: *Context, writer: *Io.Writer) !void {
-        try self.diagnostics.format(writer);
+        try writer.print("配置文件解析失败\n", .{});
+        const diagnostics = &self.diagnostics;
+        var errors = diagnostics.iterateErrors();
+        while (errors.next()) |err| {
+            const msg = err.fmtMessage(diagnostics);
+            try writer.print("error: {f}\n", .{msg});
+
+            var notes = err.iterateNotes(diagnostics);
+            while (notes.next()) |note| {
+                const note_msg = note.fmtMessage(diagnostics);
+                try writer.print("note: {f}\n", .{
+                    note_msg,
+                });
+            }
+        }
         try writer.flush();
     }
 };
