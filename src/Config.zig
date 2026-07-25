@@ -6,6 +6,10 @@ const domain = @import("domain");
 const storage = domain.storage;
 const known_folders = @import("known-folders");
 
+pub const known_folders_config = known_folders.KnownFolderConfig{
+    .xdg_on_mac = true,
+};
+
 pause_after_finish: bool,
 sources: []Source,
 

@@ -2,6 +2,8 @@ const std = @import("std");
 const javcap = @import("javcap");
 const Config = javcap.Config;
 
+pub const known_folders_config = Config.known_folders_config;
+
 pub fn main(init: std.process.Init) !void {
     const alloc = init.gpa;
     const io = init.io;
