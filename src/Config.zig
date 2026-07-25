@@ -178,3 +178,195 @@ fn configDir(alloc: Allocator, io: Io, env: *const std.process.Environ.Map) ![]c
 
     return dir;
 }
+
+test "Source.validate — accepts absolute paths" {
+    const alloc = std.testing.allocator;
+    const source = Source{
+        .type = .local,
+        .from = "/absolute/path/from",
+        .to = "/absolute/path/to",
+        .exts = &.{"mp4"},
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try source.validate(alloc, &context);
+}
+
+test "Source.validate — rejects relative from path" {
+    const alloc = std.testing.allocator;
+    const source = Source{
+        .type = .local,
+        .from = "relative/path",
+        .to = "/absolute/path/to",
+        .exts = &.{"mp4"},
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, source.validate(alloc, &context));
+    try std.testing.expectEqualStrings("from", context.validate.field.?);
+    try std.testing.expectEqualStrings("relative/path", context.validate.value.?);
+    try std.testing.expectEqualStrings("路径必须是绝对路径", context.validate.message.?);
+}
+
+test "Source.validate — rejects relative to path" {
+    const alloc = std.testing.allocator;
+    const source = Source{
+        .type = .local,
+        .from = "/absolute/path/from",
+        .to = "relative/path",
+        .exts = &.{"mp4"},
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, source.validate(alloc, &context));
+    try std.testing.expectEqualStrings("to", context.validate.field.?);
+    try std.testing.expectEqualStrings("relative/path", context.validate.value.?);
+    try std.testing.expectEqualStrings("路径必须是绝对路径", context.validate.message.?);
+}
+
+test "Source.validate — reports from before to when both are relative" {
+    const alloc = std.testing.allocator;
+    const source = Source{
+        .type = .local,
+        .from = "relative/from",
+        .to = "relative/to",
+        .exts = &.{"mp4"},
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, source.validate(alloc, &context));
+    try std.testing.expectEqualStrings("from", context.validate.field.?);
+}
+
+test "Source.validate — does not allocate when paths are valid" {
+    const alloc = std.testing.allocator;
+    const source = Source{
+        .type = .local,
+        .from = "/a",
+        .to = "/b",
+        .exts = &.{"mp4"},
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try source.validate(alloc, &context);
+    try std.testing.expect(context.validate.field == null);
+    try std.testing.expect(context.validate.value == null);
+    try std.testing.expect(context.validate.message == null);
+}
+
+test "Config.validate — accepts empty sources list" {
+    const alloc = std.testing.allocator;
+    const config = Self{
+        .pause_after_finish = false,
+        .sources = @as([]Source, &.{}),
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try config.validate(alloc, &context);
+}
+
+test "Config.validate — accepts valid config with multiple sources" {
+    const alloc = std.testing.allocator;
+    var sources = [_]Source{
+        Source{ .type = .local, .from = "/a", .to = "/b", .exts = &.{"mp4"} },
+        Source{ .type = .local, .from = "/c", .to = "/d", .exts = &.{"mp4", "avi"} },
+    };
+    const config = Self{
+        .pause_after_finish = false,
+        .sources = &sources,
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try config.validate(alloc, &context);
+}
+
+test "Config.validate — rejects config with invalid first source" {
+    const alloc = std.testing.allocator;
+    var sources = [_]Source{
+        Source{ .type = .local, .from = "relative", .to = "/b", .exts = &.{"mp4"} },
+    };
+    const config = Self{
+        .pause_after_finish = false,
+        .sources = &sources,
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+    try std.testing.expectEqualStrings("from", context.validate.field.?);
+}
+
+test "Config.validate — validates all sources, stops at first error" {
+    const alloc = std.testing.allocator;
+    var sources = [_]Source{
+        Source{ .type = .local, .from = "/a", .to = "/b", .exts = &.{"mp4"} },
+        Source{ .type = .local, .from = "/c", .to = "invalid", .exts = &.{"mp4"} },
+        Source{ .type = .local, .from = "also/bad", .to = "/d", .exts = &.{"mp4"} },
+    };
+    const config = Self{
+        .pause_after_finish = false,
+        .sources = &sources,
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+    try std.testing.expectEqualStrings("to", context.validate.field.?);
+    try std.testing.expectEqualStrings("invalid", context.validate.value.?);
+}
+
+test "Context.deinit — frees allocated fields" {
+    const alloc = std.testing.allocator;
+    var context: Context = .{};
+    context.validate.field = try alloc.dupe(u8, "from");
+    context.validate.value = try alloc.dupe(u8, "some/value");
+    context.validate.message = try alloc.dupe(u8, "an error");
+
+    context.deinit(alloc);
+}
+
+test "Context.deinit — handles null fields gracefully" {
+    const alloc = std.testing.allocator;
+    var context: Context = .{};
+
+    context.deinit(alloc);
+}
+
+test "Context.deinit — partial cleanup (some fields set, some null)" {
+    const alloc = std.testing.allocator;
+    var context: Context = .{};
+    context.validate.field = try alloc.dupe(u8, "field");
+
+    context.deinit(alloc);
+}
+
+test "Source — empty exts slice is valid" {
+    const alloc = std.testing.allocator;
+    const source = Source{
+        .type = .local,
+        .from = "/a",
+        .to = "/b",
+        .exts = &.{},
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try source.validate(alloc, &context);
+}
