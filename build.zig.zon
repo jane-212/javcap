@@ -8,6 +8,10 @@
             .url = "git+https://github.com/ziglibs/known-folders.git#6da0d0c41b78b9ed2d34fa364fcb81b5ebece6c4",
             .hash = "known_folders-0.0.0-Fy-PJiDLAAB98m3uYUzatrTb2mO2fpvwx2zpSroEtfbO",
         },
+        .mecha = .{
+            .url = "git+https://github.com/Hejsil/mecha#2e349ad906cf3995e0791a63aa4cd23a0b68eaa4",
+            .hash = "mecha-0.12.0-dVGaSNuLAQCE77UZV3DvpLe4MpHzgqgDBoMIqayuhNAV",
+        },
     },
     .paths = .{
         "build.zig",

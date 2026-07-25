@@ -54,6 +54,12 @@ pub fn build(b: *std.Build) void {
     });
     mod.addImport("known-folders", known_folders.module("known-folders"));
 
+    const mecha = b.dependency("mecha", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    media.addImport("mecha", mecha.module("mecha"));
+
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
