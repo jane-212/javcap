@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const strip = if (builtin.mode == .Debug) false else true;
 
     const exe = b.addExecutable(.{
         .name = "javcap",
@@ -12,7 +13,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
-            .strip = if (builtin.mode == .Debug) false else true,
+            .strip = strip,
         }),
     });
     b.installArtifact(exe);
@@ -21,7 +22,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
-        .strip = if (builtin.mode == .Debug) false else true,
+        .strip = strip,
     });
     exe.root_module.addImport("javcap", mod);
 
@@ -34,9 +35,15 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/domain/root.zig"),
         .target = target,
         .optimize = optimize,
-        .strip = if (builtin.mode == .Debug) false else true,
+        .strip = strip,
     });
     mod.addImport("domain", domain);
+
+    const known_folders = b.dependency("known_folders", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    mod.addImport("known-folders", known_folders.module("known-folders"));
 
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);

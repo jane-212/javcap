@@ -1,10 +1,10 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const builtin = @import("builtin");
 const options = @import("options");
 const Io = std.Io;
 const domain = @import("domain");
 const storage = domain.storage;
+const known_folders = @import("known-folders");
 
 pause_after_finish: bool,
 sources: []Source,
@@ -33,13 +33,13 @@ pub const Source = struct {
 
 const Self = @This();
 
-pub fn init(alloc: Allocator, io: Io, user: []const u8, context: *Context) !Parsed(Self) {
-    const path = try configPath(alloc, user);
+pub fn init(alloc: Allocator, io: Io, context: *Context, env: *const std.process.Environ.Map) !Parsed(Self) {
+    const path = try configPath(alloc, io, env);
     defer alloc.free(path);
 
     const file = Io.Dir.openFileAbsolute(io, path, .{}) catch |err| switch (err) {
         error.FileNotFound => {
-            try generateDefaultConfig(alloc, io, user);
+            try generateDefaultConfig(alloc, io, env);
             return error.ConfigNotFound;
         },
         else => return err,
@@ -112,15 +112,15 @@ fn validate(self: *const Self, context: *Context) !void {
     for (self.sources) |source| try source.validate(context);
 }
 
-fn generateDefaultConfig(alloc: Allocator, io: Io, user: []const u8) !void {
+fn generateDefaultConfig(alloc: Allocator, io: Io, env: *const std.process.Environ.Map) !void {
     const defaultConfig = @embedFile("config.zon");
-    const dir = try configDir(alloc, user);
+    const dir = try configDir(alloc, io, env);
     defer alloc.free(dir);
 
     const cwd = Io.Dir.cwd();
     try cwd.createDirPath(io, dir);
 
-    const path = try configPath(alloc, user);
+    const path = try configPath(alloc, io, env);
     defer alloc.free(path);
 
     const file = try Io.Dir.createFileAbsolute(io, path, .{});
@@ -134,8 +134,8 @@ fn generateDefaultConfig(alloc: Allocator, io: Io, user: []const u8) !void {
     try writer.flush();
 }
 
-fn configPath(alloc: Allocator, user: []const u8) ![]const u8 {
-    const dir = try configDir(alloc, user);
+fn configPath(alloc: Allocator, io: Io, env: *const std.process.Environ.Map) ![]const u8 {
+    const dir = try configDir(alloc, io, env);
     defer alloc.free(dir);
 
     const path = try std.fs.path.join(alloc, &.{
@@ -147,65 +147,15 @@ fn configPath(alloc: Allocator, user: []const u8) ![]const u8 {
     return path;
 }
 
-fn configDir(alloc: Allocator, user: []const u8) ![]const u8 {
-    const root = switch (builtin.os.tag) {
-        .macos => "/Users",
-        .linux => "/home",
-        .windows => "C:\\Users",
-        else => @compileError("Unsupported OS"),
-    };
+fn configDir(alloc: Allocator, io: Io, env: *const std.process.Environ.Map) ![]const u8 {
+    const root = try known_folders.getPath(io, alloc, env, .local_configuration) orelse return error.ConfigHomeNotFound;
+    defer alloc.free(root);
 
     const dir = try std.fs.path.join(alloc, &.{
         root,
-        user,
-        ".config",
         options.name,
     });
     errdefer alloc.free(dir);
 
     return dir;
-}
-
-test "Test the config path is right" {
-    const alloc = std.testing.allocator;
-    const expected = switch (builtin.os.tag) {
-        .macos => "/Users/cat/.config/javcap/config.zon",
-        .linux => "/home/cat/.config/javcap/config.zon",
-        .windows => "C:\\Users\\cat\\.config\\javcap\\config.zon",
-        else => @compileError("Unsupported OS"),
-    };
-    const actual = try configPath(alloc, "cat");
-    defer alloc.free(actual);
-
-    try std.testing.expectEqualStrings(expected, actual);
-}
-
-test "Test the config path is absolute" {
-    const alloc = std.testing.allocator;
-    const path = try configPath(alloc, "cat");
-    defer alloc.free(path);
-
-    try std.testing.expect(std.fs.path.isAbsolute(path));
-}
-
-test "Test the config directory is right" {
-    const alloc = std.testing.allocator;
-    const expected = switch (builtin.os.tag) {
-        .macos => "/Users/cat/.config/javcap",
-        .linux => "/home/cat/.config/javcap",
-        .windows => "C:\\Users\\cat\\.config\\javcap",
-        else => @compileError("Unsupported OS"),
-    };
-    const actual = try configDir(alloc, "cat");
-    defer alloc.free(actual);
-
-    try std.testing.expectEqualStrings(expected, actual);
-}
-
-test "Test the config directory is absolute" {
-    const alloc = std.testing.allocator;
-    const dir = try configDir(alloc, "cat");
-    defer alloc.free(dir);
-
-    try std.testing.expect(std.fs.path.isAbsolute(dir));
 }

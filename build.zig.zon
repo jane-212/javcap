@@ -3,7 +3,12 @@
     .version = "0.0.0",
     .fingerprint = 0x94d97281b09726b7,
     .minimum_zig_version = "0.16.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .known_folders = .{
+            .url = "git+https://github.com/ziglibs/known-folders.git#6da0d0c41b78b9ed2d34fa364fcb81b5ebece6c4",
+            .hash = "known_folders-0.0.0-Fy-PJiDLAAB98m3uYUzatrTb2mO2fpvwx2zpSroEtfbO",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",
