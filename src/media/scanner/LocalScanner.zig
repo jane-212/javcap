@@ -55,8 +55,6 @@ pub fn asScanner(self: *Self) scanner.Scanner {
 }
 
 pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const []const u8) ![]scanner.Entry {
-    _ = exts;
-
     const cwd = try Io.Dir.openDirAbsolute(self.io, path, .{});
     defer cwd.close(self.io);
 
@@ -67,9 +65,17 @@ pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const
     defer entries.deinit(self.alloc);
 
     while (try walker.next(self.io)) |entry| {
+        if (entry.kind != .file) continue;
+
+        const p = entry.path;
+
+        const extWithDot = std.fs.path.extension(p);
+        const ext = if (extWithDot.len == 0) extWithDot else extWithDot[1..];
+        if (!scanner.matchExts(ext, exts)) continue;
+
         try entries.append(self.alloc, .{
             .type = .local,
-            .path = try alloc.dupe(u8, entry.path),
+            .path = try alloc.dupe(u8, p),
         });
     }
 

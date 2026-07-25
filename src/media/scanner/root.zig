@@ -52,6 +52,13 @@ pub const Entry = struct {
     }
 };
 
+pub fn matchExts(ext: []const u8, exts: []const []const u8) bool {
+    for (exts) |e| {
+        if (std.ascii.eqlIgnoreCase(ext, e)) return true;
+    }
+    return false;
+}
+
 test {
     _ = @import("LocalScanner.zig");
 }
