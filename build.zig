@@ -39,6 +39,15 @@ pub fn build(b: *std.Build) void {
     });
     mod.addImport("domain", domain);
 
+    const media = b.createModule(.{
+        .root_source_file = b.path("src/media/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+    });
+    media.addImport("domain", domain);
+    mod.addImport("media", media);
+
     const known_folders = b.dependency("known_folders", .{
         .target = target,
         .optimize = optimize,
