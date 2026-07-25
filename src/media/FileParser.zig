@@ -100,7 +100,6 @@ const key = mecha.oneOf(.{
     normal,
 });
 
-
 test "Parse jav with dash separator" {
     const alloc = std.testing.allocator;
 
@@ -297,7 +296,6 @@ test "Parse fc2 with trailing chars" {
     try std.testing.expect(actual == .fc2);
     try std.testing.expectEqualStrings("123", actual.fc2);
 }
-
 
 test "parse with jav file path" {
     const alloc = std.testing.allocator;

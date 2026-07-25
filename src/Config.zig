@@ -281,7 +281,7 @@ test "Config.validate — accepts valid config with multiple sources" {
     const alloc = std.testing.allocator;
     var sources = [_]Source{
         Source{ .type = .local, .from = "/a", .to = "/b", .exts = &.{"mp4"} },
-        Source{ .type = .local, .from = "/c", .to = "/d", .exts = &.{"mp4", "avi"} },
+        Source{ .type = .local, .from = "/c", .to = "/d", .exts = &.{ "mp4", "avi" } },
     };
     const config = Self{
         .pause_after_finish = false,
