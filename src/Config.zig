@@ -14,11 +14,26 @@ pub const Source = struct {
     from: []const u8,
     to: []const u8,
     exts: []const []const u8,
+
+    fn validate(self: *const Source, context: *ValidateContext) !void {
+        if (!std.fs.path.isAbsolute(self.from)) {
+            context.field = try context.alloc.dupe(u8, "from");
+            context.value = try context.alloc.dupe(u8, self.from);
+            context.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
+            return error.FromPathShouldBeAbsolute;
+        }
+        if (!std.fs.path.isAbsolute(self.to)) {
+            context.field = try context.alloc.dupe(u8, "to");
+            context.value = try context.alloc.dupe(u8, self.to);
+            context.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
+            return error.ToPathShouldBeAbsolute;
+        }
+    }
 };
 
 const Self = @This();
 
-pub fn init(alloc: Allocator, io: Io, user: []const u8) !Parsed(Self) {
+pub fn init(alloc: Allocator, io: Io, user: []const u8, context: *ValidateContext) !Parsed(Self) {
     const path = try configPath(alloc, user);
     defer alloc.free(path);
 
@@ -41,7 +56,11 @@ pub fn init(alloc: Allocator, io: Io, user: []const u8) !Parsed(Self) {
     const configContentZ = try alloc.dupeSentinel(u8, configContent, 0);
     defer alloc.free(configContentZ);
 
-    const config = try std.zon.parse.fromSlice(Self, alloc, configContentZ, null, .{});
+    const config = try std.zon.parse.fromSliceAlloc(Self, alloc, configContentZ, null, .{});
+    errdefer std.zon.parse.free(alloc, config);
+
+    try config.validate(context);
+
     return .{
         .alloc = alloc,
         .value = config,
@@ -54,10 +73,28 @@ pub fn Parsed(comptime T: type) type {
         value: T,
 
         pub fn deinit(self: *@This()) void {
-            self.alloc.free(self.value);
+            std.zon.parse.free(self.alloc, self.value);
             self.* = undefined;
         }
     };
+}
+
+pub const ValidateContext = struct {
+    alloc: Allocator,
+    field: ?[]const u8 = null,
+    value: ?[]const u8 = null,
+    message: ?[]const u8 = null,
+
+    pub fn deinit(self: *ValidateContext) void {
+        if (self.field) |field| self.alloc.free(field);
+        if (self.value) |value| self.alloc.free(value);
+        if (self.message) |message| self.alloc.free(message);
+        self.* = undefined;
+    }
+};
+
+fn validate(self: *const Self, context: *ValidateContext) !void {
+    for (self.sources) |source| try source.validate(context);
 }
 
 fn generateDefaultConfig(alloc: Allocator, io: Io, user: []const u8) !void {
@@ -86,10 +123,13 @@ fn configPath(alloc: Allocator, user: []const u8) ![]const u8 {
     const dir = try configDir(alloc, user);
     defer alloc.free(dir);
 
-    return try std.fs.path.join(alloc, &.{
+    const path = try std.fs.path.join(alloc, &.{
         dir,
         "config.zon",
     });
+    errdefer alloc.free(path);
+
+    return path;
 }
 
 fn configDir(alloc: Allocator, user: []const u8) ![]const u8 {
@@ -100,12 +140,15 @@ fn configDir(alloc: Allocator, user: []const u8) ![]const u8 {
         else => @compileError("Unsupported OS"),
     };
 
-    return try std.fs.path.join(alloc, &.{
+    const dir = try std.fs.path.join(alloc, &.{
         root,
         user,
         ".config",
         options.name,
     });
+    errdefer alloc.free(dir);
+
+    return dir;
 }
 
 test "Test the config path is right" {
