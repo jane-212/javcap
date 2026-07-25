@@ -31,7 +31,7 @@ pub fn main(init: std.process.Init) !void {
 
     const config = configRaw.value;
 
-    var app = App.init(io, config);
+    var app = App.init(io, &config);
 
     try app.start();
 }

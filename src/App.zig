@@ -5,16 +5,16 @@ const Io = std.Io;
 const Self = @This();
 
 io: Io,
-config: Config,
+config: *const Config,
 
-pub fn init(io: Io, config: Config) Self {
+pub fn init(io: Io, config: *const Config) Self {
     return .{
         .io = io,
         .config = config,
     };
 }
 
-pub fn start(self: *Self) !void {
+pub fn start(self: *const Self) !void {
     for (self.config.sources) |source| std.debug.print("{s}\n", .{source.from});
 
     if (self.config.pause_after_finish) try self.waitForEnter();

@@ -95,13 +95,13 @@ pub const Context = struct {
         self.* = undefined;
     }
 
-    pub fn formatValidate(self: *Context, writer: *Io.Writer) !void {
+    pub fn formatValidate(self: *const Context, writer: *Io.Writer) !void {
         try writer.print("{s}\n", .{self.validate.message.?});
         try writer.print("error: {s}: {s}\n", .{ self.validate.field.?, self.validate.value.? });
         try writer.flush();
     }
 
-    pub fn formatDiagnostics(self: *Context, writer: *Io.Writer) !void {
+    pub fn formatDiagnostics(self: *const Context, writer: *Io.Writer) !void {
         try writer.print("配置文件解析失败\n", .{});
         const diagnostics = &self.diagnostics;
         var errors = diagnostics.iterateErrors();
