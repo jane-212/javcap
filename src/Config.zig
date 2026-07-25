@@ -15,25 +15,25 @@ pub const Source = struct {
     to: []const u8,
     exts: []const []const u8,
 
-    fn validate(self: *const Source, context: *ValidateContext) !void {
+    fn validate(self: *const Source, context: *Context) !void {
         if (!std.fs.path.isAbsolute(self.from)) {
-            context.field = try context.alloc.dupe(u8, "from");
-            context.value = try context.alloc.dupe(u8, self.from);
-            context.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
-            return error.FromPathShouldBeAbsolute;
+            context.validate.field = try context.alloc.dupe(u8, "from");
+            context.validate.value = try context.alloc.dupe(u8, self.from);
+            context.validate.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
+            return error.ValidateFailed;
         }
         if (!std.fs.path.isAbsolute(self.to)) {
-            context.field = try context.alloc.dupe(u8, "to");
-            context.value = try context.alloc.dupe(u8, self.to);
-            context.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
-            return error.ToPathShouldBeAbsolute;
+            context.validate.field = try context.alloc.dupe(u8, "to");
+            context.validate.value = try context.alloc.dupe(u8, self.to);
+            context.validate.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
+            return error.ValidateFailed;
         }
     }
 };
 
 const Self = @This();
 
-pub fn init(alloc: Allocator, io: Io, user: []const u8, context: *ValidateContext) !Parsed(Self) {
+pub fn init(alloc: Allocator, io: Io, user: []const u8, context: *Context) !Parsed(Self) {
     const path = try configPath(alloc, user);
     defer alloc.free(path);
 
@@ -79,21 +79,36 @@ pub fn Parsed(comptime T: type) type {
     };
 }
 
-pub const ValidateContext = struct {
+pub const Context = struct {
     alloc: Allocator,
-    field: ?[]const u8 = null,
-    value: ?[]const u8 = null,
-    message: ?[]const u8 = null,
+    validate: ValidateContext = .{},
 
-    pub fn deinit(self: *ValidateContext) void {
-        if (self.field) |field| self.alloc.free(field);
-        if (self.value) |value| self.alloc.free(value);
-        if (self.message) |message| self.alloc.free(message);
+    pub fn init(alloc: Allocator) Context {
+        return .{
+            .alloc = alloc,
+        };
+    }
+
+    pub fn deinit(self: *Context) void {
+        if (self.validate.field) |field| self.alloc.free(field);
+        if (self.validate.value) |value| self.alloc.free(value);
+        if (self.validate.message) |message| self.alloc.free(message);
         self.* = undefined;
     }
 };
 
-fn validate(self: *const Self, context: *ValidateContext) !void {
+pub const ValidateContext = struct {
+    field: ?[]const u8 = null,
+    value: ?[]const u8 = null,
+    message: ?[]const u8 = null,
+
+    pub fn format(self: *ValidateContext, writer: *Io.Writer) !void {
+        try writer.print("{s} => {s}: {s}\n", .{ self.message.?, self.field.?, self.value.? });
+        try writer.flush();
+    }
+};
+
+fn validate(self: *const Self, context: *Context) !void {
     for (self.sources) |source| try source.validate(context);
 }
 
