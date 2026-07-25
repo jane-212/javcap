@@ -9,13 +9,19 @@ pub fn main(init: std.process.Init) !void {
     const io = init.io;
     const env = init.environ_map;
 
-    var context = Config.Context.init(alloc);
-    defer context.deinit();
+    var context: Config.Context = .{};
+    defer context.deinit(alloc);
     var configRaw = Config.init(alloc, io, &context, env) catch |err| switch (err) {
         error.ValidateFailed => {
             var buffer: [4096]u8 = undefined;
             var stderr = std.Io.File.stderr().writer(io, &buffer);
-            try context.validate.format(&stderr.interface);
+            try context.formatValidate(&stderr.interface);
+            return;
+        },
+        error.ParseZon => {
+            var buffer: [4096]u8 = undefined;
+            var stderr = std.Io.File.stderr().writer(io, &buffer);
+            try context.formatDiagnostics(&stderr.interface);
             return;
         },
         else => return err,

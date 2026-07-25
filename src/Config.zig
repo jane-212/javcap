@@ -19,17 +19,17 @@ pub const Source = struct {
     to: []const u8,
     exts: []const []const u8,
 
-    fn validate(self: *const Source, context: *Context) !void {
+    fn validate(self: *const Source, alloc: Allocator, context: *Context) !void {
         if (!std.fs.path.isAbsolute(self.from)) {
-            context.validate.field = try context.alloc.dupe(u8, "from");
-            context.validate.value = try context.alloc.dupe(u8, self.from);
-            context.validate.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
+            context.validate.field = try alloc.dupe(u8, "from");
+            context.validate.value = try alloc.dupe(u8, self.from);
+            context.validate.message = try alloc.dupe(u8, "路径必须是绝对路径");
             return error.ValidateFailed;
         }
         if (!std.fs.path.isAbsolute(self.to)) {
-            context.validate.field = try context.alloc.dupe(u8, "to");
-            context.validate.value = try context.alloc.dupe(u8, self.to);
-            context.validate.message = try context.alloc.dupe(u8, "路径必须是绝对路径");
+            context.validate.field = try alloc.dupe(u8, "to");
+            context.validate.value = try alloc.dupe(u8, self.to);
+            context.validate.message = try alloc.dupe(u8, "路径必须是绝对路径");
             return error.ValidateFailed;
         }
     }
@@ -60,10 +60,10 @@ pub fn init(alloc: Allocator, io: Io, context: *Context, env: *const std.process
     const configContentZ = try alloc.dupeSentinel(u8, configContent, 0);
     defer alloc.free(configContentZ);
 
-    const config = try std.zon.parse.fromSliceAlloc(Self, alloc, configContentZ, null, .{});
+    const config = try std.zon.parse.fromSliceAlloc(Self, alloc, configContentZ, &context.diagnostics, .{});
     errdefer std.zon.parse.free(alloc, config);
 
-    try config.validate(context);
+    try config.validate(alloc, context);
 
     return .{
         .alloc = alloc,
@@ -84,20 +84,25 @@ pub fn Parsed(comptime T: type) type {
 }
 
 pub const Context = struct {
-    alloc: Allocator,
     validate: ValidateContext = .{},
+    diagnostics: std.zon.parse.Diagnostics = .{},
 
-    pub fn init(alloc: Allocator) Context {
-        return .{
-            .alloc = alloc,
-        };
+    pub fn deinit(self: *Context, alloc: Allocator) void {
+        if (self.validate.field) |field| alloc.free(field);
+        if (self.validate.value) |value| alloc.free(value);
+        if (self.validate.message) |message| alloc.free(message);
+        self.diagnostics.deinit(alloc);
+        self.* = undefined;
     }
 
-    pub fn deinit(self: *Context) void {
-        if (self.validate.field) |field| self.alloc.free(field);
-        if (self.validate.value) |value| self.alloc.free(value);
-        if (self.validate.message) |message| self.alloc.free(message);
-        self.* = undefined;
+    pub fn formatValidate(self: *Context, writer: *Io.Writer) !void {
+        try writer.print("{s} => {s}: {s}\n", .{ self.validate.message.?, self.validate.field.?, self.validate.value.? });
+        try writer.flush();
+    }
+
+    pub fn formatDiagnostics(self: *Context, writer: *Io.Writer) !void {
+        try self.diagnostics.format(writer);
+        try writer.flush();
     }
 };
 
@@ -105,15 +110,10 @@ pub const ValidateContext = struct {
     field: ?[]const u8 = null,
     value: ?[]const u8 = null,
     message: ?[]const u8 = null,
-
-    pub fn format(self: *ValidateContext, writer: *Io.Writer) !void {
-        try writer.print("{s} => {s}: {s}\n", .{ self.message.?, self.field.?, self.value.? });
-        try writer.flush();
-    }
 };
 
-fn validate(self: *const Self, context: *Context) !void {
-    for (self.sources) |source| try source.validate(context);
+fn validate(self: *const Self, alloc: Allocator, context: *Context) !void {
+    for (self.sources) |source| try source.validate(alloc, context);
 }
 
 fn generateDefaultConfig(alloc: Allocator, io: Io, env: *const std.process.Environ.Map) !void {
