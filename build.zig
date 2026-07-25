@@ -17,6 +17,9 @@ pub fn build(b: *std.Build) void {
         }),
     });
     b.installArtifact(exe);
+    const exe_tests = b.addTest(.{
+        .root_module = exe.root_module,
+    });
 
     const mod = b.addModule("javcap", .{
         .root_source_file = b.path("src/root.zig"),
@@ -25,6 +28,9 @@ pub fn build(b: *std.Build) void {
         .strip = strip,
     });
     exe.root_module.addImport("javcap", mod);
+    const mod_tests = b.addTest(.{
+        .root_module = mod,
+    });
 
     const options = b.addOptions();
     options.addOption([]const u8, "name", "javcap");
@@ -38,6 +44,9 @@ pub fn build(b: *std.Build) void {
         .strip = strip,
     });
     mod.addImport("domain", domain);
+    const domain_tests = b.addTest(.{
+        .root_module = domain,
+    });
 
     const media = b.createModule(.{
         .root_source_file = b.path("src/media/root.zig"),
@@ -47,6 +56,9 @@ pub fn build(b: *std.Build) void {
     });
     media.addImport("domain", domain);
     mod.addImport("media", media);
+    const media_tests = b.addTest(.{
+        .root_module = media,
+    });
 
     const known_folders = b.dependency("known_folders", .{
         .target = target,
@@ -69,20 +81,14 @@ pub fn build(b: *std.Build) void {
     }
 
     const test_step = b.step("test", "Run tests");
-
-    const mod_tests = b.addTest(.{
-        .root_module = mod,
-    });
-
     const run_mod_tests = b.addRunArtifact(mod_tests);
-
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
-    });
     const run_exe_tests = b.addRunArtifact(exe_tests);
-
+    const run_media_tests = b.addRunArtifact(media_tests);
+    const run_domain_tests = b.addRunArtifact(domain_tests);
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&run_media_tests.step);
+    test_step.dependOn(&run_domain_tests.step);
 
     const check_step = b.step("check", "Check compile");
     check_step.dependOn(&run_cmd.step);
