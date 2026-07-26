@@ -18,6 +18,9 @@ country: ?Country = null,
 director: ?[]const u8 = null,
 premiered: ?[]const u8 = null,
 studio: ?[]const u8 = null,
+poster: ?[]const u8 = null,
+fanart: ?[]const u8 = null,
+subtitle: ?[]const u8 = null,
 actresses: std.ArrayList(Actress),
 
 pub const Country = enum {
@@ -65,6 +68,9 @@ pub fn deinit(self: *Self) void {
     if (self.director) |s| self.alloc.free(s);
     if (self.premiered) |s| self.alloc.free(s);
     if (self.studio) |s| self.alloc.free(s);
+    if (self.poster) |s| self.alloc.free(s);
+    if (self.fanart) |s| self.alloc.free(s);
+    if (self.subtitle) |s| self.alloc.free(s);
 
     for (self.genres.items) |g| self.alloc.free(g);
     self.genres.deinit(self.alloc);

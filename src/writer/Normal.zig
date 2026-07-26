@@ -33,6 +33,9 @@ pub fn format(w: *std.Io.Writer, nfo: *const domain.Nfo) !void {
     if (nfo.director) |d| try w.print("director: {s}\n", .{d});
     if (nfo.premiered) |p| try w.print("premiered: {s}\n", .{p});
     if (nfo.studio) |s| try w.print("studio: {s}\n", .{s});
+    if (nfo.poster) |p| try w.print("poster: {} bytes\n", .{p.len});
+    if (nfo.fanart) |f| try w.print("fanart: {} bytes\n", .{f.len});
+    if (nfo.subtitle) |s| try w.print("subtitle: {} bytes\n", .{s.len});
     for (nfo.actresses.items) |a| {
         try w.writeAll("actor:");
         try w.print(" {s}", .{a.name});
@@ -302,6 +305,54 @@ test "format — writes studio" {
     try std.testing.expectEqualStrings("studio: Paramount\n", result);
 }
 
+test "format — writes poster with byte length" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.poster = try alloc.dupe(u8, "https://example.com/poster.jpg");
+
+    const result = try writeToString(&nfo);
+    defer alloc.free(result);
+
+    try std.testing.expectEqualStrings("poster: 30 bytes\n", result);
+}
+
+test "format — writes fanart with byte length" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.fanart = try alloc.dupe(u8, "https://example.com/fanart.jpg");
+
+    const result = try writeToString(&nfo);
+    defer alloc.free(result);
+
+    try std.testing.expectEqualStrings("fanart: 30 bytes\n", result);
+}
+
+test "format — writes subtitle with byte length" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.subtitle = try alloc.dupe(u8, "https://example.com/subtitle.srt");
+
+    const result = try writeToString(&nfo);
+    defer alloc.free(result);
+
+    try std.testing.expectEqualStrings("subtitle: 32 bytes\n", result);
+}
+
+test "format — writes poster byte length for binary data" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.poster = try alloc.dupe(u8, &[_]u8{ 0x00, 0x01, 0x02, 0xFF });
+
+    const result = try writeToString(&nfo);
+    defer alloc.free(result);
+
+    try std.testing.expectEqualStrings("poster: 4 bytes\n", result);
+}
+
 test "format — writes actress without thumb" {
     const alloc = std.testing.allocator;
     var nfo = try domain.Nfo.init(alloc);
@@ -359,6 +410,9 @@ test "format — full Nfo with all fields" {
     nfo.director = try alloc.dupe(u8, "Dir");
     nfo.premiered = try alloc.dupe(u8, "2024-06-01");
     nfo.studio = try alloc.dupe(u8, "Studio X");
+    nfo.poster = try alloc.dupe(u8, "https://example.com/poster.jpg");
+    nfo.fanart = try alloc.dupe(u8, "https://example.com/fanart.jpg");
+    nfo.subtitle = try alloc.dupe(u8, "https://example.com/subtitle.srt");
     try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, "Alice"), .thumb = try alloc.dupe(u8, "/a.jpg") });
 
     const result = try writeToString(&nfo);
@@ -378,6 +432,9 @@ test "format — full Nfo with all fields" {
             "director: Dir\n" ++
             "premiered: 2024-06-01\n" ++
             "studio: Studio X\n" ++
+            "poster: 30 bytes\n" ++
+            "fanart: 30 bytes\n" ++
+            "subtitle: 32 bytes\n" ++
             "actor: Alice /a.jpg\n",
         result,
     );
