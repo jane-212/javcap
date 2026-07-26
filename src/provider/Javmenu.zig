@@ -65,7 +65,7 @@ pub fn asProvider(self: *Self) provider.Provider {
 }
 
 pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
-    var nfo = domain.Nfo.init(alloc);
+    var nfo = try domain.Nfo.init(alloc);
     errdefer nfo.deinit();
 
     const show = try key.show(self.alloc);
