@@ -60,10 +60,9 @@ pub fn fetch(self: *Self, alloc: Allocator, options: FetchOptions) !FetchResult 
 pub fn fetchInner(self: *Self, alloc: Allocator, options: FetchOptions) !FetchResult {
     var body: Io.Writer.Allocating = .init(alloc);
     defer body.deinit();
-    var writer = body.writer;
 
     const response = try self.client.fetch(.{
-        .response_writer = &writer,
+        .response_writer = &body.writer,
         .location = options.location,
         .method = options.method,
         .payload = options.payload,
