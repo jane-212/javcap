@@ -56,6 +56,17 @@ pub fn build(b: *std.Build) void {
         .root_module = utils,
     });
 
+    const writer = b.createModule(.{
+        .root_source_file = b.path("src/writer/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+    });
+    writer.addImport("domain", domain);
+    const writer_tests = b.addTest(.{
+        .root_module = writer,
+    });
+
     const provider = b.createModule(.{
         .root_source_file = b.path("src/provider/root.zig"),
         .target = target,
@@ -92,6 +103,7 @@ pub fn build(b: *std.Build) void {
     mod.addImport("media", media);
     mod.addImport("domain", domain);
     mod.addImport("provider", provider);
+    mod.addImport("writer", writer);
     mod.addImport("known-folders", known_folders.module("known-folders"));
     const mod_tests = b.addTest(.{
         .root_module = mod,
@@ -128,6 +140,7 @@ pub fn build(b: *std.Build) void {
     const run_infra_tests = b.addRunArtifact(infra_tests);
     const run_provider_tests = b.addRunArtifact(provider_tests);
     const run_utils_tests = b.addRunArtifact(utils_tests);
+    const run_writer_tests = b.addRunArtifact(writer_tests);
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&run_media_tests.step);
@@ -135,6 +148,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_infra_tests.step);
     test_step.dependOn(&run_provider_tests.step);
     test_step.dependOn(&run_utils_tests.step);
+    test_step.dependOn(&run_writer_tests.step);
 
     const check_step = b.step("check", "Check compile");
     check_step.dependOn(&run_cmd.step);

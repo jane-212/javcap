@@ -5,6 +5,8 @@ const media = @import("media");
 const Allocator = std.mem.Allocator;
 const domain = @import("domain");
 const provider = @import("provider");
+const writer = @import("writer");
+const builtin = @import("builtin");
 
 const Self = @This();
 
@@ -58,16 +60,26 @@ pub fn start(self: *Self) !void {
 
 fn runTask(self: *Self, task: Task) void {
     defer self.semaphore.post(self.io);
+    self.runTaskInner(task) catch |err| switch (err) {
+        else => {},
+    };
+}
 
+fn runTaskInner(self: *Self, task: Task) !void {
     var arena: std.heap.ArenaAllocator = .init(self.alloc);
     defer arena.deinit();
     const alloc = arena.allocator();
 
     for (self.providers) |p| {
-        var n = p.search(alloc, task.file.key) catch continue;
-        defer n.deinit();
+        var nfo = try p.search(alloc, task.file.key);
+        defer nfo.deinit();
 
-        std.debug.print("title: {s}\n", .{n.title.?});
+        if (builtin.mode == .Debug) {
+            var buffer: [4096]u8 = undefined;
+            var w = Io.File.stderr().writer(self.io, &buffer);
+            try writer.format(.normal, &w.interface, &nfo);
+            try w.flush();
+        }
     }
 }
 
