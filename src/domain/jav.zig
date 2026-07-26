@@ -14,6 +14,14 @@ pub const Key = union(enum) {
         }
         self.* = undefined;
     }
+
+    pub fn show(self: *const Key, alloc: Allocator) ![]const u8 {
+        return switch (self.*) {
+            .jav => |jav| try std.fmt.allocPrint(alloc, "{s}-{s}", .{ jav.id, jav.number }),
+            .fc2 => |fc2| try std.fmt.allocPrint(alloc, "FC2-{s}", .{fc2}),
+            .normal => |normal| try alloc.dupe(u8, normal),
+        };
+    }
 };
 
 pub const JavKey = struct {

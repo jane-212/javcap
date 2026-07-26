@@ -4,6 +4,7 @@ const Io = std.Io;
 const provider = @import("root.zig");
 const domain = @import("domain");
 const infra = @import("infra");
+const zq = @import("zigquery");
 
 const Self = @This();
 
@@ -63,12 +64,13 @@ pub fn asProvider(self: *Self) provider.Provider {
 }
 
 pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
-    _ = key;
-
     var nfo = domain.Nfo.init(alloc);
     errdefer nfo.deinit();
 
-    const url = try std.fmt.allocPrint(self.alloc, "https://mrzyx.xyz", .{});
+    const show = try key.show(self.alloc);
+    defer self.alloc.free(show);
+
+    const url = try std.fmt.allocPrint(self.alloc, "https://mrzyx.xyz/zh/{s}", .{show});
     defer self.alloc.free(url);
 
     const uri = try std.Uri.parse(url);
@@ -76,15 +78,16 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
         .location = .{ .uri = uri },
     });
     defer response.deinit();
-
     if (response.status != .ok) return error.StatusNotOk;
 
-    // nfo.title = switch (key) {
-    //     .jav => |jav| try std.fmt.allocPrint(alloc, "file key: {s}-{s}", .{ jav.id, jav.number }),
-    //     .fc2 => |fc2| try std.fmt.allocPrint(alloc, "file key: FC2-{s}", .{fc2}),
-    //     .normal => |normal| try std.fmt.allocPrint(alloc, "{s}", .{normal}),
-    // };
-    nfo.title = try alloc.dupe(u8, response.body);
+    const body = response.body;
+    var html = try zq.Document.initFromSlice(self.alloc, body);
+    defer html.deinit();
+
+    const titleNode = try html.find("#app > div.page-content > div > div > div.col-md-9.px-1.px-md-0 > div.mb-3.px-1 > h1 > strong");
+    const title = try titleNode.text();
+
+    nfo.title = try alloc.dupe(u8, title);
 
     return nfo;
 }
