@@ -5,6 +5,7 @@ const provider = @import("root.zig");
 const domain = @import("domain");
 const infra = @import("infra");
 const zq = @import("zigquery");
+const utils = @import("utils");
 
 const Self = @This();
 
@@ -70,7 +71,7 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     const show = try key.show(self.alloc);
     defer self.alloc.free(show);
 
-    const url = try std.fmt.allocPrint(self.alloc, "https://mrzyx.xyz/zh/{s}", .{show});
+    const url = try std.fmt.allocPrint(self.alloc, "https://javmenu.com/zh/{s}", .{show});
     defer self.alloc.free(url);
 
     const uri = try std.Uri.parse(url);
@@ -84,10 +85,9 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     var html = try zq.Document.initFromSlice(self.alloc, body);
     defer html.deinit();
 
-    const titleNode = try html.find("#app > div.page-content > div > div > div.col-md-9.px-1.px-md-0 > div.mb-3.px-1 > h1 > strong");
-    const title = try titleNode.text();
-
-    nfo.title = try alloc.dupe(u8, title);
+    const titleSel = try html.find("h1 strong");
+    const title = try utils.string.trimAll(alloc, try titleSel.text(), " \n\r\t");
+    nfo.title = title;
 
     return nfo;
 }
