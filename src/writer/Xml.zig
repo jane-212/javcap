@@ -68,3 +68,498 @@ fn escapeWrite(w: *std.Io.Writer, slice: []const u8) !void {
         }
     }
 }
+
+fn writeToString(nfo: *const domain.Nfo) ![]const u8 {
+    var buf: std.ArrayList(u8) = .empty;
+    var aw = std.Io.Writer.Allocating.fromArrayList(std.testing.allocator, &buf);
+    errdefer aw.deinit();
+    try format(&aw.writer, nfo);
+    return aw.toOwnedSlice();
+}
+
+test "format — empty Nfo produces XML declaration and empty movie tag" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes title when present" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.title = try alloc.dupe(u8, "Test Movie");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><title>Test Movie</title></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes originalTitle when present" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.originalTitle = try alloc.dupe(u8, "オリジナル");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><originaltitle>オリジナル</originaltitle></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes rating formatted to one decimal" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.rating = 8.5;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><rating>8.5</rating></movie>\n",
+        xml,
+    );
+}
+
+test "format — rating rounds to one decimal" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.rating = 7.99;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><rating>8.0</rating></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes plot when present" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.plot = try alloc.dupe(u8, "A long story.");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><plot>A long story.</plot></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes runtime when present" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.runtime = 120;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><runtime>120</runtime></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes mpaa G" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.mpaa = .g;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><mpaa>G</mpaa></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes mpaa PG" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.mpaa = .pg;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><mpaa>PG</mpaa></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes mpaa PG-13" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.mpaa = .pg13;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><mpaa>PG-13</mpaa></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes mpaa R" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.mpaa = .r;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><mpaa>R</mpaa></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes mpaa NC-17" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.mpaa = .nc17;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><mpaa>NC-17</mpaa></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes uniqueid when id present" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.id = try alloc.dupe(u8, "STARS-804");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><uniqueid type=\"num\" default=\"true\">STARS-804</uniqueid></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes genres" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.genres.append(alloc, try alloc.dupe(u8, "Action"));
+    try nfo.genres.append(alloc, try alloc.dupe(u8, "Drama"));
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><genre>Action</genre><genre>Drama</genre></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes tags" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.tags.append(alloc, try alloc.dupe(u8, "HD"));
+    try nfo.tags.append(alloc, try alloc.dupe(u8, "字幕"));
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><tag>HD</tag><tag>字幕</tag></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes country CN" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.country = .cn;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><country>国产</country></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes country JP" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.country = .jp;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><country>日本</country></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes country US" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.country = .us;
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><country>欧美</country></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes director" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.director = try alloc.dupe(u8, "Spielberg");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><director>Spielberg</director></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes premiered" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.premiered = try alloc.dupe(u8, "2024-01-15");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><premiered>2024-01-15</premiered></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes studio" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.studio = try alloc.dupe(u8, "Paramount");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><studio>Paramount</studio></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes actress without thumb" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, "Jane Doe") });
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><actor><name>Jane Doe</name></actor></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes actress with thumb" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.actresses.append(alloc, .{
+        .name = try alloc.dupe(u8, "Jane Doe"),
+        .thumb = try alloc.dupe(u8, "/thumbs/jane.jpg"),
+    });
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><actor><name>Jane Doe</name><thumb>/thumbs/jane.jpg</thumb></actor></movie>\n",
+        xml,
+    );
+}
+
+test "format — writes multiple actresses" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, "Alice") });
+    try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, "Bob"), .thumb = try alloc.dupe(u8, "/t/bob.jpg") });
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><actor><name>Alice</name></actor><actor><name>Bob</name><thumb>/t/bob.jpg</thumb></actor></movie>\n",
+        xml,
+    );
+}
+
+test "format — escapes & < > \" ' in text content" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.title = try alloc.dupe(u8, "A & B < C > D \"E\" 'F'");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><title>A &amp; B &lt; C &gt; D &quot;E&quot; &apos;F&apos;</title></movie>\n",
+        xml,
+    );
+}
+
+test "format — escapes special characters in id" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.id = try alloc.dupe(u8, "id<1>&2");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><uniqueid type=\"num\" default=\"true\">id&lt;1&gt;&amp;2</uniqueid></movie>\n",
+        xml,
+    );
+}
+
+test "format — escapes special characters in genre" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.genres.append(alloc, try alloc.dupe(u8, "Sci-Fi & Fantasy"));
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><genre>Sci-Fi &amp; Fantasy</genre></movie>\n",
+        xml,
+    );
+}
+
+test "format — escapes special characters in actress name and thumb" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    try nfo.actresses.append(alloc, .{
+        .name = try alloc.dupe(u8, "O'Brien"),
+        .thumb = try alloc.dupe(u8, "/thumb/a&b.jpg"),
+    });
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><actor><name>O&apos;Brien</name><thumb>/thumb/a&amp;b.jpg</thumb></actor></movie>\n",
+        xml,
+    );
+}
+
+test "format — full Nfo with all fields" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.title = try alloc.dupe(u8, "Test");
+    nfo.originalTitle = try alloc.dupe(u8, "テスト");
+    nfo.rating = 9.2;
+    nfo.plot = try alloc.dupe(u8, "A story.");
+    nfo.runtime = 90;
+    nfo.mpaa = .r;
+    nfo.id = try alloc.dupe(u8, "ID-001");
+    try nfo.genres.append(alloc, try alloc.dupe(u8, "Action"));
+    try nfo.tags.append(alloc, try alloc.dupe(u8, "HD"));
+    nfo.country = .jp;
+    nfo.director = try alloc.dupe(u8, "Dir");
+    nfo.premiered = try alloc.dupe(u8, "2024-06-01");
+    nfo.studio = try alloc.dupe(u8, "Studio X");
+    try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, "Alice"), .thumb = try alloc.dupe(u8, "/a.jpg") });
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>" ++
+            "<movie>" ++
+            "<title>Test</title>" ++
+            "<originaltitle>テスト</originaltitle>" ++
+            "<rating>9.2</rating>" ++
+            "<plot>A story.</plot>" ++
+            "<runtime>90</runtime>" ++
+            "<mpaa>R</mpaa>" ++
+            "<uniqueid type=\"num\" default=\"true\">ID-001</uniqueid>" ++
+            "<genre>Action</genre>" ++
+            "<tag>HD</tag>" ++
+            "<country>日本</country>" ++
+            "<director>Dir</director>" ++
+            "<premiered>2024-06-01</premiered>" ++
+            "<studio>Studio X</studio>" ++
+            "<actor><name>Alice</name><thumb>/a.jpg</thumb></actor>" ++
+            "</movie>\n",
+        xml,
+    );
+}
+
+test "format — omits null optional fields" {
+    const alloc = std.testing.allocator;
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+    nfo.title = try alloc.dupe(u8, "Just Title");
+
+    const xml = try writeToString(&nfo);
+    defer alloc.free(xml);
+
+    try std.testing.expectEqualStrings(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><movie><title>Just Title</title></movie>\n",
+        xml,
+    );
+}
