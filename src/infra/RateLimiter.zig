@@ -16,12 +16,12 @@ pub fn init(io: Io, interval_ms: i64) Self {
 }
 
 pub fn acquire(self: *Self) !void {
-    self.mutex.lock();
-    defer self.mutex.unlock();
+    try self.mutex.lock(self.io);
+    defer self.mutex.unlock(self.io);
 
     const now = Io.Timestamp.now(self.io, .awake).toMilliseconds();
 
-    if (now < self.next_allowed_ns) {
+    if (now < self.next_allowed_ms) {
         const wait_ms = self.next_allowed_ms - now;
         try Io.sleep(self.io, Io.Duration.fromMilliseconds(wait_ms), .awake);
     }

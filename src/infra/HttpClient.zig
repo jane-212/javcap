@@ -28,7 +28,7 @@ pub fn init(
     };
     errdefer client.deinit();
 
-    const rateLimiter = null;
+    var rateLimiter: ?infra.RateLimiter = null;
     if (options.interval_ms > 0) rateLimiter = infra.RateLimiter.init(io, options.interval_ms);
 
     return .{
@@ -40,21 +40,65 @@ pub fn init(
     };
 }
 
-pub fn fetch(self: *Self, options: http.Client.FetchOptions) !http.Client.FetchResult {
+pub fn fetch(self: *Self, alloc: Allocator, options: FetchOptions) !FetchResult {
     while (self.retry >= 0) {
-        if (self.rateLimiter) |rateLimiter| try rateLimiter.acquire();
+        if (self.rateLimiter) |*rateLimiter| try rateLimiter.acquire();
 
-        const result = self.client.fetch(options) catch |err| {
+        const result = self.fetchInner(alloc, options) catch |err| {
             if (self.retry == 0) return err;
             self.retry -= 1;
             continue;
         };
+        errdefer result.deinit();
 
         return result;
     }
 
     unreachable;
 }
+
+pub fn fetchInner(self: *Self, alloc: Allocator, options: FetchOptions) !FetchResult {
+    var body: Io.Writer.Allocating = .init(alloc);
+    defer body.deinit();
+    var writer = body.writer;
+
+    const response = try self.client.fetch(.{
+        .response_writer = &writer,
+        .location = options.location,
+        .method = options.method,
+        .payload = options.payload,
+        .headers = options.headers,
+        .extra_headers = options.extra_headers,
+    });
+
+    const ownedBody = try body.toOwnedSlice();
+    errdefer alloc.free(ownedBody);
+
+    return .{
+        .alloc = alloc,
+        .status = response.status,
+        .body = ownedBody,
+    };
+}
+
+pub const FetchOptions = struct {
+    location: http.Client.FetchOptions.Location,
+    method: ?http.Method = null,
+    payload: ?[]const u8 = null,
+    headers: http.Client.Request.Headers = .{},
+    extra_headers: []const http.Header = &.{},
+};
+
+pub const FetchResult = struct {
+    alloc: Allocator,
+    status: http.Status,
+    body: []const u8,
+
+    pub fn deinit(self: *FetchResult) void {
+        self.alloc.free(self.body);
+        self.* = undefined;
+    }
+};
 
 pub fn deinit(self: *Self) void {
     self.client.deinit();

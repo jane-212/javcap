@@ -10,6 +10,8 @@ io: Io,
 
 pub fn init(alloc: Allocator, io: Io) !*Self {
     const self = try alloc.create(Self);
+    errdefer alloc.destroy(self);
+
     self.* = .{
         .alloc = alloc,
         .io = io,

@@ -21,6 +21,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const zigquery = b.dependency("zigquery", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const domain = b.createModule(.{
         .root_source_file = b.path("src/domain/root.zig"),
         .target = target,
@@ -49,6 +54,7 @@ pub fn build(b: *std.Build) void {
     });
     provider.addImport("domain", domain);
     provider.addImport("infra", infra);
+    provider.addImport("zigquery", zigquery.module("zigquery"));
     const provider_tests = b.addTest(.{
         .root_module = provider,
     });
