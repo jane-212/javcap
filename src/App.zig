@@ -4,6 +4,7 @@ const Io = std.Io;
 const media = @import("media");
 const Allocator = std.mem.Allocator;
 const domain = @import("domain");
+const provider = @import("provider");
 
 const Self = @This();
 
@@ -11,14 +12,27 @@ alloc: Allocator,
 io: Io,
 config: *const Config,
 semaphore: Io.Semaphore,
+providers: []provider.Provider,
 
-pub fn init(alloc: Allocator, io: Io, config: *const Config) Self {
+pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
+    const providers = try provider.all(alloc, io);
+    errdefer {
+        for (providers) |*p| p.deinit();
+        alloc.free(providers);
+    }
+
     return .{
         .alloc = alloc,
         .io = io,
         .config = config,
         .semaphore = .{ .permits = 5 },
+        .providers = providers,
     };
+}
+
+pub fn deinit(self: *Self) void {
+    for (self.providers) |*p| p.deinit();
+    self.alloc.free(self.providers);
 }
 
 pub fn start(self: *Self) !void {
@@ -34,7 +48,7 @@ pub fn start(self: *Self) !void {
     for (tasks) |task| {
         try self.semaphore.wait(self.io);
 
-        try group.concurrent(self.io, Self.runTask, .{ self, &task });
+        try group.concurrent(self.io, Self.runTask, .{ self, task });
     }
 
     try group.await(self.io);
@@ -42,19 +56,18 @@ pub fn start(self: *Self) !void {
     if (self.config.pause_after_finish) try self.waitForEnter();
 }
 
-fn runTask(self: *Self, task: *const Task) void {
+fn runTask(self: *Self, task: Task) void {
     defer self.semaphore.post(self.io);
 
-    std.debug.print("**************************\n", .{});
-    std.debug.print("type: {}\n", .{task.type});
-    std.debug.print("path: {s}\n", .{task.path});
-    std.debug.print("file name: {s}\n", .{task.file.name});
-    switch (task.file.key) {
-        .jav => |jav| std.debug.print("file key: {s}-{s}\n", .{ jav.id, jav.number }),
-        .fc2 => |fc2| std.debug.print("file key: FC2-{s}\n", .{fc2}),
-        .normal => |normal| std.debug.print("{s}\n", .{normal}),
+    var arena: std.heap.ArenaAllocator = .init(self.alloc);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    for (self.providers) |p| {
+        const n = p.search(alloc, task.file.key) catch continue;
+
+        std.debug.print("title: {s}\n", .{n.title.?});
     }
-    std.debug.print("**************************\n", .{});
 }
 
 fn loadAllSources(self: *Self, alloc: Allocator) ![]Task {

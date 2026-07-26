@@ -2,12 +2,22 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
 const domain = @import("domain");
+const Javmenu = @import("Javmenu.zig");
 
 pub fn all(alloc: Allocator, io: Io) ![]Provider {
-    _ = alloc;
-    _ = io;
+    var providers: std.ArrayList(Provider) = .empty;
+    defer providers.deinit(alloc);
 
-    return &.{};
+    const javmenu = try Javmenu.init(alloc, io);
+    try providers.append(alloc, javmenu.asProvider());
+
+    const ownedProviders = try providers.toOwnedSlice(alloc);
+    errdefer {
+        for (ownedProviders) |*p| p.deinit();
+        alloc.free(ownedProviders);
+    }
+
+    return ownedProviders;
 }
 
 pub const Provider = struct {
@@ -17,10 +27,9 @@ pub const Provider = struct {
     pub fn search(
         self: Provider,
         alloc: Allocator,
-        path: []const u8,
-        exts: []const []const u8,
+        key: domain.jav.Key,
     ) !domain.Nfo {
-        return self.vtable.scan(self.ptr, alloc, path, exts);
+        return self.vtable.search(self.ptr, alloc, key);
     }
 
     pub fn deinit(self: Provider) void {
@@ -29,12 +38,15 @@ pub const Provider = struct {
 };
 
 pub const VTable = struct {
-    scan: *const fn (
+    search: *const fn (
         *anyopaque,
         Allocator,
-        []const u8,
-        []const []const u8,
+        domain.jav.Key,
     ) anyerror!domain.Nfo,
 
     deinit: *const fn (*anyopaque) void,
 };
+
+test {
+    _ = @import("Javmenu.zig");
+}

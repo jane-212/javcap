@@ -31,7 +31,8 @@ pub fn main(init: std.process.Init) !void {
 
     const config = configRaw.value;
 
-    var app = App.init(alloc, io, &config);
+    var app = try App.init(alloc, io, &config);
+    defer app.deinit();
 
     try app.start();
 }
