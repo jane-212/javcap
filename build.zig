@@ -60,6 +60,16 @@ pub fn build(b: *std.Build) void {
         .root_module = media,
     });
 
+    const infra = b.createModule(.{
+        .root_source_file = b.path("src/infra/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+    });
+    const infra_tests = b.addTest(.{
+        .root_module = infra,
+    });
+
     const known_folders = b.dependency("known_folders", .{
         .target = target,
         .optimize = optimize,
@@ -85,10 +95,12 @@ pub fn build(b: *std.Build) void {
     const run_exe_tests = b.addRunArtifact(exe_tests);
     const run_media_tests = b.addRunArtifact(media_tests);
     const run_domain_tests = b.addRunArtifact(domain_tests);
+    const run_infra_tests = b.addRunArtifact(infra_tests);
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&run_media_tests.step);
     test_step.dependOn(&run_domain_tests.step);
+    test_step.dependOn(&run_infra_tests.step);
 
     const check_step = b.step("check", "Check compile");
     check_step.dependOn(&run_cmd.step);
