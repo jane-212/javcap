@@ -70,16 +70,28 @@ fn runTaskInner(self: *Self, task: Task) !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
+    var nfo = try domain.Nfo.init(alloc);
+    defer nfo.deinit();
+
     for (self.providers) |p| {
-        var nfo = try p.search(alloc, task.file.key);
-        defer nfo.deinit();
+        var n = try p.search(alloc, task.file.key);
+        defer n.deinit();
 
         if (builtin.mode == .Debug) {
             var buffer: [4096]u8 = undefined;
             var w = Io.File.stderr().writer(self.io, &buffer);
-            try writer.format(.normal, &w.interface, &nfo);
+            try writer.format(.normal, &w.interface, &n);
             try w.flush();
         }
+
+        try nfo.merge(&n);
+    }
+
+    if (builtin.mode == .Debug) {
+        var buffer: [4096]u8 = undefined;
+        var w = Io.File.stderr().writer(self.io, &buffer);
+        try writer.format(.normal, &w.interface, &nfo);
+        try w.flush();
     }
 }
 

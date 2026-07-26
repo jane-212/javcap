@@ -80,3 +80,72 @@ pub fn deinit(self: *Self) void {
 
     self.* = undefined;
 }
+
+pub fn merge(self: *Self, other: *Self) !void {
+    const fields = @typeInfo(Self).@"struct".fields;
+    inline for (fields) |field| {
+        if (comptime std.mem.eql(u8, field.name, "alloc")) continue;
+
+        const FT = field.type;
+        if (comptime isOptional(FT)) {
+            try mergeOptionalField(FT, &@field(self, field.name), @field(other, field.name), self.alloc);
+        } else if (comptime isArrayList(FT)) {
+            try mergeArrayListField(FT, &@field(self, field.name), &@field(other, field.name), self.alloc);
+        }
+    }
+}
+
+fn mergeOptionalField(comptime T: type, self_ptr: *T, other_val: T, alloc: Allocator) !void {
+    if (self_ptr.* != null or other_val == null) return;
+
+    const Child = @typeInfo(T).optional.child;
+    if (comptime Child == []const u8) {
+        self_ptr.* = try alloc.dupe(u8, other_val.?);
+    } else {
+        self_ptr.* = other_val;
+    }
+}
+
+fn mergeArrayListField(comptime T: type, self_list: *T, other_list: *T, alloc: Allocator) !void {
+    if (other_list.items.len == 0) return;
+    try self_list.ensureUnusedCapacity(other_list.items.len);
+
+    const ItemT = std.meta.Child(@TypeOf(self_list.items));
+    for (other_list.items) |item| {
+        if (comptime ItemT == []const u8) {
+            if (containsString(self_list, item)) continue;
+            self_list.appendAssumeCapacity(try alloc.dupe(u8, item));
+        } else if (comptime ItemT == Actress) {
+            if (containsActress(self_list, item.name)) continue;
+            self_list.appendAssumeCapacity(.{
+                .name = try alloc.dupe(u8, item.name),
+                .thumb = if (item.thumb) |t| try alloc.dupe(u8, t) else null,
+            });
+        } else {
+            @compileError("merge: unsupported ArrayList item type: " ++ @typeName(ItemT));
+        }
+    }
+}
+
+fn containsString(list: *std.ArrayList([]const u8), target: []const u8) bool {
+    for (list.items) |existing| {
+        if (std.mem.eql(u8, existing, target)) return true;
+    }
+    return false;
+}
+
+fn containsActress(list: *std.ArrayList(Actress), target_name: []const u8) bool {
+    for (list.items) |existing| {
+        if (std.mem.eql(u8, existing.name, target_name)) return true;
+    }
+    return false;
+}
+
+fn isOptional(comptime T: type) bool {
+    return @typeInfo(T) == .optional;
+}
+
+fn isArrayList(comptime T: type) bool {
+    if (@typeInfo(T) != .@"struct") return false;
+    return @hasField(T, "items") and @hasField(T, "allocator") and @hasField(T, "capacity");
+}
