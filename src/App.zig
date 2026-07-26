@@ -64,7 +64,8 @@ fn runTask(self: *Self, task: Task) void {
     const alloc = arena.allocator();
 
     for (self.providers) |p| {
-        const n = p.search(alloc, task.file.key) catch continue;
+        var n = p.search(alloc, task.file.key) catch continue;
+        defer n.deinit();
 
         std.debug.print("title: {s}\n", .{n.title.?});
     }
