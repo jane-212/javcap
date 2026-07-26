@@ -10,12 +10,14 @@ const Self = @This();
 alloc: Allocator,
 io: Io,
 config: *const Config,
+semaphore: Io.Semaphore,
 
 pub fn init(alloc: Allocator, io: Io, config: *const Config) Self {
     return .{
         .alloc = alloc,
         .io = io,
         .config = config,
+        .semaphore = .{ .permits = 5 },
     };
 }
 
@@ -26,20 +28,33 @@ pub fn start(self: *Self) !void {
         self.alloc.free(tasks);
     }
 
-    std.debug.print("**************************\n", .{});
+    var group: Io.Group = .init;
+    defer group.cancel(self.io);
+
     for (tasks) |task| {
-        std.debug.print("type: {}\n", .{task.type});
-        std.debug.print("path: {s}\n", .{task.path});
-        std.debug.print("file name: {s}\n", .{task.file.name});
-        switch (task.file.key) {
-            .jav => |jav| std.debug.print("file key: {s}-{s}\n", .{ jav.id, jav.number }),
-            .fc2 => |fc2| std.debug.print("file key: FC2-{s}\n", .{fc2}),
-            .normal => |normal| std.debug.print("{s}\n", .{normal}),
-        }
-        std.debug.print("**************************\n", .{});
+        try self.semaphore.wait(self.io);
+
+        try group.concurrent(self.io, Self.runTask, .{ self, &task });
     }
 
+    try group.await(self.io);
+
     if (self.config.pause_after_finish) try self.waitForEnter();
+}
+
+fn runTask(self: *Self, task: *const Task) void {
+    defer self.semaphore.post(self.io);
+
+    std.debug.print("**************************\n", .{});
+    std.debug.print("type: {}\n", .{task.type});
+    std.debug.print("path: {s}\n", .{task.path});
+    std.debug.print("file name: {s}\n", .{task.file.name});
+    switch (task.file.key) {
+        .jav => |jav| std.debug.print("file key: {s}-{s}\n", .{ jav.id, jav.number }),
+        .fc2 => |fc2| std.debug.print("file key: FC2-{s}\n", .{fc2}),
+        .normal => |normal| std.debug.print("{s}\n", .{normal}),
+    }
+    std.debug.print("**************************\n", .{});
 }
 
 fn loadAllSources(self: *Self, alloc: Allocator) ![]Task {
@@ -56,16 +71,23 @@ fn loadAllSources(self: *Self, alloc: Allocator) ![]Task {
 
         for (entries) |entry| {
             const parsedFile = try media.FileParser.parse(alloc, entry.path);
+            const path = try alloc.dupe(u8, entry.path);
 
             try tasks.append(alloc, .{
                 .alloc = alloc,
                 .type = entry.type,
                 .file = parsedFile,
-                .path = try alloc.dupe(u8, entry.path),
+                .path = path,
             });
         }
     }
-    return tasks.toOwnedSlice(alloc);
+    const ownedTasks = try tasks.toOwnedSlice(alloc);
+    errdefer {
+        for (ownedTasks) |*t| t.deinit();
+        alloc.free(ownedTasks);
+    }
+
+    return ownedTasks;
 }
 
 fn waitForEnter(self: *const Self) !void {
