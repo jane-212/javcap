@@ -11,9 +11,14 @@ const Self = @This();
 alloc: Allocator,
 io: Io,
 client: infra.HttpClient,
+mediaClient: infra.HttpClient,
 
 pub fn init(alloc: Allocator, io: Io) !*Self {
-    const client = infra.HttpClient.init(alloc, io, .{ .interval_ms = 1000, .retry = 3 });
+    var client = infra.HttpClient.init(alloc, io, .{ .interval_ms = 1000, .retry = 3 });
+    errdefer client.deinit();
+
+    var mediaClient = infra.HttpClient.init(alloc, io, .{ .retry = 3 });
+    errdefer mediaClient.deinit();
 
     const self = try alloc.create(Self);
     errdefer alloc.destroy(self);
@@ -22,6 +27,7 @@ pub fn init(alloc: Allocator, io: Io) !*Self {
         .alloc = alloc,
         .io = io,
         .client = client,
+        .mediaClient = mediaClient,
     };
 
     return self;
@@ -29,6 +35,7 @@ pub fn init(alloc: Allocator, io: Io) !*Self {
 
 pub fn deinit(self: *Self) void {
     self.client.deinit();
+    self.mediaClient.deinit();
     self.alloc.destroy(self);
     self.* = undefined;
 }
@@ -128,14 +135,16 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     const ogImage = try html.find("meta[property=\"og:image\"]");
     if (ogImage.len() > 0) {
         if (ogImage.attr("content")) |content| {
-            nfo.poster = try alloc.dupe(u8, content);
+            const poster = try self.fetchImage(alloc, std.mem.trim(u8, content, &std.ascii.whitespace));
+            nfo.poster = poster;
         }
     }
 
     const fanartSel = try html.find("a[data-fancybox=\"gallery\"]");
     if (fanartSel.len() > 0) {
         if (fanartSel.attr("href")) |href| {
-            nfo.fanart = try alloc.dupe(u8, href);
+            const fanart = try self.fetchImage(alloc, std.mem.trim(u8, href, &std.ascii.whitespace));
+            nfo.fanart = fanart;
         }
     }
 
@@ -176,4 +185,18 @@ fn parseFieldValue(text: []const u8, label: []const u8) ?[]const u8 {
 fn parseRuntime(s: []const u8) ?u32 {
     const end = std.mem.indexOf(u8, s, "分钟") orelse s.len;
     return std.fmt.parseInt(u32, s[0..end], 10) catch null;
+}
+
+fn fetchImage(self: *Self, alloc: Allocator, url: []const u8) ![]const u8 {
+    const uri = try std.Uri.parse(url);
+    var response = try self.mediaClient.fetch(self.alloc, .{
+        .location = .{ .uri = uri },
+    });
+    defer response.deinit();
+    if (response.status != .ok) return error.StatusNotOk;
+
+    const body = try alloc.dupe(u8, response.body);
+    errdefer alloc.free(body);
+
+    return body;
 }
