@@ -80,7 +80,9 @@ fn runTaskInner(self: *Self, task: Task) !void {
         if (builtin.mode == .Debug) {
             var buffer: [4096]u8 = undefined;
             var w = Io.File.stderr().writer(self.io, &buffer);
+            try w.interface.writeAll("*********************\n");
             try writer.format(.normal, &w.interface, &n);
+            try w.interface.writeAll("*********************\n");
             try w.flush();
         }
 
@@ -90,7 +92,9 @@ fn runTaskInner(self: *Self, task: Task) !void {
     if (builtin.mode == .Debug) {
         var buffer: [4096]u8 = undefined;
         var w = Io.File.stderr().writer(self.io, &buffer);
+        try w.interface.writeAll("#####################\n");
         try writer.format(.normal, &w.interface, &nfo);
+        try w.interface.writeAll("#####################\n");
         try w.flush();
     }
 }
