@@ -5,7 +5,6 @@ const provider = @import("root.zig");
 const domain = @import("domain");
 const infra = @import("infra");
 const zq = @import("zigquery");
-const utils = @import("utils");
 
 const Self = @This();
 
@@ -85,9 +84,83 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     var html = try zq.Document.initFromSlice(self.alloc, body);
     defer html.deinit();
 
+    nfo.id = try alloc.dupe(u8, show);
+
     const titleSel = try html.find("h1 strong");
-    const title = try utils.string.trimAll(alloc, try titleSel.text(), " \n\r\t");
-    nfo.title = title;
+    if (cleanTitle(try titleSel.text())) |t| nfo.title = try alloc.dupe(u8, t);
+
+    const directorSel = try html.find("div.director a");
+    if (directorSel.len() > 0) {
+        const director = std.mem.trim(u8, try directorSel.text(), " \n\r\t");
+        nfo.director = try alloc.dupe(u8, director);
+    }
+
+    const genreSel = try html.find("a.genre");
+    var genreIt = genreSel.iterator();
+    while (genreIt.next()) |genreEl| {
+        const g = std.mem.trim(u8, try genreEl.text(), " \n\r\t");
+        try nfo.genres.append(alloc, try alloc.dupe(u8, g));
+    }
+
+    const actressSel = try html.find("a.actress");
+    var actressIt = actressSel.iterator();
+    while (actressIt.next()) |actressEl| {
+        const name = std.mem.trim(u8, try actressEl.text(), " \n\r\t");
+        try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, name) });
+    }
+
+    const cardDivs = try html.find(".card-body > div");
+    var cardIt = cardDivs.iterator();
+    while (cardIt.next()) |div| {
+        const divText = try div.text();
+        if (std.mem.indexOf(u8, divText, "发佈于:") != null) {
+            if (parseFieldValue(divText, "发佈于:")) |val| {
+                const premiered = std.mem.trim(u8, val, " \n\r\t");
+                nfo.premiered = try alloc.dupe(u8, premiered);
+            }
+        } else if (std.mem.indexOf(u8, divText, "时长:") != null) {
+            if (parseFieldValue(divText, "时长:")) |val| {
+                nfo.runtime = parseRuntime(val);
+            }
+        }
+    }
+
+    const ogImage = try html.find("meta[property=\"og:image\"]");
+    if (ogImage.len() > 0) {
+        if (ogImage.attr("content")) |content| {
+            nfo.poster = try alloc.dupe(u8, content);
+        }
+    }
+
+    const fanartSel = try html.find("a[data-fancybox=\"gallery\"]");
+    if (fanartSel.len() > 0) {
+        if (fanartSel.attr("href")) |href| {
+            nfo.fanart = try alloc.dupe(u8, href);
+        }
+    }
+
+    nfo.country = .jp;
 
     return nfo;
+}
+
+fn cleanTitle(raw: []const u8) ?[]const u8 {
+    var it = std.mem.tokenizeAny(u8, raw, " \n\r\t");
+    _ = it.next();
+    const title = it.next() orelse return null;
+
+    return title;
+}
+
+fn parseFieldValue(text: []const u8, label: []const u8) ?[]const u8 {
+    const start = std.mem.indexOf(u8, text, label) orelse return null;
+    const after = text[start + label.len ..];
+    const value = std.mem.trim(u8, after, " \n\r\t");
+    if (value.len == 0) return null;
+    return value;
+}
+
+fn parseRuntime(s: []const u8) ?u32 {
+    const end = std.mem.indexOf(u8, s, "分钟") orelse s.len;
+    return std.fmt.parseInt(u32, s[0..end], 10) catch null;
 }

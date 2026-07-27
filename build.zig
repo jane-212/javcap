@@ -46,16 +46,6 @@ pub fn build(b: *std.Build) void {
         .root_module = infra,
     });
 
-    const utils = b.createModule(.{
-        .root_source_file = b.path("src/utils/root.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-    });
-    const utils_tests = b.addTest(.{
-        .root_module = utils,
-    });
-
     const writer = b.createModule(.{
         .root_source_file = b.path("src/writer/root.zig"),
         .target = target,
@@ -75,7 +65,6 @@ pub fn build(b: *std.Build) void {
     });
     provider.addImport("domain", domain);
     provider.addImport("infra", infra);
-    provider.addImport("utils", utils);
     provider.addImport("zigquery", zigquery.module("zigquery"));
     const provider_tests = b.addTest(.{
         .root_module = provider,
@@ -139,7 +128,6 @@ pub fn build(b: *std.Build) void {
     const run_domain_tests = b.addRunArtifact(domain_tests);
     const run_infra_tests = b.addRunArtifact(infra_tests);
     const run_provider_tests = b.addRunArtifact(provider_tests);
-    const run_utils_tests = b.addRunArtifact(utils_tests);
     const run_writer_tests = b.addRunArtifact(writer_tests);
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
@@ -147,7 +135,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_domain_tests.step);
     test_step.dependOn(&run_infra_tests.step);
     test_step.dependOn(&run_provider_tests.step);
-    test_step.dependOn(&run_utils_tests.step);
     test_step.dependOn(&run_writer_tests.step);
 
     const check_step = b.step("check", "Check compile");
