@@ -114,7 +114,7 @@ fn mergeOptionalField(comptime T: type, self_ptr: *T, other_val: T, alloc: Alloc
 
 fn mergeArrayListField(comptime T: type, self_list: *T, other_list: *T, alloc: Allocator) !void {
     if (other_list.items.len == 0) return;
-    try self_list.ensureUnusedCapacity(other_list.items.len);
+    try self_list.ensureUnusedCapacity(alloc, other_list.items.len);
 
     const ItemT = std.meta.Child(@TypeOf(self_list.items));
     for (other_list.items) |item| {
@@ -153,5 +153,5 @@ fn isOptional(comptime T: type) bool {
 
 fn isArrayList(comptime T: type) bool {
     if (@typeInfo(T) != .@"struct") return false;
-    return @hasField(T, "items") and @hasField(T, "allocator") and @hasField(T, "capacity");
+    return @hasField(T, "items") and @hasDecl(T, "ensureUnusedCapacity") and @hasDecl(T, "appendAssumeCapacity");
 }
