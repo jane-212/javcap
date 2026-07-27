@@ -106,6 +106,7 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     var actressIt = actressSel.iterator();
     while (actressIt.next()) |actressEl| {
         const name = std.mem.trim(u8, try actressEl.text(), " \n\r\t");
+        if (name.len == 0) continue;
         try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, name) });
     }
 
@@ -115,8 +116,7 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
         const divText = try div.text();
         if (std.mem.indexOf(u8, divText, "发佈于:") != null) {
             if (parseFieldValue(divText, "发佈于:")) |val| {
-                const premiered = std.mem.trim(u8, val, " \n\r\t");
-                nfo.premiered = try alloc.dupe(u8, premiered);
+                nfo.premiered = try alloc.dupe(u8, val);
             }
         } else if (std.mem.indexOf(u8, divText, "时长:") != null) {
             if (parseFieldValue(divText, "时长:")) |val| {
@@ -154,10 +154,13 @@ fn cleanTitle(raw: []const u8) ?[]const u8 {
 
 fn parseFieldValue(text: []const u8, label: []const u8) ?[]const u8 {
     const start = std.mem.indexOf(u8, text, label) orelse return null;
-    const after = text[start + label.len ..];
-    const value = std.mem.trim(u8, after, " \n\r\t");
-    if (value.len == 0) return null;
-    return value;
+    var after = text[start + label.len ..];
+    after = std.mem.trim(u8, after, " \n\r\t");
+    while (after.len >= 2 and after[0] == 0xC2 and after[1] == 0xA0) {
+        after = std.mem.trim(u8, after[2..], " \n\r\t");
+    }
+    if (after.len == 0) return null;
+    return after;
 }
 
 fn parseRuntime(s: []const u8) ?u32 {
