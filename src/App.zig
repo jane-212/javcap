@@ -112,15 +112,21 @@ fn loadAllSources(self: *Self, alloc: Allocator) ![]Task {
         }
 
         for (entries) |entry| {
-            const parsedFile = try media.FileParser.parse(alloc, entry.path);
+            var pushed = false;
+            var parsedFile = try media.FileParser.parse(alloc, entry.path);
+            errdefer if (!pushed) parsedFile.deinit();
             const path = try alloc.dupe(u8, entry.path);
+            errdefer if (!pushed) alloc.free(path);
+            const to = try alloc.dupe(u8, source.to);
+            errdefer if (!pushed) alloc.free(to);
 
             try tasks.append(alloc, .{
                 .alloc = alloc,
-                .type = entry.type,
                 .file = parsedFile,
                 .path = path,
+                .to = to,
             });
+            pushed = true;
         }
     }
     const ownedTasks = try tasks.toOwnedSlice(alloc);
@@ -143,12 +149,13 @@ fn waitForEnter(self: *const Self) !void {
 
 const Task = struct {
     alloc: Allocator,
-    type: domain.storage.Type,
     file: media.FileParser.ParsedFile,
     path: []const u8,
+    to: []const u8,
 
     pub fn deinit(self: *Task) void {
         self.alloc.free(self.path);
+        self.alloc.free(self.to);
         self.file.deinit();
         self.* = undefined;
     }
