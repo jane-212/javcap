@@ -146,10 +146,20 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
 
 fn cleanTitle(raw: []const u8) ?[]const u8 {
     var it = std.mem.tokenizeAny(u8, raw, " \n\r\t");
-    _ = it.next();
-    const title = it.next() orelse return null;
+    _ = it.next() orelse return null;
+    const start = it.next() orelse return null;
 
-    return title;
+    var prev = start;
+    var cur = start;
+    while (it.next()) |token| {
+        prev = cur;
+        cur = token;
+    }
+    if (@intFromPtr(prev.ptr) == @intFromPtr(cur.ptr)) return null;
+
+    const start_idx = @intFromPtr(start.ptr) - @intFromPtr(raw.ptr);
+    const end_idx = @intFromPtr(prev.ptr) - @intFromPtr(raw.ptr) + prev.len;
+    return raw[start_idx..end_idx];
 }
 
 fn parseFieldValue(text: []const u8, label: []const u8) ?[]const u8 {
