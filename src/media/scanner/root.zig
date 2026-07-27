@@ -8,6 +8,7 @@ pub fn load(alloc: Allocator, io: Io, t: domain.storage.Type) !Scanner {
     return switch (t) {
         .local => {
             var localScanner = try LocalScanner.init(alloc, io);
+            errdefer localScanner.deinit();
             return localScanner.asScanner();
         },
     };

@@ -64,7 +64,10 @@ pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const
     defer walker.deinit();
 
     var entries: std.ArrayList(scanner.Entry) = .empty;
-    defer entries.deinit(self.alloc);
+    defer {
+        for (entries.items) |*e| e.deinit(self.alloc);
+        entries.deinit(self.alloc);
+    }
 
     while (try walker.next(self.io)) |entry| {
         if (entry.kind != .file) continue;
@@ -75,13 +78,22 @@ pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const
         const ext = if (extWithDot.len == 0) extWithDot else extWithDot[1..];
         if (!scanner.matchExts(ext, exts)) continue;
 
+        var pushed = false;
         const absolutePath = try std.fs.path.join(alloc, &.{ path, p });
+        errdefer if (!pushed) alloc.free(absolutePath);
 
         try entries.append(self.alloc, .{
             .type = .local,
             .path = absolutePath,
         });
+        pushed = true;
     }
 
-    return entries.toOwnedSlice(alloc);
+    const ownedEntries = try entries.toOwnedSlice(alloc);
+    defer {
+        for (ownedEntries) |*e| e.deinit(alloc);
+        alloc.free(ownedEntries);
+    }
+
+    return ownedEntries;
 }
