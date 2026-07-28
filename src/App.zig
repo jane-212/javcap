@@ -7,6 +7,7 @@ const domain = @import("domain");
 const provider = @import("provider");
 const writer = @import("writer");
 const builtin = @import("builtin");
+const storage = @import("storage");
 
 const Self = @This();
 
@@ -38,27 +39,32 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn start(self: *Self) !void {
-    const tasks = try self.loadAllSources(self.alloc);
-    defer {
-        for (tasks) |*t| t.deinit();
-        self.alloc.free(tasks);
+    for (self.config.sources) |source| {
+        try self.run(source);
     }
-
-    var group: Io.Group = .init;
-    defer group.cancel(self.io);
-
-    for (tasks) |task| {
-        try self.semaphore.wait(self.io);
-
-        try group.concurrent(self.io, Self.runTask, .{ self, task });
-    }
-
-    try group.await(self.io);
 
     if (self.config.pause_after_finish) try self.waitForEnter();
 }
 
-fn runTask(self: *Self, task: Task) void {
+fn run(self: *Self, source: Config.Source) !void {
+    const backend = try storage.load(self.alloc, self.io, source.type);
+    defer backend.deinit();
+
+    var manager = try self.loadSource(self.alloc, source, backend);
+    defer manager.deinit(self.alloc);
+
+    var group: Io.Group = .init;
+    defer group.cancel(self.io);
+
+    for (manager.tasks) |task| {
+        try self.semaphore.wait(self.io);
+        try group.concurrent(self.io, Self.runTask, .{ self, task });
+    }
+
+    try group.await(self.io);
+}
+
+pub fn runTask(self: *Self, task: Task) void {
     defer self.semaphore.post(self.io);
     self.runTaskInner(task) catch |err| switch (err) {
         else => {},
@@ -99,43 +105,38 @@ fn runTaskInner(self: *Self, task: Task) !void {
     }
 }
 
-fn loadAllSources(self: *Self, alloc: Allocator) ![]Task {
+fn loadSource(self: *Self, alloc: Allocator, source: Config.Source, backend: storage.Storage) !Manager {
     var tasks: std.ArrayList(Task) = .empty;
-    for (self.config.sources) |source| {
-        const scanner = try media.scanner.load(self.alloc, self.io, source.type);
-        defer scanner.deinit();
+    defer tasks.deinit(self.alloc);
+    errdefer for (tasks.items) |*t| t.deinit(alloc);
 
-        const entries = try scanner.scan(self.alloc, source.from, source.exts);
-        defer {
-            for (entries) |*e| e.deinit(self.alloc);
-            self.alloc.free(entries);
-        }
+    const scanner = try media.Scanner.init(self.alloc, self.io, backend);
 
-        for (entries) |entry| {
-            var pushed = false;
-            var parsedFile = try media.FileParser.parse(alloc, entry.path);
-            errdefer if (!pushed) parsedFile.deinit();
-            const path = try alloc.dupe(u8, entry.path);
-            errdefer if (!pushed) alloc.free(path);
-            const to = try alloc.dupe(u8, source.to);
-            errdefer if (!pushed) alloc.free(to);
-
-            try tasks.append(alloc, .{
-                .alloc = alloc,
-                .file = parsedFile,
-                .path = path,
-                .to = to,
-            });
-            pushed = true;
-        }
-    }
-    const ownedTasks = try tasks.toOwnedSlice(alloc);
-    errdefer {
-        for (ownedTasks) |*t| t.deinit();
-        alloc.free(ownedTasks);
+    const entries = try scanner.scan(self.alloc, source.from, source.exts);
+    defer {
+        for (entries) |*e| e.deinit(self.alloc);
+        self.alloc.free(entries);
     }
 
-    return ownedTasks;
+    for (entries) |entry| {
+        var parsedFile = try media.FileParser.parse(alloc, entry.path);
+        errdefer parsedFile.deinit();
+        const path = try alloc.dupe(u8, entry.path);
+        errdefer alloc.free(path);
+        const to = try alloc.dupe(u8, source.to);
+        errdefer alloc.free(to);
+
+        try tasks.append(self.alloc, .{
+            .file = parsedFile,
+            .path = path,
+            .to = to,
+        });
+    }
+
+    return .{
+        .backend = backend,
+        .tasks = try tasks.toOwnedSlice(alloc),
+    };
 }
 
 fn waitForEnter(self: *const Self) !void {
@@ -148,15 +149,26 @@ fn waitForEnter(self: *const Self) !void {
 }
 
 const Task = struct {
-    alloc: Allocator,
     file: media.FileParser.ParsedFile,
     path: []const u8,
     to: []const u8,
 
-    pub fn deinit(self: *Task) void {
-        self.alloc.free(self.path);
-        self.alloc.free(self.to);
+    pub fn deinit(self: *Task, alloc: Allocator) void {
+        alloc.free(self.path);
+        alloc.free(self.to);
         self.file.deinit();
+        self.* = undefined;
+    }
+};
+
+const Manager = struct {
+    backend: storage.Storage,
+    tasks: []Task,
+
+    pub fn deinit(self: *Manager, alloc: Allocator) void {
+        for (self.tasks) |*t| t.deinit(alloc);
+        alloc.free(self.tasks);
+        self.backend.deinit();
         self.* = undefined;
     }
 };

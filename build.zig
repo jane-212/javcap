@@ -105,6 +105,7 @@ pub fn build(b: *std.Build) void {
     mod.addImport("domain", domain);
     mod.addImport("provider", provider);
     mod.addImport("writer", writer);
+    mod.addImport("storage", storage);
     mod.addImport("known-folders", known_folders.module("known-folders"));
     const mod_tests = b.addTest(.{
         .root_module = mod,
