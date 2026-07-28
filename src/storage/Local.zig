@@ -72,7 +72,7 @@ pub fn asStorage(self: *Self) storage.Storage {
             ptr: *anyopaque,
             old: []const u8,
             new: []const u8,
-        ) !storage.FileType {
+        ) !void {
             const s: *Self = @ptrCast(@alignCast(ptr));
             return s.rename(old, new);
         }
@@ -110,17 +110,15 @@ pub fn walk(self: *Self, alloc: Allocator, path: []const u8) !storage.Walker {
     var stack = try std.ArrayList(storage.Entry).initCapacity(alloc, 8);
     errdefer stack.deinit(alloc);
 
+    const p = try alloc.dupe(u8, path);
+    errdefer alloc.free(p);
+
     try stack.append(alloc, .{
-        .alloc = alloc,
         .fileType = try self.stats(path),
-        .path = path,
+        .path = p,
     });
 
-    return .{
-        .alloc = alloc,
-        .storage = self,
-        .stack = stack,
-    };
+    return .init(alloc, self.asStorage());
 }
 
 pub fn list(self: *Self, alloc: Allocator, path: []const u8) ![]storage.Entry {
@@ -128,16 +126,15 @@ pub fn list(self: *Self, alloc: Allocator, path: []const u8) ![]storage.Entry {
     defer root.close(self.io);
 
     var entries = try std.ArrayList(storage.Entry).initCapacity(self.alloc, 8);
-    errdefer for (entries.items) |*e| e.deinit();
+    errdefer for (entries.items) |*e| e.deinit(alloc);
     defer entries.deinit(self.alloc);
 
-    const it = root.iterate();
+    var it = root.iterate();
     while (try it.next(self.io)) |entry| {
-        const p = try std.fs.path.join(self.alloc, .{ path, entry.name });
-        errdefer self.alloc.free(p);
+        const p = try std.fs.path.join(alloc, &.{ path, entry.name });
+        defer alloc.free(p);
 
         try entries.append(self.alloc, .{
-            .alloc = alloc,
             .fileType = try self.stats(p),
             .path = p,
         });
@@ -155,7 +152,7 @@ pub fn stats(self: *Self, path: []const u8) !storage.FileType {
     }
 }
 
-pub fn rename(self: *Self, old: []const u8, new: []const u8) !storage.FileType {
+pub fn rename(self: *Self, old: []const u8, new: []const u8) !void {
     _ = self;
     _ = old;
     _ = new;
