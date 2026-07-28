@@ -26,6 +26,37 @@ pub const Storage = struct {
         return self.vtable.write(self.ptr, path, content);
     }
 
+    pub fn walk(
+        self: Storage,
+        alloc: Allocator,
+        path: []const u8,
+    ) !Walker {
+        return self.vtable.walk(self.ptr, alloc, path);
+    }
+
+    pub fn list(
+        self: Storage,
+        alloc: Allocator,
+        path: []const u8,
+    ) ![]Entry {
+        return self.vtable.list(self.ptr, alloc, path);
+    }
+
+    pub fn stats(
+        self: Storage,
+        path: []const u8,
+    ) !FileType {
+        return self.vtable.stats(self.ptr, path);
+    }
+
+    pub fn rename(
+        self: Storage,
+        old: []const u8,
+        new: []const u8,
+    ) !FileType {
+        return self.vtable.rename(self.ptr, old, new);
+    }
+
     pub fn deinit(self: Storage) void {
         self.vtable.deinit(self.ptr);
     }
@@ -38,7 +69,84 @@ pub const VTable = struct {
         []const u8,
     ) anyerror!void,
 
+    walk: *const fn (
+        *anyopaque,
+        Allocator,
+        []const u8,
+    ) anyerror!Walker,
+
+    list: *const fn (
+        *anyopaque,
+        Allocator,
+        []const u8,
+    ) anyerror![]Entry,
+
+    stats: *const fn (
+        *anyopaque,
+        []const u8,
+    ) anyerror!FileType,
+
+    rename: *const fn (
+        *anyopaque,
+        []const u8,
+        []const u8,
+    ) anyerror!void,
+
     deinit: *const fn (*anyopaque) void,
+};
+
+pub const Walker = struct {
+    alloc: Allocator,
+    stack: std.ArrayList(Entry),
+    storage: *Storage,
+
+    pub fn next(self: *Walker) ?Entry {
+        while (self.stack.items.len > 0) {
+            const top = self.stack.pop() orelse return null;
+
+            if (top.fileType == .other) continue;
+
+            if (top.fileType == .dir) {
+                const children = self.storage.list(self.alloc, top.path) catch {
+                    top.deinit();
+                    continue;
+                };
+                defer self.alloc.free(children);
+
+                for (children) |c| self.stack.append(self.alloc, c) catch {
+                    c.deinit();
+                    continue;
+                };
+            }
+
+            return top;
+        }
+
+        return null;
+    }
+
+    pub fn deinit(self: *Walker) void {
+        for (self.stack.items) |*e| e.deinit();
+        self.stack.deinit(self.alloc);
+        self.* = undefined;
+    }
+};
+
+pub const Entry = struct {
+    alloc: Allocator,
+    path: []const u8,
+    fileType: FileType,
+
+    pub fn deinit(self: Entry) void {
+        self.alloc.free(self.path);
+        self.* = undefined;
+    }
+};
+
+pub const FileType = enum {
+    file,
+    dir,
+    other,
 };
 
 test {
