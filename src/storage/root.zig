@@ -100,23 +100,19 @@ pub const Walker = struct {
     stack: std.ArrayList(Entry),
     storage: *Storage,
 
-    pub fn next(self: *Walker) ?Entry {
+    pub fn next(self: *Walker) !?Entry {
         while (self.stack.items.len > 0) {
             const top = self.stack.pop() orelse return null;
+            errdefer top.deinit();
 
             if (top.fileType == .other) continue;
 
             if (top.fileType == .dir) {
-                const children = self.storage.list(self.alloc, top.path) catch {
-                    top.deinit();
-                    continue;
-                };
+                const children = try self.storage.list(self.alloc, top.path);
+                errdefer for (children) |*c| c.deinit();
                 defer self.alloc.free(children);
 
-                for (children) |c| self.stack.append(self.alloc, c) catch {
-                    c.deinit();
-                    continue;
-                };
+                for (children) |c| try self.stack.append(self.alloc, c);
             }
 
             return top;

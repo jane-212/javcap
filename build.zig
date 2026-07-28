@@ -88,6 +88,7 @@ pub fn build(b: *std.Build) void {
         .strip = strip,
     });
     media.addImport("domain", domain);
+    media.addImport("storage", storage);
     media.addImport("mecha", mecha.module("mecha"));
     const media_tests = b.addTest(.{
         .root_module = media,

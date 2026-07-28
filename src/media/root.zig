@@ -1,7 +1,7 @@
 pub const FileParser = @import("FileParser.zig");
-pub const scanner = @import("scanner/root.zig");
+pub const Scanner = @import("Scanner.zig");
 
 test {
     _ = @import("FileParser.zig");
-    _ = @import("scanner/root.zig");
+    _ = @import("Scanner.zig");
 }
