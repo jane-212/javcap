@@ -1,7 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
-const domain = @import("domain");
 const storage = @import("storage");
 
 const Self = @This();
@@ -23,12 +22,10 @@ pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const
     defer walker.deinit();
 
     var entries: std.ArrayList(Entry) = .empty;
-    defer {
-        for (entries.items) |*e| e.deinit(self.alloc);
-        entries.deinit(self.alloc);
-    }
+    errdefer for (entries.items) |*e| e.deinit(alloc);
+    defer entries.deinit(self.alloc);
 
-    while (try walker.next()) |entry| {
+    while (try walker.next()) |*entry| {
         if (entry.fileType != .file) continue;
 
         const p = entry.path;

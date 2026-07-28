@@ -97,12 +97,14 @@ pub const VTable = struct {
 pub const Walker = struct {
     alloc: Allocator,
     stack: std.ArrayList(Entry),
+    store: std.ArrayList(Entry),
     storage: Storage,
 
     pub fn init(alloc: Allocator, storage: Storage) !Walker {
         return .{
             .alloc = alloc,
             .stack = try std.ArrayList(Entry).initCapacity(alloc, 8),
+            .store = try std.ArrayList(Entry).initCapacity(alloc, 8),
             .storage = storage,
         };
     }
@@ -111,6 +113,8 @@ pub const Walker = struct {
         while (self.stack.items.len > 0) {
             var top = self.stack.pop() orelse return null;
             errdefer top.deinit(self.alloc);
+
+            try self.store.append(self.alloc, top);
 
             if (top.fileType == .dir) {
                 const children = try self.storage.list(self.alloc, top.path);
@@ -129,6 +133,8 @@ pub const Walker = struct {
     pub fn deinit(self: *Walker) void {
         for (self.stack.items) |*e| e.deinit(self.alloc);
         self.stack.deinit(self.alloc);
+        for (self.store.items) |*e| e.deinit(self.alloc);
+        self.store.deinit(self.alloc);
         self.* = undefined;
     }
 };
