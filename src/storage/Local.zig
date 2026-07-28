@@ -99,9 +99,10 @@ pub fn asStorage(self: *Self) storage.Storage {
 }
 
 pub fn write(self: *Self, path: []const u8, content: []const u8) !void {
-    _ = self;
-    _ = path;
-    _ = content;
+    try self.cwd.writeFile(self.io, .{
+        .sub_path = path,
+        .data = content,
+    });
 }
 
 pub fn walk(self: *Self, alloc: Allocator, path: []const u8) !storage.Walker {
@@ -151,7 +152,5 @@ pub fn stats(self: *Self, path: []const u8) !storage.FileType {
 }
 
 pub fn rename(self: *Self, old: []const u8, new: []const u8) !void {
-    _ = self;
-    _ = old;
-    _ = new;
+    try self.cwd.rename(old, self.cwd, new, self.io);
 }
