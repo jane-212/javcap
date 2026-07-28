@@ -5,13 +5,12 @@ const domain = @import("domain");
 const Local = @import("Local.zig");
 
 pub fn load(alloc: Allocator, io: Io, t: domain.storage.Type) !Storage {
-    return switch (t) {
+    switch (t) {
         .local => {
             var localStorage = try Local.init(alloc, io);
-            errdefer localStorage.deinit();
             return localStorage.asStorage();
         },
-    };
+    }
 }
 
 pub const Storage = struct {
@@ -100,16 +99,22 @@ pub const Walker = struct {
     stack: std.ArrayList(Entry),
     storage: *Storage,
 
+    pub fn init(alloc: Allocator, storage: *Storage) Walker {
+        return .{
+            .alloc = alloc,
+            .stack = std.ArrayList(Entry).initCapacity(alloc, 8),
+            .storage = storage,
+        };
+    }
+
     pub fn next(self: *Walker) !?Entry {
         while (self.stack.items.len > 0) {
-            const top = self.stack.pop() orelse return null;
-            errdefer top.deinit();
-
-            if (top.fileType == .other) continue;
+            var top = self.stack.pop() orelse return null;
+            errdefer top.deinit(self.alloc);
 
             if (top.fileType == .dir) {
                 const children = try self.storage.list(self.alloc, top.path);
-                errdefer for (children) |*c| c.deinit();
+                errdefer for (children) |*c| c.deinit(self.alloc);
                 defer self.alloc.free(children);
 
                 for (children) |c| try self.stack.append(self.alloc, c);
@@ -122,19 +127,18 @@ pub const Walker = struct {
     }
 
     pub fn deinit(self: *Walker) void {
-        for (self.stack.items) |*e| e.deinit();
+        for (self.stack.items) |*e| e.deinit(self.alloc);
         self.stack.deinit(self.alloc);
         self.* = undefined;
     }
 };
 
 pub const Entry = struct {
-    alloc: Allocator,
     path: []const u8,
     fileType: FileType,
 
-    pub fn deinit(self: Entry) void {
-        self.alloc.free(self.path);
+    pub fn deinit(self: *Entry, alloc: Allocator) void {
+        alloc.free(self.path);
         self.* = undefined;
     }
 };
