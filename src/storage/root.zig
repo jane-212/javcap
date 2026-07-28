@@ -109,6 +109,10 @@ pub const Walker = struct {
         };
     }
 
+    pub fn push(self: *Walker, entry: Entry) !void {
+        try self.stack.append(self.alloc, entry);
+    }
+
     pub fn next(self: *Walker) !?Entry {
         while (self.stack.items.len > 0) {
             var top = self.stack.pop() orelse return null;

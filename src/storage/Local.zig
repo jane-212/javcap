@@ -14,7 +14,6 @@ pub fn init(alloc: Allocator, io: Io) !*Self {
     errdefer alloc.destroy(self);
 
     const cwd = Io.Dir.cwd();
-    errdefer cwd.close(io);
 
     self.* = .{
         .alloc = alloc,
@@ -26,7 +25,6 @@ pub fn init(alloc: Allocator, io: Io) !*Self {
 }
 
 pub fn deinit(self: *Self) void {
-    self.cwd.close(self.io);
     self.alloc.destroy(self);
     self.* = undefined;
 }
@@ -107,18 +105,18 @@ pub fn write(self: *Self, path: []const u8, content: []const u8) !void {
 }
 
 pub fn walk(self: *Self, alloc: Allocator, path: []const u8) !storage.Walker {
-    var stack = try std.ArrayList(storage.Entry).initCapacity(alloc, 8);
-    errdefer stack.deinit(alloc);
+    var walker = try storage.Walker.init(alloc, self.asStorage());
+    errdefer walker.deinit();
 
     const p = try alloc.dupe(u8, path);
     errdefer alloc.free(p);
 
-    try stack.append(alloc, .{
+    try walker.push(.{
         .fileType = try self.stats(path),
         .path = p,
     });
 
-    return .init(alloc, self.asStorage());
+    return walker;
 }
 
 pub fn list(self: *Self, alloc: Allocator, path: []const u8) ![]storage.Entry {
@@ -132,7 +130,7 @@ pub fn list(self: *Self, alloc: Allocator, path: []const u8) ![]storage.Entry {
     var it = root.iterate();
     while (try it.next(self.io)) |entry| {
         const p = try std.fs.path.join(alloc, &.{ path, entry.name });
-        defer alloc.free(p);
+        errdefer alloc.free(p);
 
         try entries.append(self.alloc, .{
             .fileType = try self.stats(p),

@@ -168,7 +168,6 @@ const Manager = struct {
     pub fn deinit(self: *Manager, alloc: Allocator) void {
         for (self.tasks) |*t| t.deinit(alloc);
         alloc.free(self.tasks);
-        self.backend.deinit();
         self.* = undefined;
     }
 };
