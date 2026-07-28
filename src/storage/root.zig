@@ -97,12 +97,12 @@ pub const VTable = struct {
 pub const Walker = struct {
     alloc: Allocator,
     stack: std.ArrayList(Entry),
-    storage: *Storage,
+    storage: Storage,
 
-    pub fn init(alloc: Allocator, storage: *Storage) Walker {
+    pub fn init(alloc: Allocator, storage: Storage) !Walker {
         return .{
             .alloc = alloc,
-            .stack = std.ArrayList(Entry).initCapacity(alloc, 8),
+            .stack = try std.ArrayList(Entry).initCapacity(alloc, 8),
             .storage = storage,
         };
     }
