@@ -8,17 +8,17 @@ const Self = @This();
 pub const ParsedFile = struct {
     alloc: Allocator,
     key: domain.jav.Key,
-    name: []const u8,
+    ext: []const u8,
 
     pub fn deinit(self: *ParsedFile) void {
-        self.alloc.free(self.name);
+        self.alloc.free(self.ext);
         self.key.deinit(self.alloc);
         self.* = undefined;
     }
 };
 
 pub fn parse(alloc: Allocator, filePath: []const u8) !ParsedFile {
-    const name = std.fs.path.basename(filePath);
+    const ext = std.fs.path.extension(filePath);
     const stem = std.fs.path.stem(filePath);
     const upper = try std.ascii.allocUpperString(alloc, stem);
     defer alloc.free(upper);
@@ -38,7 +38,7 @@ pub fn parse(alloc: Allocator, filePath: []const u8) !ParsedFile {
 
     return .{
         .alloc = alloc,
-        .name = try alloc.dupe(u8, name),
+        .ext = try alloc.dupe(u8, ext),
         .key = parsedKey,
     };
 }

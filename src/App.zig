@@ -47,35 +47,35 @@ pub fn start(self: *Self) !void {
 }
 
 fn run(self: *Self, source: Config.Source) !void {
-    const backend = try storage.load(self.alloc, self.io, source.type);
+    var arena: std.heap.ArenaAllocator = .init(self.alloc);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    const backend = try storage.load(alloc, self.io, source.type);
     defer backend.deinit();
 
-    var manager = try self.loadSource(self.alloc, source, backend);
-    defer manager.deinit(self.alloc);
+    var manager = try self.loadSource(alloc, source, backend);
+    defer manager.deinit(alloc);
 
     var group: Io.Group = .init;
     defer group.cancel(self.io);
 
     for (manager.tasks) |task| {
         try self.semaphore.wait(self.io);
-        try group.concurrent(self.io, Self.runTask, .{ self, task });
+        try group.concurrent(self.io, Self.runTask, .{ self, alloc, backend, task });
     }
 
     try group.await(self.io);
 }
 
-pub fn runTask(self: *Self, task: Task) void {
+pub fn runTask(self: *Self, alloc: Allocator, backend: storage.Storage, task: Task) void {
     defer self.semaphore.post(self.io);
-    self.runTaskInner(task) catch |err| switch (err) {
+    self.runTaskInner(alloc, backend, task) catch |err| switch (err) {
         else => {},
     };
 }
 
-fn runTaskInner(self: *Self, task: Task) !void {
-    var arena: std.heap.ArenaAllocator = .init(self.alloc);
-    defer arena.deinit();
-    const alloc = arena.allocator();
-
+fn runTaskInner(self: *Self, alloc: Allocator, backend: storage.Storage, task: Task) !void {
     var nfo = try domain.Nfo.init(alloc);
     defer nfo.deinit();
 
@@ -102,6 +102,64 @@ fn runTaskInner(self: *Self, task: Task) !void {
         try writer.format(.normal, &w.interface, &nfo);
         try w.interface.writeAll("#####################\n");
         try w.flush();
+    }
+
+    try writeTo(alloc, backend, &task, &nfo);
+}
+
+fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !void {
+    const show = try task.file.key.show(alloc);
+    defer alloc.free(show);
+    const to = task.to;
+
+    try backend.createDir(to);
+
+    if (nfo.poster) |p| try writeFile(.poster, alloc, backend, show, to, p);
+    if (nfo.fanart) |f| try writeFile(.fanart, alloc, backend, show, to, f);
+    if (nfo.subtitle) |s| try writeFile(.subtitle, alloc, backend, show, to, s);
+
+    var buffer = Io.Writer.Allocating.init(alloc);
+    defer buffer.deinit();
+    const w = &buffer.writer;
+    try writer.format(.xml, w, nfo);
+    const n = buffer.written();
+    try writeFile(.nfo, alloc, backend, show, to, n);
+
+    const mediaToName = try std.fmt.allocPrint(alloc, "{s}.{s}", .{ show, task.file.ext });
+    defer alloc.free(mediaToName);
+
+    const mediaTo = try std.fs.path.join(alloc, &.{ to, mediaToName });
+    defer alloc.free(mediaTo);
+
+    try backend.rename(
+        task.path,
+        mediaTo,
+    );
+}
+
+const WriteType = enum {
+    poster,
+    fanart,
+    nfo,
+    subtitle,
+};
+
+fn writeFile(comptime t: WriteType, alloc: Allocator, backend: storage.Storage, show: []const u8, to: []const u8, content: []const u8) !void {
+    const fileName = try getFileName(t, alloc, show);
+    defer alloc.free(fileName);
+
+    const path = try std.fs.path.join(alloc, &.{ to, fileName });
+    defer alloc.free(path);
+
+    try backend.write(path, content);
+}
+
+fn getFileName(comptime t: WriteType, alloc: Allocator, show: []const u8) ![]const u8 {
+    switch (t) {
+        .poster => return std.fmt.allocPrint(alloc, "{s}-poster.jpg", .{show}),
+        .fanart => return std.fmt.allocPrint(alloc, "{s}-fanart.jpg", .{show}),
+        .nfo => return std.fmt.allocPrint(alloc, "{s}.nfo", .{show}),
+        .subtitle => return std.fmt.allocPrint(alloc, "{s}.srt", .{show}),
     }
 }
 
@@ -134,7 +192,6 @@ fn loadSource(self: *Self, alloc: Allocator, source: Config.Source, backend: sto
     }
 
     return .{
-        .backend = backend,
         .tasks = try tasks.toOwnedSlice(alloc),
     };
 }
@@ -162,7 +219,6 @@ const Task = struct {
 };
 
 const Manager = struct {
-    backend: storage.Storage,
     tasks: []Task,
 
     pub fn deinit(self: *Manager, alloc: Allocator) void {

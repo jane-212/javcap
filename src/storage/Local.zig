@@ -75,6 +75,14 @@ pub fn asStorage(self: *Self) storage.Storage {
             return s.rename(old, new);
         }
 
+        fn createDirInner(
+            ptr: *anyopaque,
+            path: []const u8,
+        ) !void {
+            const s: *Self = @ptrCast(@alignCast(ptr));
+            return s.createDir(path);
+        }
+
         fn deinitInner(
             ptr: *anyopaque,
         ) void {
@@ -88,6 +96,7 @@ pub fn asStorage(self: *Self) storage.Storage {
             .list = listInner,
             .stats = statsInner,
             .rename = renameInner,
+            .createDir = createDirInner,
             .deinit = deinitInner,
         };
     };
@@ -153,4 +162,8 @@ pub fn stats(self: *Self, path: []const u8) !storage.FileType {
 
 pub fn rename(self: *Self, old: []const u8, new: []const u8) !void {
     try self.cwd.rename(old, self.cwd, new, self.io);
+}
+
+pub fn createDir(self: *Self, path: []const u8) !void {
+    try self.cwd.createDirPath(self.io, path);
 }

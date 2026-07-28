@@ -56,6 +56,13 @@ pub const Storage = struct {
         return self.vtable.rename(self.ptr, old, new);
     }
 
+    pub fn createDir(
+        self: Storage,
+        path: []const u8,
+    ) !void {
+        return self.vtable.createDir(self.ptr, path);
+    }
+
     pub fn deinit(self: Storage) void {
         self.vtable.deinit(self.ptr);
     }
@@ -88,6 +95,11 @@ pub const VTable = struct {
     rename: *const fn (
         *anyopaque,
         []const u8,
+        []const u8,
+    ) anyerror!void,
+
+    createDir: *const fn (
+        *anyopaque,
         []const u8,
     ) anyerror!void,
 
