@@ -47,35 +47,35 @@ pub fn start(self: *Self) !void {
 }
 
 fn run(self: *Self, source: Config.Source) !void {
-    var arena: std.heap.ArenaAllocator = .init(self.alloc);
-    defer arena.deinit();
-    const alloc = arena.allocator();
-
-    const backend = try storage.load(alloc, self.io, source.type);
+    const backend = try storage.load(self.alloc, self.io, source.type);
     defer backend.deinit();
 
-    var manager = try self.loadSource(alloc, source, backend);
-    defer manager.deinit(alloc);
+    var manager = try self.loadSource(self.alloc, source, backend);
+    defer manager.deinit(self.alloc);
 
     var group: Io.Group = .init;
     defer group.cancel(self.io);
 
     for (manager.tasks) |task| {
         try self.semaphore.wait(self.io);
-        try group.concurrent(self.io, Self.runTask, .{ self, alloc, backend, task });
+        try group.concurrent(self.io, Self.runTask, .{ self, backend, task });
     }
 
     try group.await(self.io);
 }
 
-pub fn runTask(self: *Self, alloc: Allocator, backend: storage.Storage, task: Task) void {
+pub fn runTask(self: *Self, backend: storage.Storage, task: Task) void {
     defer self.semaphore.post(self.io);
-    self.runTaskInner(alloc, backend, task) catch |err| switch (err) {
+    self.runTaskInner(backend, task) catch |err| switch (err) {
         else => {},
     };
 }
 
-fn runTaskInner(self: *Self, alloc: Allocator, backend: storage.Storage, task: Task) !void {
+fn runTaskInner(self: *Self, backend: storage.Storage, task: Task) !void {
+    var arena: std.heap.ArenaAllocator = .init(self.alloc);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
     var nfo = try domain.Nfo.init(alloc);
     defer nfo.deinit();
 
