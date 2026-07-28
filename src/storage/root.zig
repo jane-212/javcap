@@ -52,7 +52,7 @@ pub const Storage = struct {
         self: Storage,
         old: []const u8,
         new: []const u8,
-    ) !FileType {
+    ) !void {
         return self.vtable.rename(self.ptr, old, new);
     }
 
