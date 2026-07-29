@@ -49,14 +49,25 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn start(self: *Self) !void {
+    var group: Io.Group = .init;
+    defer group.cancel(self.io);
+
     for (self.config.sources) |source| {
-        try self.run(source);
+        try group.concurrent(self.io, Self.run, .{ self, source });
     }
+
+    try group.await(self.io);
 
     if (self.config.pause_after_finish) try self.waitForEnter();
 }
 
-fn run(self: *Self, source: Config.Source) !void {
+fn run(self: *Self, source: Config.Source) void {
+    self.runInner(source) catch |err| switch (err) {
+        else => {},
+    };
+}
+
+fn runInner(self: *Self, source: Config.Source) !void {
     const backend = try storage.load(self.alloc, self.io, source.type);
     defer backend.deinit();
 
