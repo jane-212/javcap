@@ -125,9 +125,8 @@ fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *
     const n = buffer.written();
     try writeFile(.nfo, alloc, backend, show, to, n);
 
-    const mediaToName = try std.fmt.allocPrint(alloc, "{s}{s}{s}", .{
+    const mediaToName = try std.fmt.allocPrint(alloc, "{s}{s}", .{
         show,
-        if (task.file.ext.len > 0) "." else "",
         task.file.ext,
     });
     defer alloc.free(mediaToName);
