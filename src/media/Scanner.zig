@@ -34,7 +34,7 @@ pub fn scan(self: *const Self, alloc: Allocator, path: []const u8, exts: []const
         const ext = if (extWithDot.len == 0) extWithDot else extWithDot[1..];
         if (!matchExts(ext, exts)) continue;
 
-        const absolutePath = try std.fs.path.join(alloc, &.{ path, p });
+        const absolutePath = try alloc.dupe(u8, p);
         errdefer alloc.free(absolutePath);
 
         try entries.append(self.alloc, .{
