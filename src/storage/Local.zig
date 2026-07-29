@@ -173,5 +173,5 @@ pub fn rename(self: *Self, old: []const u8, new: []const u8) !void {
 }
 
 pub fn createDir(self: *Self, path: []const u8) !Io.Dir.CreatePathStatus {
-    return Io.Dir.createDirPathStatus(.cwd(), self.io, path);
+    return Io.Dir.createDirPathStatus(.cwd(), self.io, path, .default_dir);
 }
