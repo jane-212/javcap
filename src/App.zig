@@ -65,6 +65,7 @@ fn run(self: *Self, source: Config.Source) void {
     self.runInner(source) catch |err| switch (err) {
         else => {},
     };
+    self.progress.completeOne();
 }
 
 fn runInner(self: *Self, source: Config.Source) !void {
@@ -119,6 +120,7 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
         defer n.deinit();
 
         try nfo.merge(&n);
+        c.completeOne();
         providerProgress.completeOne();
     }
 
