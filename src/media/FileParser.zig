@@ -39,7 +39,7 @@ test "parse with jav file path" {
     try std.testing.expect(parsed.key == .jav);
     try std.testing.expectEqualStrings("STARS", parsed.key.jav.id);
     try std.testing.expectEqualStrings("804", parsed.key.jav.number);
-    try std.testing.expectEqualStrings("STARS-804.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse with fc2 file path" {
@@ -50,7 +50,7 @@ test "parse with fc2 file path" {
 
     try std.testing.expect(parsed.key == .fc2);
     try std.testing.expectEqualStrings("12345678", parsed.key.fc2);
-    try std.testing.expectEqualStrings("FC2-12345678.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse with fc2 ppv file path" {
@@ -61,7 +61,7 @@ test "parse with fc2 ppv file path" {
 
     try std.testing.expect(parsed.key == .fc2);
     try std.testing.expectEqualStrings("99999", parsed.key.fc2);
-    try std.testing.expectEqualStrings("FC2-PPV-99999.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse with normal fallback file path" {
@@ -72,7 +72,7 @@ test "parse with normal fallback file path" {
 
     try std.testing.expect(parsed.key == .normal);
     try std.testing.expectEqualStrings("SOMEFILMTITLE", parsed.key.normal);
-    try std.testing.expectEqualStrings("SomeFilmTitle.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse with non-ASCII filename falls to normal" {
@@ -83,7 +83,7 @@ test "parse with non-ASCII filename falls to normal" {
 
     try std.testing.expect(parsed.key == .normal);
     try std.testing.expectEqualStrings("日本語", parsed.key.normal);
-    try std.testing.expectEqualStrings("日本語.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse file with multiple dots" {
@@ -94,7 +94,7 @@ test "parse file with multiple dots" {
 
     try std.testing.expect(parsed.key == .normal);
     try std.testing.expectEqualStrings("MOVIE.STARS-804.FINAL", parsed.key.normal);
-    try std.testing.expectEqualStrings("movie.STARS-804.final.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse preserves case in name" {
@@ -106,7 +106,7 @@ test "parse preserves case in name" {
     try std.testing.expect(parsed.key == .jav);
     try std.testing.expectEqualStrings("STARS", parsed.key.jav.id);
     try std.testing.expectEqualStrings("804", parsed.key.jav.number);
-    try std.testing.expectEqualStrings("Stars-804.MP4", parsed.name);
+    try std.testing.expectEqualStrings(".MP4", parsed.ext);
 }
 
 test "parse fc2 with ppv and underscore in path" {
@@ -117,7 +117,7 @@ test "parse fc2 with ppv and underscore in path" {
 
     try std.testing.expect(parsed.key == .fc2);
     try std.testing.expectEqualStrings("77777", parsed.key.fc2);
-    try std.testing.expectEqualStrings("FC2_PPV_77777.mkv", parsed.name);
+    try std.testing.expectEqualStrings(".mkv", parsed.ext);
 }
 
 test "parse with directory containing dots" {
@@ -129,7 +129,7 @@ test "parse with directory containing dots" {
     try std.testing.expect(parsed.key == .jav);
     try std.testing.expectEqualStrings("STARS", parsed.key.jav.id);
     try std.testing.expectEqualStrings("804", parsed.key.jav.number);
-    try std.testing.expectEqualStrings("STARS-804.mp4", parsed.name);
+    try std.testing.expectEqualStrings(".mp4", parsed.ext);
 }
 
 test "parse with uppercase extension" {
@@ -140,7 +140,7 @@ test "parse with uppercase extension" {
 
     try std.testing.expect(parsed.key == .fc2);
     try std.testing.expectEqualStrings("42", parsed.key.fc2);
-    try std.testing.expectEqualStrings("FC2-42.AVI", parsed.name);
+    try std.testing.expectEqualStrings(".AVI", parsed.ext);
 }
 
 test "parse no-extension file" {
@@ -151,5 +151,5 @@ test "parse no-extension file" {
 
     try std.testing.expect(parsed.key == .fc2);
     try std.testing.expectEqualStrings("12345", parsed.key.fc2);
-    try std.testing.expectEqualStrings("FC2-12345", parsed.name);
+    try std.testing.expectEqualStrings("", parsed.ext);
 }
