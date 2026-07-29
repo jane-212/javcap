@@ -5,7 +5,6 @@ const Io = std.Io;
 
 const Self = @This();
 
-cwd: Io.Dir,
 alloc: Allocator,
 io: Io,
 
@@ -13,12 +12,9 @@ pub fn init(alloc: Allocator, io: Io) !*Self {
     const self = try alloc.create(Self);
     errdefer alloc.destroy(self);
 
-    const cwd = Io.Dir.cwd();
-
     self.* = .{
         .alloc = alloc,
         .io = io,
-        .cwd = cwd,
     };
 
     return self;
@@ -78,7 +74,7 @@ pub fn asStorage(self: *Self) storage.Storage {
         fn createDirInner(
             ptr: *anyopaque,
             path: []const u8,
-        ) !void {
+        ) !Io.Dir.CreatePathStatus {
             const s: *Self = @ptrCast(@alignCast(ptr));
             return s.createDir(path);
         }
@@ -108,10 +104,19 @@ pub fn asStorage(self: *Self) storage.Storage {
 }
 
 pub fn write(self: *Self, path: []const u8, content: []const u8) !void {
-    try self.cwd.writeFile(self.io, .{
-        .sub_path = path,
-        .data = content,
-    });
+    const file = Io.Dir.openFileAbsolute(self.io, path, .{ .mode = .write_only }) catch |err| switch (err) {
+        error.FileNotFound => try Io.Dir.createFileAbsolute(self.io, path, .{}),
+        else => return err,
+    };
+    defer file.close(self.io);
+
+    var buffer: [4096]u8 = undefined;
+    var writer = file.writer(self.io, &buffer);
+
+    const w = &writer.interface;
+
+    try w.writeAll(content);
+    try w.flush();
 }
 
 pub fn walk(self: *Self, alloc: Allocator, path: []const u8) !storage.Walker {
@@ -130,7 +135,7 @@ pub fn walk(self: *Self, alloc: Allocator, path: []const u8) !storage.Walker {
 }
 
 pub fn list(self: *Self, alloc: Allocator, path: []const u8) ![]storage.Entry {
-    const root = try self.cwd.openDir(self.io, path, .{});
+    const root = try Io.Dir.openDirAbsolute(self.io, path, .{});
     defer root.close(self.io);
 
     var entries = try std.ArrayList(storage.Entry).initCapacity(self.alloc, 8);
@@ -152,7 +157,10 @@ pub fn list(self: *Self, alloc: Allocator, path: []const u8) ![]storage.Entry {
 }
 
 pub fn stats(self: *Self, path: []const u8) !storage.FileType {
-    const stat = try self.cwd.statFile(self.io, path, .{});
+    const file = try Io.Dir.openFileAbsolute(self.io, path, .{});
+    defer file.close(self.io);
+
+    const stat = try file.stat(self.io);
     switch (stat.kind) {
         .file => return .file,
         .directory => return .dir,
@@ -161,9 +169,9 @@ pub fn stats(self: *Self, path: []const u8) !storage.FileType {
 }
 
 pub fn rename(self: *Self, old: []const u8, new: []const u8) !void {
-    try self.cwd.rename(old, self.cwd, new, self.io);
+    try Io.Dir.renameAbsolute(old, new, self.io);
 }
 
-pub fn createDir(self: *Self, path: []const u8) !void {
-    try self.cwd.createDirPath(self.io, path);
+pub fn createDir(self: *Self, path: []const u8) !Io.Dir.CreatePathStatus {
+    return Io.Dir.createDirPathStatus(.cwd(), self.io, path);
 }

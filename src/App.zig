@@ -104,15 +104,19 @@ fn runTaskInner(self: *Self, backend: storage.Storage, task: Task) !void {
         try w.flush();
     }
 
-    try writeTo(alloc, backend, &task, &nfo);
+    _ = try writeTo(alloc, backend, &task, &nfo);
 }
 
-fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !void {
+fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !bool {
     const show = try task.file.key.show(alloc);
     defer alloc.free(show);
     const to = task.to;
 
-    try backend.createDir(to);
+    const status = try backend.createDir(to);
+    switch (status) {
+        .created => {},
+        .existed => return true,
+    }
 
     if (nfo.poster) |p| try writeFile(.poster, alloc, backend, show, to, p);
     if (nfo.fanart) |f| try writeFile(.fanart, alloc, backend, show, to, f);
@@ -138,6 +142,8 @@ fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *
         task.path,
         mediaTo,
     );
+
+    return false;
 }
 
 const WriteType = enum {

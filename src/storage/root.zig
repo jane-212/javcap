@@ -59,7 +59,7 @@ pub const Storage = struct {
     pub fn createDir(
         self: Storage,
         path: []const u8,
-    ) !void {
+    ) !Io.Dir.CreatePathStatus {
         return self.vtable.createDir(self.ptr, path);
     }
 
@@ -101,7 +101,7 @@ pub const VTable = struct {
     createDir: *const fn (
         *anyopaque,
         []const u8,
-    ) anyerror!void,
+    ) anyerror!Io.Dir.CreatePathStatus,
 
     deinit: *const fn (*anyopaque) void,
 };
