@@ -16,6 +16,7 @@ io: Io,
 config: *const Config,
 semaphore: Io.Semaphore,
 providers: []provider.Provider,
+progress: std.Progress.Node,
 
 pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
     const providers = try provider.all(alloc, io);
@@ -24,18 +25,27 @@ pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
         alloc.free(providers);
     }
 
+    const root = std.Progress.start(io, .{
+        .estimated_total_items = config.sources.len,
+        .root_name = "javcap",
+    });
+    errdefer root.end();
+
     return .{
         .alloc = alloc,
         .io = io,
         .config = config,
         .semaphore = .{ .permits = 5 },
         .providers = providers,
+        .progress = root,
     };
 }
 
 pub fn deinit(self: *Self) void {
     for (self.providers) |*p| p.deinit();
     self.alloc.free(self.providers);
+    self.progress.end();
+    self.* = undefined;
 }
 
 pub fn start(self: *Self) !void {
@@ -56,22 +66,27 @@ fn run(self: *Self, source: Config.Source) !void {
     var group: Io.Group = .init;
     defer group.cancel(self.io);
 
+    const taskProgress = self.progress.start(source.from, manager.tasks.len);
+    defer taskProgress.end();
+
     for (manager.tasks) |task| {
         try self.semaphore.wait(self.io);
-        try group.concurrent(self.io, Self.runTask, .{ self, backend, task });
+        try group.concurrent(self.io, Self.runTask, .{ self, taskProgress, backend, task });
     }
 
     try group.await(self.io);
 }
 
-pub fn runTask(self: *Self, backend: storage.Storage, task: Task) void {
+pub fn runTask(self: *Self, taskProgress: std.Progress.Node, backend: storage.Storage, task: Task) void {
     defer self.semaphore.post(self.io);
-    self.runTaskInner(backend, task) catch |err| switch (err) {
+
+    self.runTaskInner(taskProgress, backend, task) catch |err| switch (err) {
         else => {},
     };
+    taskProgress.completeOne();
 }
 
-fn runTaskInner(self: *Self, backend: storage.Storage, task: Task) !void {
+fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.Storage, task: Task) !void {
     var arena: std.heap.ArenaAllocator = .init(self.alloc);
     defer arena.deinit();
     const alloc = arena.allocator();
@@ -79,29 +94,18 @@ fn runTaskInner(self: *Self, backend: storage.Storage, task: Task) !void {
     var nfo = try domain.Nfo.init(alloc);
     defer nfo.deinit();
 
+    const show = try task.file.key.show(alloc);
+    defer alloc.free(show);
+
+    const providerProgress = taskProgress.start(show, self.providers.len);
+    defer providerProgress.end();
+
     for (self.providers) |p| {
         var n = try p.search(alloc, task.file.key);
         defer n.deinit();
 
-        if (builtin.mode == .Debug) {
-            var buffer: [4096]u8 = undefined;
-            var w = Io.File.stderr().writer(self.io, &buffer);
-            try w.interface.writeAll("*********************\n");
-            try writer.format(.normal, &w.interface, &n);
-            try w.interface.writeAll("*********************\n");
-            try w.flush();
-        }
-
         try nfo.merge(&n);
-    }
-
-    if (builtin.mode == .Debug) {
-        var buffer: [4096]u8 = undefined;
-        var w = Io.File.stderr().writer(self.io, &buffer);
-        try w.interface.writeAll("#####################\n");
-        try writer.format(.normal, &w.interface, &nfo);
-        try w.interface.writeAll("#####################\n");
-        try w.flush();
+        providerProgress.completeOne();
     }
 
     _ = try writeTo(alloc, backend, &task, &nfo);
