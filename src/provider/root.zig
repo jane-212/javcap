@@ -32,6 +32,12 @@ pub const Provider = struct {
         return self.vtable.search(self.ptr, alloc, key);
     }
 
+    pub fn name(
+        self: Provider,
+    ) []const u8 {
+        return self.vtable.name(self.ptr);
+    }
+
     pub fn deinit(self: Provider) void {
         self.vtable.deinit(self.ptr);
     }
@@ -43,6 +49,10 @@ pub const VTable = struct {
         Allocator,
         domain.jav.Key,
     ) anyerror!domain.Nfo,
+
+    name: *const fn (
+        *anyopaque,
+    ) []const u8,
 
     deinit: *const fn (*anyopaque) void,
 };

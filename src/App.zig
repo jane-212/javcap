@@ -101,6 +101,9 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
     defer providerProgress.end();
 
     for (self.providers) |p| {
+        const c = providerProgress.start(p.name(), 0);
+        defer c.end();
+
         var n = try p.search(alloc, task.file.key);
         defer n.deinit();
 

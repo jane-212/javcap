@@ -48,7 +48,14 @@ pub fn asProvider(self: *Self) provider.Provider {
             key: domain.jav.Key,
         ) !domain.Nfo {
             const s: *Self = @ptrCast(@alignCast(ptr));
-            return try s.search(alloc, key);
+            return s.search(alloc, key);
+        }
+
+        fn nameInner(
+            ptr: *anyopaque,
+        ) []const u8 {
+            const s: *Self = @ptrCast(@alignCast(ptr));
+            return s.name();
         }
 
         fn deinitInner(
@@ -60,6 +67,7 @@ pub fn asProvider(self: *Self) provider.Provider {
 
         const vtable = provider.VTable{
             .search = searchInner,
+            .name = nameInner,
             .deinit = deinitInner,
         };
     };
@@ -68,6 +76,10 @@ pub fn asProvider(self: *Self) provider.Provider {
         .ptr = self,
         .vtable = &Impl.vtable,
     };
+}
+
+pub fn name(_: *Self) []const u8 {
+    return "Javmenu";
 }
 
 pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
@@ -112,9 +124,11 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     const actressSel = try html.find("a.actress");
     var actressIt = actressSel.iterator();
     while (actressIt.next()) |actressEl| {
-        const name = std.mem.trim(u8, try actressEl.text(), " \n\r\t");
-        if (name.len == 0) continue;
-        try nfo.actresses.append(alloc, .{ .name = try alloc.dupe(u8, name) });
+        const actress = std.mem.trim(u8, try actressEl.text(), " \n\r\t");
+        if (actress.len == 0) continue;
+        const n = try alloc.dupe(u8, actress);
+        errdefer alloc.free(n);
+        try nfo.actresses.append(alloc, .{ .name = n });
     }
 
     const cardDivs = try html.find(".card-body > div");
