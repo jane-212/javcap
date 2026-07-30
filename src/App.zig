@@ -144,7 +144,7 @@ fn setName(progress: std.Progress.Node, alloc: Allocator, slices: []const []cons
 }
 
 fn spinner(io: Io, node: std.Progress.Node, stop: *std.atomic.Value(bool)) void {
-    const frames = [_][]const u8{ "·", "*", "✻", "✳", "✴", "✵", "✹" };
+    const frames = [_][]const u8{ "· running", "* Running", "✻ rUnning", "✳ ruNning", "✴ runNing", "✵ runnIng", "✹ runniNg", "· runninG" };
     var i: usize = 0;
     while (!stop.load(.monotonic)) {
         const frame = frames[i % frames.len];
