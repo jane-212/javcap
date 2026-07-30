@@ -42,7 +42,7 @@ pub fn deinit(self: *Self) void {
 pub fn start(self: *Self) !void {
     const rootProgress = std.Progress.start(self.io, .{
         .estimated_total_items = self.config.sources.len,
-        .root_name = ".",
+        .root_name = "·",
     });
 
     var group: Io.Group = .init;
@@ -120,11 +120,11 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
     }
 
     for (self.providers) |p| {
-        const c = providerProgress.startFmt(0, "{s} ⏸", .{p.name()});
+        const c = providerProgress.startFmt(0, "{s} ⦾", .{p.name()});
         try progressStore.append(alloc, c);
 
-        var n = p.search(alloc, task.file.key) catch |err| {
-            try setName(c, alloc, &.{ p.name(), "✘", @errorName(err) });
+        var n = p.search(alloc, task.file.key) catch {
+            try setName(c, alloc, &.{ p.name(), "✘" });
             continue;
         };
         defer n.deinit();
