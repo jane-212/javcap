@@ -28,7 +28,7 @@ pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
         .alloc = alloc,
         .io = io,
         .config = config,
-        .semaphore = .{ .permits = 5 },
+        .semaphore = .{ .permits = config.worker_count },
         .providers = providers,
     };
 }
@@ -157,7 +157,7 @@ fn spinner(io: Io, node: std.Progress.Node, stop: *std.atomic.Value(bool)) void 
         const frame = frames[i % frames.len];
         node.setName(frame);
         i += 1;
-        io.sleep(Io.Duration.fromMilliseconds(250), .awake) catch continue;
+        io.sleep(Io.Duration.fromMilliseconds(100), .awake) catch continue;
     }
 }
 

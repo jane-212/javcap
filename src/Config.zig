@@ -11,6 +11,7 @@ pub const known_folders_config = known_folders.KnownFolderConfig{
 };
 
 pause_after_finish: bool,
+worker_count: usize,
 sources: []Source,
 
 pub const Source = struct {
