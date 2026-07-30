@@ -16,7 +16,6 @@ io: Io,
 config: *const Config,
 semaphore: Io.Semaphore,
 providers: []provider.Provider,
-progress: std.Progress.Node,
 
 pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
     const providers = try provider.all(alloc, io);
@@ -25,35 +24,33 @@ pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
         alloc.free(providers);
     }
 
-    const root = std.Progress.start(io, .{
-        .estimated_total_items = config.sources.len,
-        .root_name = "javcap",
-    });
-    errdefer root.end();
-
     return .{
         .alloc = alloc,
         .io = io,
         .config = config,
         .semaphore = .{ .permits = 5 },
         .providers = providers,
-        .progress = root,
     };
 }
 
 pub fn deinit(self: *Self) void {
     for (self.providers) |*p| p.deinit();
     self.alloc.free(self.providers);
-    self.progress.end();
     self.* = undefined;
 }
 
 pub fn start(self: *Self) !void {
+    const rootProgress = std.Progress.start(self.io, .{
+        .estimated_total_items = self.config.sources.len,
+        .root_name = ".",
+    });
+    defer rootProgress.end();
+
     var group: Io.Group = .init;
     defer group.cancel(self.io);
 
     for (self.config.sources) |source| {
-        try group.concurrent(self.io, Self.run, .{ self, source });
+        try group.concurrent(self.io, Self.run, .{ self, rootProgress, source });
     }
 
     try group.await(self.io);
@@ -61,14 +58,14 @@ pub fn start(self: *Self) !void {
     if (self.config.pause_after_finish) try self.waitForEnter();
 }
 
-fn run(self: *Self, source: Config.Source) void {
-    self.runInner(source) catch |err| switch (err) {
+fn run(self: *Self, rootProgress: std.Progress.Node, source: Config.Source) void {
+    self.runInner(rootProgress, source) catch |err| switch (err) {
         else => {},
     };
-    self.progress.completeOne();
+    rootProgress.completeOne();
 }
 
-fn runInner(self: *Self, source: Config.Source) !void {
+fn runInner(self: *Self, rootProgress: std.Progress.Node, source: Config.Source) !void {
     const backend = try storage.load(self.alloc, self.io, source.type);
     defer backend.deinit();
 
@@ -78,7 +75,7 @@ fn runInner(self: *Self, source: Config.Source) !void {
     var group: Io.Group = .init;
     defer group.cancel(self.io);
 
-    const taskProgress = self.progress.start(source.from, manager.tasks.len);
+    const taskProgress = rootProgress.start(source.from, manager.tasks.len);
     defer taskProgress.end();
 
     for (manager.tasks) |task| {
@@ -120,7 +117,6 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
         defer n.deinit();
 
         try nfo.merge(&n);
-        c.completeOne();
         providerProgress.completeOne();
     }
 
