@@ -16,6 +16,9 @@ io: Io,
 config: *const Config,
 semaphore: Io.Semaphore,
 providers: []provider.Provider,
+success: std.ArrayList([]const u8),
+failed: std.ArrayList([]const u8),
+skip: std.ArrayList([]const u8),
 
 pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
     const providers = try provider.all(alloc, io);
@@ -24,18 +27,36 @@ pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
         alloc.free(providers);
     }
 
+    var success = try std.ArrayList([]const u8).initCapacity(alloc, 8);
+    errdefer success.deinit(alloc);
+
+    var failed = try std.ArrayList([]const u8).initCapacity(alloc, 8);
+    errdefer failed.deinit(alloc);
+
+    var skip = try std.ArrayList([]const u8).initCapacity(alloc, 8);
+    errdefer skip.deinit(alloc);
+
     return .{
         .alloc = alloc,
         .io = io,
         .config = config,
         .semaphore = .{ .permits = 5 },
         .providers = providers,
+        .success = success,
+        .failed = failed,
+        .skip = skip,
     };
 }
 
 pub fn deinit(self: *Self) void {
     for (self.providers) |*p| p.deinit();
     self.alloc.free(self.providers);
+    for (self.success.items) |s| self.alloc.free(s);
+    self.success.deinit(self.alloc);
+    for (self.failed.items) |s| self.alloc.free(s);
+    self.failed.deinit(self.alloc);
+    for (self.skip.items) |s| self.alloc.free(s);
+    self.skip.deinit(self.alloc);
     self.* = undefined;
 }
 
@@ -61,7 +82,21 @@ pub fn start(self: *Self) !void {
     spin.await(self.io);
     rootProgress.end();
 
+    try self.printFinalMessage();
+
     if (self.config.pause_after_finish) try self.waitForEnter();
+}
+
+fn printFinalMessage(self: *Self) !void {
+    const success = try std.mem.join(self.alloc, ", ", self.success.items);
+    defer self.alloc.free(success);
+    std.debug.print("成功: {} ({s})\n", .{ self.success.items.len, success });
+    const failed = try std.mem.join(self.alloc, ", ", self.failed.items);
+    defer self.alloc.free(failed);
+    std.debug.print("失败: {} ({s})\n", .{ self.failed.items.len, failed });
+    const skip = try std.mem.join(self.alloc, ", ", self.skip.items);
+    defer self.alloc.free(skip);
+    std.debug.print("跳过: {} ({s})\n", .{ self.skip.items.len, skip });
 }
 
 fn run(self: *Self, rootProgress: std.Progress.Node, source: Config.Source) void {
@@ -94,8 +129,12 @@ fn runInner(self: *Self, rootProgress: std.Progress.Node, source: Config.Source)
 pub fn runTask(self: *Self, taskProgress: std.Progress.Node, backend: storage.Storage, task: Task) void {
     defer self.semaphore.post(self.io);
 
-    self.runTaskInner(taskProgress, backend, task) catch |err| switch (err) {
-        else => {},
+    self.runTaskInner(taskProgress, backend, task) catch {
+        const s = task.file.key.show(self.alloc) catch return;
+        self.failed.append(self.alloc, s) catch {
+            self.alloc.free(s);
+            return;
+        };
     };
 }
 
@@ -134,7 +173,16 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
         try setName(c, alloc, &.{ p.name(), "✔" });
     }
 
-    _ = try writeTo(alloc, backend, &task, &nfo);
+    const exists = try writeTo(alloc, backend, &task, &nfo);
+    if (exists) {
+        const s = try self.alloc.dupe(u8, show);
+        errdefer self.alloc.free(s);
+        try self.skip.append(self.alloc, s);
+    } else {
+        const s = try self.alloc.dupe(u8, show);
+        errdefer self.alloc.free(s);
+        try self.success.append(self.alloc, s);
+    }
 }
 
 fn setName(progress: std.Progress.Node, alloc: Allocator, slices: []const []const u8) !void {
