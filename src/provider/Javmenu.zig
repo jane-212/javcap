@@ -83,6 +83,8 @@ pub fn name(_: *Self) []const u8 {
 }
 
 pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
+    if (!support(key)) return error.NotSupported;
+
     var nfo = try domain.Nfo.init(alloc);
     errdefer nfo.deinit();
 
@@ -213,4 +215,12 @@ fn fetchImage(self: *Self, alloc: Allocator, url: []const u8) ![]const u8 {
     errdefer alloc.free(body);
 
     return body;
+}
+
+fn support(key: domain.jav.Key) bool {
+    return switch (key) {
+        .fc2 => true,
+        .jav => true,
+        .normal => false,
+    };
 }

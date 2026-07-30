@@ -125,13 +125,13 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
         const c = providerProgress.startFmt(0, "{s} ⦾", .{p.name()});
         try progressStore.append(alloc, c);
 
-        var n = p.search(alloc, task.file.key) catch {
+        var foundNfo = p.search(alloc, task.file.key) catch {
             try setName(c, alloc, &.{ p.name(), "✘" });
             continue;
         };
-        defer n.deinit();
+        defer foundNfo.deinit();
 
-        try nfo.merge(&n);
+        try nfo.merge(&foundNfo);
 
         try setName(c, alloc, &.{ p.name(), "✔" });
     }
