@@ -48,12 +48,17 @@ pub fn start(self: *Self) !void {
     var group: Io.Group = .init;
     defer group.cancel(self.io);
 
+    var stop_spinner = std.atomic.Value(bool).init(false);
+    var spin = self.io.async(spinner, .{ self.io, rootProgress, &stop_spinner });
+
     for (self.config.sources) |source| {
         try group.concurrent(self.io, Self.run, .{ self, rootProgress, source });
     }
 
     try group.await(self.io);
 
+    stop_spinner.store(true, .monotonic);
+    spin.await(self.io);
     rootProgress.end();
 
     if (self.config.pause_after_finish) try self.waitForEnter();
@@ -136,6 +141,17 @@ fn setName(progress: std.Progress.Node, alloc: Allocator, slices: []const []cons
     const name = try std.mem.join(alloc, " ", slices);
     defer alloc.free(name);
     progress.setName(name);
+}
+
+fn spinner(io: Io, node: std.Progress.Node, stop: *std.atomic.Value(bool)) void {
+    const frames = [_][]const u8{ "·", "*", "✻", "✳", "✴", "✵", "✹" };
+    var i: usize = 0;
+    while (!stop.load(.monotonic)) {
+        const frame = frames[i % frames.len];
+        node.setName(frame);
+        i += 1;
+        io.sleep(Io.Duration.fromMilliseconds(300), .awake) catch continue;
+    }
 }
 
 fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !bool {
