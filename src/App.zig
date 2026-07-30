@@ -115,20 +115,18 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
     }
 
     for (self.providers) |p| {
-        const name = try std.mem.join(alloc, " ", &.{ p.name(), "START" });
-        defer alloc.free(name);
-        const c = providerProgress.start(name, 0);
+        const c = providerProgress.startFmt(0, "{s} ⏸", .{p.name()});
         try progressStore.append(alloc, c);
 
         var n = p.search(alloc, task.file.key) catch |err| {
-            try setName(c, alloc, &.{ p.name(), @errorName(err) });
+            try setName(c, alloc, &.{ p.name(), "✘", @errorName(err) });
             continue;
         };
         defer n.deinit();
 
         try nfo.merge(&n);
 
-        try setName(c, alloc, &.{ p.name(), "OK" });
+        try setName(c, alloc, &.{ p.name(), "✔" });
     }
 
     _ = try writeTo(alloc, backend, &task, &nfo);
