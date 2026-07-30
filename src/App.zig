@@ -44,7 +44,6 @@ pub fn start(self: *Self) !void {
         .estimated_total_items = self.config.sources.len,
         .root_name = ".",
     });
-    defer rootProgress.end();
 
     var group: Io.Group = .init;
     defer group.cancel(self.io);
@@ -55,6 +54,8 @@ pub fn start(self: *Self) !void {
 
     try group.await(self.io);
 
+    rootProgress.end();
+
     if (self.config.pause_after_finish) try self.waitForEnter();
 }
 
@@ -62,7 +63,6 @@ fn run(self: *Self, rootProgress: std.Progress.Node, source: Config.Source) void
     self.runInner(rootProgress, source) catch |err| switch (err) {
         else => {},
     };
-    rootProgress.completeOne();
 }
 
 fn runInner(self: *Self, rootProgress: std.Progress.Node, source: Config.Source) !void {
@@ -92,7 +92,6 @@ pub fn runTask(self: *Self, taskProgress: std.Progress.Node, backend: storage.St
     self.runTaskInner(taskProgress, backend, task) catch |err| switch (err) {
         else => {},
     };
-    taskProgress.completeOne();
 }
 
 fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.Storage, task: Task) !void {
@@ -117,7 +116,6 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
         defer n.deinit();
 
         try nfo.merge(&n);
-        providerProgress.completeOne();
     }
 
     _ = try writeTo(alloc, backend, &task, &nfo);
