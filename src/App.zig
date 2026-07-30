@@ -150,7 +150,7 @@ fn spinner(io: Io, node: std.Progress.Node, stop: *std.atomic.Value(bool)) void 
         const frame = frames[i % frames.len];
         node.setName(frame);
         i += 1;
-        io.sleep(Io.Duration.fromMilliseconds(300), .awake) catch continue;
+        io.sleep(Io.Duration.fromMilliseconds(250), .awake) catch continue;
     }
 }
 
