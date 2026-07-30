@@ -108,17 +108,36 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
     const providerProgress = taskProgress.start(show, self.providers.len);
     defer providerProgress.end();
 
-    for (self.providers) |p| {
-        const c = providerProgress.start(p.name(), 0);
-        defer c.end();
+    var progressStore = try std.ArrayList(std.Progress.Node).initCapacity(alloc, self.providers.len);
+    defer {
+        for (progressStore.items) |p| p.end();
+        progressStore.deinit(alloc);
+    }
 
-        var n = try p.search(alloc, task.file.key);
+    for (self.providers) |p| {
+        const name = try std.mem.join(alloc, " ", &.{ p.name(), "START" });
+        defer alloc.free(name);
+        const c = providerProgress.start(name, 0);
+        try progressStore.append(alloc, c);
+
+        var n = p.search(alloc, task.file.key) catch |err| {
+            try setName(c, alloc, &.{ p.name(), @errorName(err) });
+            continue;
+        };
         defer n.deinit();
 
         try nfo.merge(&n);
+
+        try setName(c, alloc, &.{ p.name(), "OK" });
     }
 
     _ = try writeTo(alloc, backend, &task, &nfo);
+}
+
+fn setName(progress: std.Progress.Node, alloc: Allocator, slices: []const []const u8) !void {
+    const name = try std.mem.join(alloc, " ", slices);
+    defer alloc.free(name);
+    progress.setName(name);
 }
 
 fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !bool {
