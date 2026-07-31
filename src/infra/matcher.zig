@@ -2,14 +2,14 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 fn toCodepoints(alloc: Allocator, s: []const u8) ![]u21 {
-    var list = std.ArrayList(u21).init(alloc);
-    errdefer list.deinit();
+    var list: std.ArrayList(u21) = .empty;
+    errdefer list.deinit(alloc);
 
     var view = std.unicode.Utf8View.init(s) catch return error.InvalidUtf8;
     var it = view.iterator();
-    while (it.nextCodepoint()) |cp| try list.append(cp);
+    while (it.nextCodepoint()) |cp| try list.append(alloc, cp);
 
-    return try list.toOwnedSlice();
+    return try list.toOwnedSlice(alloc);
 }
 
 pub fn jaroWinkler(alloc: Allocator, a: []const u8, b: []const u8) !f64 {
@@ -28,7 +28,7 @@ pub fn jaroWinkler(alloc: Allocator, a: []const u8, b: []const u8) !f64 {
     if (na == 0 and nb == 0) return 1.0;
     if (na == 0 or nb == 0) return 0.0;
 
-    const window = @max(@as(i64, @intCast(@max(na, nb))) / 2 - 1, 0);
+    const window = @max(@divTrunc(@as(i64, @intCast(@max(na, nb))), 2) - 1, 0);
 
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();

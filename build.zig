@@ -68,19 +68,6 @@ pub fn build(b: *std.Build) void {
         .root_module = writer,
     });
 
-    const provider = b.createModule(.{
-        .root_source_file = b.path("src/provider/root.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-    });
-    provider.addImport("domain", domain);
-    provider.addImport("infra", infra);
-    provider.addImport("zigquery", zigquery.module("zigquery"));
-    const provider_tests = b.addTest(.{
-        .root_module = provider,
-    });
-
     const media = b.createModule(.{
         .root_source_file = b.path("src/media/root.zig"),
         .target = target,
@@ -92,6 +79,20 @@ pub fn build(b: *std.Build) void {
     media.addImport("mecha", mecha.module("mecha"));
     const media_tests = b.addTest(.{
         .root_module = media,
+    });
+
+    const provider = b.createModule(.{
+        .root_source_file = b.path("src/provider/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+    });
+    provider.addImport("domain", domain);
+    provider.addImport("infra", infra);
+    provider.addImport("media", media);
+    provider.addImport("zigquery", zigquery.module("zigquery"));
+    const provider_tests = b.addTest(.{
+        .root_module = provider,
     });
 
     const mod = b.addModule("javcap", .{
