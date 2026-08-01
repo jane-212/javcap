@@ -269,6 +269,7 @@ test "Config.validate — accepts empty sources list" {
     const alloc = std.testing.allocator;
     const config = Self{
         .pause_after_finish = false,
+        .worker_count = 5,
         .sources = @as([]Source, &.{}),
     };
 
@@ -286,6 +287,7 @@ test "Config.validate — accepts valid config with multiple sources" {
     };
     const config = Self{
         .pause_after_finish = false,
+        .worker_count = 5,
         .sources = &sources,
     };
 
@@ -302,6 +304,7 @@ test "Config.validate — rejects config with invalid first source" {
     };
     const config = Self{
         .pause_after_finish = false,
+        .worker_count = 5,
         .sources = &sources,
     };
 
@@ -321,6 +324,7 @@ test "Config.validate — validates all sources, stops at first error" {
     };
     const config = Self{
         .pause_after_finish = false,
+        .worker_count = 5,
         .sources = &sources,
     };
 

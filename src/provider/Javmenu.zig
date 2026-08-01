@@ -146,7 +146,14 @@ fn matches(alloc: Allocator, key: domain.jav.Key, itemId: []const u8) !bool {
         .fc2, .jav => {
             var itemKey = try media.KeyParser.parse(alloc, itemId);
             defer itemKey.deinit(alloc);
-            return std.meta.eql(key, itemKey);
+            return switch (key) {
+                .jav => |k| std.meta.activeTag(itemKey) == .jav and
+                    std.mem.eql(u8, k.id, itemKey.jav.id) and
+                    std.mem.eql(u8, k.number, itemKey.jav.number),
+                .fc2 => |f| std.meta.activeTag(itemKey) == .fc2 and
+                    std.mem.eql(u8, f, itemKey.fc2),
+                else => false,
+            };
         },
         .normal => |n| {
             const score = try infra.matcher.jaroWinkler(alloc, n, itemId);
@@ -274,4 +281,26 @@ fn support(key: domain.jav.Key) bool {
         .jav => true,
         .normal => false,
     };
+}
+
+test "matches — jav item matches by content, not pointer" {
+    const alloc = std.testing.allocator;
+
+    var key = try media.KeyParser.parse(alloc, "STARS-804");
+    defer key.deinit(alloc);
+
+    try std.testing.expect(try matches(alloc, key, "STARS-804"));
+    try std.testing.expect(!try matches(alloc, key, "STARS-805"));
+    try std.testing.expect(!try matches(alloc, key, "IPX-144"));
+}
+
+test "matches — fc2 item matches by content, not pointer" {
+    const alloc = std.testing.allocator;
+
+    var key = try media.KeyParser.parse(alloc, "FC2-12345");
+    defer key.deinit(alloc);
+
+    try std.testing.expect(try matches(alloc, key, "FC2-12345"));
+    try std.testing.expect(try matches(alloc, key, "FC2-PPV-12345"));
+    try std.testing.expect(!try matches(alloc, key, "FC2-12346"));
 }
