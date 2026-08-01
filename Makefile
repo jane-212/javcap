@@ -28,6 +28,8 @@ reset:
 	@touch input/stars-804.mp4
 	@mkdir input/ok
 	@touch input/ok/ipx-144.mkv
+	@mkdir input/no
+	@touch input/no/FC2-4485388.mov
 
 .PHONY: test t
 t: test
