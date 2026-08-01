@@ -3,6 +3,7 @@ const Allocator = std.mem.Allocator;
 const Io = std.Io;
 const domain = @import("domain");
 const Javmenu = @import("Javmenu.zig");
+const Avsox = @import("Avsox.zig");
 
 pub fn all(alloc: Allocator, io: Io) ![]Provider {
     var providers: std.ArrayList(Provider) = .empty;
@@ -10,6 +11,9 @@ pub fn all(alloc: Allocator, io: Io) ![]Provider {
 
     const javmenu = try Javmenu.init(alloc, io);
     try providers.append(alloc, javmenu.asProvider());
+
+    const avsox = try Avsox.init(alloc, io);
+    try providers.append(alloc, avsox.asProvider());
 
     const ownedProviders = try providers.toOwnedSlice(alloc);
     errdefer {
@@ -59,4 +63,5 @@ pub const VTable = struct {
 
 test {
     _ = @import("Javmenu.zig");
+    _ = @import("Avsox.zig");
 }
