@@ -8,6 +8,7 @@ const provider = @import("provider");
 const writer = @import("writer");
 const builtin = @import("builtin");
 const storage = @import("storage");
+const Subdirs = @import("Subdirs.zig");
 
 const Self = @This();
 
@@ -136,7 +137,7 @@ fn runTaskInner(self: *Self, taskProgress: std.Progress.Node, backend: storage.S
         try setName(c, alloc, &.{ p.name(), "✔" });
     }
 
-    const exists = try writeTo(alloc, backend, &task, &nfo);
+    const exists = try self.writeTo(alloc, backend, &task, &nfo);
     if (exists) {
         std.debug.print("⦾ {s}\n", .{show});
     } else {
@@ -161,10 +162,12 @@ fn spinner(io: Io, node: std.Progress.Node, stop: *std.atomic.Value(bool)) void 
     }
 }
 
-fn writeTo(alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !bool {
+fn writeTo(self: *Self, alloc: Allocator, backend: storage.Storage, task: *const Task, nfo: *const domain.Nfo) !bool {
     const show = try task.file.key.show(alloc);
     defer alloc.free(show);
-    const to = task.to;
+
+    const to = try Subdirs.resolve(alloc, task.to, self.config.subdirs, nfo);
+    defer alloc.free(to);
 
     const status = try backend.createDir(to);
     switch (status) {

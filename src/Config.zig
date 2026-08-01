@@ -5,6 +5,7 @@ const Io = std.Io;
 const domain = @import("domain");
 const storage = domain.storage;
 const known_folders = @import("known-folders");
+const Subdirs = @import("Subdirs.zig");
 
 pub const known_folders_config = known_folders.KnownFolderConfig{
     .xdg_on_mac = true,
@@ -12,6 +13,7 @@ pub const known_folders_config = known_folders.KnownFolderConfig{
 
 pause_after_finish: bool,
 worker_count: usize,
+subdirs: []const []const u8 = &.{},
 sources: []Source,
 
 pub const Source = struct {
@@ -130,6 +132,40 @@ pub const ValidateContext = struct {
 
 fn validate(self: *const Self, alloc: Allocator, context: *Context) !void {
     for (self.sources) |source| try source.validate(alloc, context);
+    if (self.subdirs.len == 0) {
+        context.validate.field = try alloc.dupe(u8, "subdirs");
+        context.validate.value = try alloc.dupe(u8, "");
+        context.validate.message = try alloc.dupe(u8, "subdirs 不能为空");
+        return error.ValidateFailed;
+    }
+    for (self.subdirs) |segment| try validateSegment(alloc, segment, context);
+}
+
+fn validateSegment(alloc: Allocator, segment: []const u8, context: *Context) !void {
+    if (segment.len == 0) {
+        context.validate.field = try alloc.dupe(u8, "subdirs");
+        context.validate.value = try alloc.dupe(u8, "");
+        context.validate.message = try alloc.dupe(u8, "目录段不能为空");
+        return error.ValidateFailed;
+    }
+    if (std.mem.indexOfAny(u8, segment, "/\\") != null) {
+        context.validate.field = try alloc.dupe(u8, "subdirs");
+        context.validate.value = try alloc.dupe(u8, segment);
+        context.validate.message = try alloc.dupe(u8, "目录段不能包含路径分隔符");
+        return error.ValidateFailed;
+    }
+    if (std.mem.eql(u8, segment, ".") or std.mem.eql(u8, segment, "..")) {
+        context.validate.field = try alloc.dupe(u8, "subdirs");
+        context.validate.value = try alloc.dupe(u8, segment);
+        context.validate.message = try alloc.dupe(u8, "目录段不能是 . 或 ..");
+        return error.ValidateFailed;
+    }
+    if (segment[0] == '.' and !Subdirs.isKnownToken(segment)) {
+        context.validate.field = try alloc.dupe(u8, "subdirs");
+        context.validate.value = try alloc.dupe(u8, segment);
+        context.validate.message = try alloc.dupe(u8, "未知的元数据占位符");
+        return error.ValidateFailed;
+    }
 }
 
 fn generateDefaultConfig(alloc: Allocator, io: Io, env: *const std.process.Environ.Map) !void {
@@ -270,6 +306,7 @@ test "Config.validate — accepts empty sources list" {
     const config = Self{
         .pause_after_finish = false,
         .worker_count = 5,
+        .subdirs = &.{".id"},
         .sources = @as([]Source, &.{}),
     };
 
@@ -288,6 +325,7 @@ test "Config.validate — accepts valid config with multiple sources" {
     const config = Self{
         .pause_after_finish = false,
         .worker_count = 5,
+        .subdirs = &.{".id"},
         .sources = &sources,
     };
 
@@ -295,6 +333,140 @@ test "Config.validate — accepts valid config with multiple sources" {
     defer context.deinit(alloc);
 
     try config.validate(alloc, &context);
+}
+
+test "Config.validate — rejects empty subdirs" {
+    const alloc = std.testing.allocator;
+    const config = Self{
+        .pause_after_finish = false,
+        .worker_count = 5,
+        .subdirs = &.{},
+        .sources = @as([]Source, &.{}),
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+    try std.testing.expectEqualStrings("subdirs", context.validate.field.?);
+    try std.testing.expectEqualStrings("", context.validate.value.?);
+    try std.testing.expectEqualStrings("subdirs 不能为空", context.validate.message.?);
+}
+
+test "Config.validate — accepts subdirs with literals and tokens" {
+    const alloc = std.testing.allocator;
+    const config = Self{
+        .pause_after_finish = false,
+        .worker_count = 5,
+        .subdirs = &.{ "hello", ".title", ".id", "1" },
+        .sources = @as([]Source, &.{}),
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try config.validate(alloc, &context);
+}
+
+test "Config.validate — accepts all known tokens" {
+    const alloc = std.testing.allocator;
+    const config = Self{
+        .pause_after_finish = false,
+        .worker_count = 5,
+        .subdirs = &.{
+            ".title",
+            ".originalTitle",
+            ".id",
+            ".studio",
+            ".director",
+            ".premiered",
+            ".plot",
+            ".country",
+            ".rating",
+            ".actress",
+        },
+        .sources = @as([]Source, &.{}),
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try config.validate(alloc, &context);
+}
+
+test "Config.validate — rejects empty subdir segment" {
+    const alloc = std.testing.allocator;
+    const config = Self{
+        .pause_after_finish = false,
+        .worker_count = 5,
+        .subdirs = &.{ "hello", "" },
+        .sources = @as([]Source, &.{}),
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+    try std.testing.expectEqualStrings("subdirs", context.validate.field.?);
+    try std.testing.expectEqualStrings("", context.validate.value.?);
+}
+
+test "Config.validate — rejects subdir segment with separator" {
+    const alloc = std.testing.allocator;
+    const config = Self{
+        .pause_after_finish = false,
+        .worker_count = 5,
+        .subdirs = &.{ "a/b" },
+        .sources = @as([]Source, &.{}),
+    };
+
+    var context: Context = .{};
+    defer context.deinit(alloc);
+
+    try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+    try std.testing.expectEqualStrings("subdirs", context.validate.field.?);
+    try std.testing.expectEqualStrings("a/b", context.validate.value.?);
+    try std.testing.expectEqualStrings("目录段不能包含路径分隔符", context.validate.message.?);
+}
+
+test "Config.validate — rejects dot and dotdot subdir segments" {
+    const alloc = std.testing.allocator;
+    for ([_][]const u8{ ".", ".." }) |bad| {
+        const config = Self{
+            .pause_after_finish = false,
+            .worker_count = 5,
+            .subdirs = &.{bad},
+            .sources = @as([]Source, &.{}),
+        };
+
+        var context: Context = .{};
+        defer context.deinit(alloc);
+
+        try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+        try std.testing.expectEqualStrings("subdirs", context.validate.field.?);
+        try std.testing.expectEqualStrings(bad, context.validate.value.?);
+        try std.testing.expectEqualStrings("目录段不能是 . 或 ..", context.validate.message.?);
+    }
+}
+
+test "Config.validate — rejects unknown tokens" {
+    const alloc = std.testing.allocator;
+    for ([_][]const u8{ ".foo", ".key" }) |bad| {
+        const config = Self{
+            .pause_after_finish = false,
+            .worker_count = 5,
+            .subdirs = &.{bad},
+            .sources = @as([]Source, &.{}),
+        };
+
+        var context: Context = .{};
+        defer context.deinit(alloc);
+
+        try std.testing.expectError(error.ValidateFailed, config.validate(alloc, &context));
+        try std.testing.expectEqualStrings("subdirs", context.validate.field.?);
+        try std.testing.expectEqualStrings(bad, context.validate.value.?);
+        try std.testing.expectEqualStrings("未知的元数据占位符", context.validate.message.?);
+    }
 }
 
 test "Config.validate — rejects config with invalid first source" {
