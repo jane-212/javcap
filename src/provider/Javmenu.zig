@@ -216,14 +216,6 @@ fn parseDetail(self: *Self, nfo: *domain.Nfo, detail_url: []const u8) !void {
         }
     }
 
-    const ogImage = try html.find("meta[property=\"og:image\"]");
-    if (ogImage.len() > 0) {
-        if (ogImage.attr("content")) |content| {
-            const poster = try self.fetchImage(nfo.alloc, std.mem.trim(u8, content, &std.ascii.whitespace));
-            nfo.poster = poster;
-        }
-    }
-
     nfo.country = .jp;
 }
 
