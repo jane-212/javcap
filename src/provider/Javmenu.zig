@@ -89,18 +89,24 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     var nfo = try domain.Nfo.init(alloc);
     errdefer nfo.deinit();
 
-    const show = try key.show(self.alloc);
-    defer self.alloc.free(show);
+    const show = try key.show(nfo.alloc);
+    errdefer nfo.alloc.free(show);
 
-    nfo.id = try alloc.dupe(u8, show);
+    nfo.id = show;
 
-    try self.parseDetail(alloc, &nfo, "");
+    const detail_url = try self.find(self.alloc, key, &nfo);
+    defer self.alloc.free(detail_url);
+
+    try self.parseDetail(&nfo, detail_url);
 
     return nfo;
 }
 
 fn find(self: *Self, alloc: Allocator, key: domain.jav.Key, nfo: *domain.Nfo) ![]const u8 {
-    const url = try std.fmt.allocPrint(self.alloc, "", .{});
+    const show = try key.show(self.alloc);
+    defer self.alloc.free(show);
+
+    const url = try std.fmt.allocPrint(self.alloc, "https://javmenu.com/zh/search?wd={s}", .{show});
     defer self.alloc.free(url);
     const uri = try std.Uri.parse(url);
     var response = try self.client.fetch(self.alloc, .{
@@ -108,9 +114,50 @@ fn find(self: *Self, alloc: Allocator, key: domain.jav.Key, nfo: *domain.Nfo) ![
     });
     defer response.deinit();
     if (response.status != .ok) return error.StatusNotOk;
+
+    var html = try zq.Document.initFromSlice(self.alloc, response.body);
+    defer html.deinit();
+
+    const items = try html.find("div.video-list-item");
+    var itemIt = items.iterator();
+    while (itemIt.next()) |item| {
+        const titleSel = try item.find("h5.card-title");
+        if (titleSel.len() == 0) continue;
+        const item_id = std.mem.trim(u8, try titleSel.text(), " \n\r\t");
+        if (item_id.len == 0) continue;
+        if (!try matches(self.alloc, key, item_id)) continue;
+
+        const linkSel = try item.find("a");
+        const href = linkSel.attr("href") orelse continue;
+
+        const imgSel = try item.find("img.lazyload");
+        const cover = imgSel.attr("data-src") orelse imgSel.attr("src") orelse continue;
+
+        nfo.fanart = try self.fetchImage(nfo.alloc, std.mem.trim(u8, cover, &std.ascii.whitespace));
+
+        return try alloc.dupe(u8, std.mem.trim(u8, href, &std.ascii.whitespace));
+    }
+
+    return error.NotFound;
 }
 
-fn parseDetail(self: *Self, alloc: Allocator, nfo: *domain.Nfo, detail_url: []const u8) !void {
+fn matches(alloc: Allocator, key: domain.jav.Key, itemId: []const u8) !bool {
+    switch (key) {
+        .fc2, .jav => {
+            var itemKey = try media.KeyParser.parse(alloc, itemId);
+            defer itemKey.deinit(alloc);
+            return std.meta.eql(key, itemKey);
+        },
+        .normal => |n| {
+            const score = try infra.matcher.jaroWinkler(alloc, n, itemId);
+            return score > 0.8;
+        },
+    }
+
+    return false;
+}
+
+fn parseDetail(self: *Self, nfo: *domain.Nfo, detail_url: []const u8) !void {
     const uri = try std.Uri.parse(detail_url);
     var response = try self.client.fetch(self.alloc, .{
         .location = .{ .uri = uri },
@@ -122,19 +169,19 @@ fn parseDetail(self: *Self, alloc: Allocator, nfo: *domain.Nfo, detail_url: []co
     defer html.deinit();
 
     const titleSel = try html.find("h1 strong");
-    if (cleanTitle(try titleSel.text())) |t| nfo.title = try alloc.dupe(u8, t);
+    if (cleanTitle(try titleSel.text())) |t| nfo.title = try nfo.alloc.dupe(u8, t);
 
     const directorSel = try html.find("div.director a");
     if (directorSel.len() > 0) {
         const director = std.mem.trim(u8, try directorSel.text(), " \n\r\t");
-        nfo.director = try alloc.dupe(u8, director);
+        nfo.director = try nfo.alloc.dupe(u8, director);
     }
 
     const genreSel = try html.find("a.genre");
     var genreIt = genreSel.iterator();
     while (genreIt.next()) |genreEl| {
         const g = std.mem.trim(u8, try genreEl.text(), " \n\r\t");
-        try nfo.genres.append(alloc, try alloc.dupe(u8, g));
+        try nfo.genres.append(nfo.alloc, try nfo.alloc.dupe(u8, g));
     }
 
     const actressSel = try html.find("a.actress");
@@ -142,9 +189,9 @@ fn parseDetail(self: *Self, alloc: Allocator, nfo: *domain.Nfo, detail_url: []co
     while (actressIt.next()) |actressEl| {
         const actress = std.mem.trim(u8, try actressEl.text(), " \n\r\t");
         if (actress.len == 0) continue;
-        const n = try alloc.dupe(u8, actress);
-        errdefer alloc.free(n);
-        try nfo.actresses.append(alloc, .{ .name = n });
+        const n = try nfo.alloc.dupe(u8, actress);
+        errdefer nfo.alloc.free(n);
+        try nfo.actresses.append(nfo.alloc, .{ .name = n });
     }
 
     const cardDivs = try html.find(".card-body > div");
@@ -153,7 +200,7 @@ fn parseDetail(self: *Self, alloc: Allocator, nfo: *domain.Nfo, detail_url: []co
         const divText = try div.text();
         if (std.mem.indexOf(u8, divText, "发佈于:") != null) {
             if (parseFieldValue(divText, "发佈于:")) |val| {
-                nfo.premiered = try alloc.dupe(u8, val);
+                nfo.premiered = try nfo.alloc.dupe(u8, val);
             }
         } else if (std.mem.indexOf(u8, divText, "时长:") != null) {
             if (parseFieldValue(divText, "时长:")) |val| {
@@ -165,16 +212,8 @@ fn parseDetail(self: *Self, alloc: Allocator, nfo: *domain.Nfo, detail_url: []co
     const ogImage = try html.find("meta[property=\"og:image\"]");
     if (ogImage.len() > 0) {
         if (ogImage.attr("content")) |content| {
-            const poster = try self.fetchImage(alloc, std.mem.trim(u8, content, &std.ascii.whitespace));
+            const poster = try self.fetchImage(nfo.alloc, std.mem.trim(u8, content, &std.ascii.whitespace));
             nfo.poster = poster;
-        }
-    }
-
-    const fanartSel = try html.find("a[data-fancybox=\"gallery\"]");
-    if (fanartSel.len() > 0) {
-        if (fanartSel.attr("href")) |href| {
-            const fanart = try self.fetchImage(alloc, std.mem.trim(u8, href, &std.ascii.whitespace));
-            nfo.fanart = fanart;
         }
     }
 
