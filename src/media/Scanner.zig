@@ -50,7 +50,6 @@ pub const Entry = struct {
 
     pub fn deinit(self: *Entry, alloc: Allocator) void {
         alloc.free(self.path);
-        self.* = undefined;
     }
 };
 

@@ -37,7 +37,6 @@ const MovieHit = struct {
         alloc.free(self.movieId);
         alloc.free(self.movieFanHao);
         if (self.title) |t| alloc.free(t);
-        self.* = undefined;
     }
 };
 
@@ -65,7 +64,6 @@ pub fn deinit(self: *Self) void {
     self.client.deinit();
     self.mediaClient.deinit();
     self.alloc.destroy(self);
-    self.* = undefined;
 }
 
 pub fn asProvider(self: *Self) provider.Provider {

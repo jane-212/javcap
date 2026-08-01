@@ -81,7 +81,6 @@ pub fn Parsed(comptime T: type) type {
 
         pub fn deinit(self: *@This()) void {
             std.zon.parse.free(self.alloc, self.value);
-            self.* = undefined;
         }
     };
 }
@@ -95,7 +94,6 @@ pub const Context = struct {
         if (self.validate.value) |value| alloc.free(value);
         if (self.validate.message) |message| alloc.free(message);
         self.diagnostics.deinit(alloc);
-        self.* = undefined;
     }
 
     pub fn formatValidate(self: *const Context, writer: *Io.Writer) !void {

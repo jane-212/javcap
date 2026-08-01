@@ -12,7 +12,6 @@ pub const Key = union(enum) {
             .fc2 => |fc2| alloc.free(fc2),
             .normal => |normal| alloc.free(normal),
         }
-        self.* = undefined;
     }
 
     pub fn show(self: *const Key, alloc: Allocator) ![]const u8 {
@@ -31,6 +30,5 @@ pub const JavKey = struct {
     pub fn deinit(self: *JavKey, alloc: Allocator) void {
         alloc.free(self.id);
         alloc.free(self.number);
-        self.* = undefined;
     }
 };

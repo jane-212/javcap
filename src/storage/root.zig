@@ -151,7 +151,6 @@ pub const Walker = struct {
         self.stack.deinit(self.alloc);
         for (self.store.items) |*e| e.deinit(self.alloc);
         self.store.deinit(self.alloc);
-        self.* = undefined;
     }
 };
 
@@ -161,7 +160,6 @@ pub const Entry = struct {
 
     pub fn deinit(self: *Entry, alloc: Allocator) void {
         alloc.free(self.path);
-        self.* = undefined;
     }
 };
 

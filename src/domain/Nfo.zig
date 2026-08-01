@@ -83,8 +83,6 @@ pub fn deinit(self: *Self) void {
         if (a.thumb) |t| self.alloc.free(t);
     }
     self.actresses.deinit(self.alloc);
-
-    self.* = undefined;
 }
 
 pub fn merge(self: *Self, other: *Self) !void {

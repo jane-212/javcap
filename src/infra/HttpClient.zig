@@ -95,11 +95,9 @@ pub const FetchResult = struct {
 
     pub fn deinit(self: *FetchResult) void {
         self.alloc.free(self.body);
-        self.* = undefined;
     }
 };
 
 pub fn deinit(self: *Self) void {
     self.client.deinit();
-    self.* = undefined;
 }

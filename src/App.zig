@@ -37,7 +37,6 @@ pub fn init(alloc: Allocator, io: Io, config: *const Config) !Self {
 pub fn deinit(self: *Self) void {
     for (self.providers) |*p| p.deinit();
     self.alloc.free(self.providers);
-    self.* = undefined;
 }
 
 pub fn start(self: *Self) !void {
@@ -280,7 +279,6 @@ const Task = struct {
         alloc.free(self.path);
         alloc.free(self.to);
         self.file.deinit();
-        self.* = undefined;
     }
 };
 
@@ -290,6 +288,5 @@ const Manager = struct {
     pub fn deinit(self: *Manager, alloc: Allocator) void {
         for (self.tasks) |*t| t.deinit(alloc);
         alloc.free(self.tasks);
-        self.* = undefined;
     }
 };

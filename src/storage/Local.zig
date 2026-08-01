@@ -22,7 +22,6 @@ pub fn init(alloc: Allocator, io: Io) !*Self {
 
 pub fn deinit(self: *Self) void {
     self.alloc.destroy(self);
-    self.* = undefined;
 }
 
 pub fn asStorage(self: *Self) storage.Storage {

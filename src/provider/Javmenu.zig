@@ -54,7 +54,6 @@ const SearchCandidate = struct {
         alloc.free(self.id);
         alloc.free(self.detail_href);
         alloc.free(self.cover_url);
-        self.* = undefined;
     }
 };
 
@@ -82,7 +81,6 @@ pub fn deinit(self: *Self) void {
     self.client.deinit();
     self.mediaClient.deinit();
     self.alloc.destroy(self);
-    self.* = undefined;
 }
 
 pub fn asProvider(self: *Self) provider.Provider {

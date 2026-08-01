@@ -12,7 +12,6 @@ pub const ParsedFile = struct {
     pub fn deinit(self: *ParsedFile) void {
         self.alloc.free(self.ext);
         self.key.deinit(self.alloc);
-        self.* = undefined;
     }
 };
 
