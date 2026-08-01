@@ -116,10 +116,13 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     var nfo = try domain.Nfo.init(alloc);
     errdefer nfo.deinit();
 
+    const show = try key.show(nfo.alloc);
+    defer nfo.alloc.free(show);
+
+    nfo.id = show;
+
     var hit = try self.find(self.alloc, key);
     defer hit.deinit(self.alloc);
-
-    nfo.id = try nfo.alloc.dupe(u8, hit.movieFanHao);
 
     try self.parseDetail(&nfo, hit);
 
