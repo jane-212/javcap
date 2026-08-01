@@ -437,7 +437,7 @@ test "matches — normal fuzzy matches similar fanhao or title" {
     try std.testing.expect(try matches(alloc, key, "080918_003", null));
 }
 
-test "support — accepts all key kinds" {
+test "support — fc2 accepted, jav and normal rejected" {
     const alloc = std.testing.allocator;
 
     var fc2Key = try media.KeyParser.parse(alloc, "FC2-12345");
@@ -448,8 +448,8 @@ test "support — accepts all key kinds" {
     defer normalKey.deinit(alloc);
 
     try std.testing.expect(support(fc2Key));
-    try std.testing.expect(support(javKey));
-    try std.testing.expect(support(normalKey));
+    try std.testing.expect(!support(javKey));
+    try std.testing.expect(!support(normalKey));
 }
 
 test "parseSearchResponse — extracts movie hits" {
