@@ -115,8 +115,6 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     errdefer nfo.deinit();
 
     const show = try key.show(nfo.alloc);
-    defer nfo.alloc.free(show);
-
     nfo.id = show;
 
     var hit = try self.find(self.alloc, key);
