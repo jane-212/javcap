@@ -4,6 +4,7 @@ const Io = std.Io;
 const provider = @import("root.zig");
 const domain = @import("domain");
 const infra = @import("infra");
+const media = @import("media");
 const zq = @import("zigquery");
 
 const Self = @This();
@@ -83,7 +84,7 @@ pub fn name(_: *Self) []const u8 {
 }
 
 pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
-    if (!support(key)) return error.NotSupported;
+    if (!support(key)) return error.NotSupport;
 
     var nfo = try domain.Nfo.init(alloc);
     errdefer nfo.deinit();
@@ -91,21 +92,34 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     const show = try key.show(self.alloc);
     defer self.alloc.free(show);
 
-    const url = try std.fmt.allocPrint(self.alloc, "https://javmenu.com/zh/{s}", .{show});
-    defer self.alloc.free(url);
+    nfo.id = try alloc.dupe(u8, show);
 
+    try self.parseDetail(alloc, &nfo, "");
+
+    return nfo;
+}
+
+fn find(self: *Self, alloc: Allocator, key: domain.jav.Key, nfo: *domain.Nfo) ![]const u8 {
+    const url = try std.fmt.allocPrint(self.alloc, "", .{});
+    defer self.alloc.free(url);
     const uri = try std.Uri.parse(url);
     var response = try self.client.fetch(self.alloc, .{
         .location = .{ .uri = uri },
     });
     defer response.deinit();
     if (response.status != .ok) return error.StatusNotOk;
+}
 
-    const body = response.body;
-    var html = try zq.Document.initFromSlice(self.alloc, body);
+fn parseDetail(self: *Self, alloc: Allocator, nfo: *domain.Nfo, detail_url: []const u8) !void {
+    const uri = try std.Uri.parse(detail_url);
+    var response = try self.client.fetch(self.alloc, .{
+        .location = .{ .uri = uri },
+    });
+    defer response.deinit();
+    if (response.status != .ok) return error.StatusNotOk;
+
+    var html = try zq.Document.initFromSlice(self.alloc, response.body);
     defer html.deinit();
-
-    nfo.id = try alloc.dupe(u8, show);
 
     const titleSel = try html.find("h1 strong");
     if (cleanTitle(try titleSel.text())) |t| nfo.title = try alloc.dupe(u8, t);
@@ -165,8 +179,6 @@ pub fn search(self: *Self, alloc: Allocator, key: domain.jav.Key) !domain.Nfo {
     }
 
     nfo.country = .jp;
-
-    return nfo;
 }
 
 fn cleanTitle(raw: []const u8) ?[]const u8 {
