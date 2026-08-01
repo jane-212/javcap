@@ -60,7 +60,7 @@ pub fn resolve(
             continue;
         }
 
-        const value = try resolveToken(alloc, segment, nfo) orelse continue;
+        const value = try resolveToken(alloc, segment, nfo) orelse try alloc.dupe(u8, "unknown");
         errdefer alloc.free(value);
 
         const cleaned = try sanitize(alloc, value);
